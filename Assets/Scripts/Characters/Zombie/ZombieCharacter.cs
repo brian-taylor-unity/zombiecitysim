@@ -1,25 +1,27 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ZombieCharacter : MovableCharacter
+public class ZombieCharacter : MonoBehaviour
 {
-    public int turnsPerMove = 2;
+    public int x;
+    public int y;
 
-    private int turnsSinceMove = 1;
+    private GameController gameController;
     private Vision vision;
-    private Transform moveTarget;
 
     void Awake()
     {
+        gameController = GameObject.FindGameObjectWithTag(Tags.gameController).GetComponent<GameController>();
         vision = gameObject.GetComponentInChildren<Vision>();
+
+        x = 0;
+        y = 0;
     }
 
     // Use this for initialization
-    protected override void Start()
+    void Start()
     {
-        moveTarget = transform;
 
-        base.Start();
     }
 
     // Update is called once per frame
@@ -28,54 +30,156 @@ public class ZombieCharacter : MovableCharacter
 
     }
 
-    protected override bool AttemptMove<T>(int xDir, int yDir)
-    {
-        if (turnsSinceMove != turnsPerMove)
-        {
-            turnsSinceMove++;
-            return false;
-        }
-        turnsSinceMove = 1;
-
-        return base.AttemptMove<T>(xDir, yDir);
-    }
-
-    public void MoveZombie()
+    public void Move()
     {
         GameObject closestHuman;
-        int xDir = 0;
-        int yDir = 0;
-        float xDistance = 0f;
-        float yDistance = 0f;
 
         // Check if human is within sight
         closestHuman = vision.ClosestHuman();
 
         if (closestHuman != gameObject)
-            moveTarget = closestHuman.transform;
-
-        // Zombie has a current target or a previously seen target
-        if (moveTarget != transform)
         {
-            // Check whether we need to move vertically or horizontally
-            xDistance = Mathf.Abs(moveTarget.position.x - transform.position.x);
-            yDistance = Mathf.Abs(moveTarget.position.y - transform.position.y);
+            //  move in that direction
+            MoveTowards(closestHuman.transform);
+        }
 
-            // If zombie is closer vertically than horizontally
-            if (yDistance < xDistance)
-                yDir = moveTarget.position.y > transform.position.y ? 1 : -1;
-            else
-                xDir = moveTarget.position.x > transform.position.x ? 1 : -1;
+        // Move in the previous direction
 
-            // Try to move in that direction
-            AttemptMove<HumanCharacter>(xDir, yDir);
+        // If didn't move last turn,
+        //  move randomly
+        else
+        {
+            MoveRandomly();
         }
     }
 
-    protected override void OnCantMove<T>(T component)
+    void MoveTowards(Transform target)
     {
-        HumanCharacter human = component as HumanCharacter;
+        bool preferHorizontal;
 
-        // Infect human
+        preferHorizontal = Mathf.Abs(x - target.position.x) > Mathf.Abs(y - target.position.y);
+
+        // We need to move to the right more than vertically
+        if (preferHorizontal)
+        {
+            // We need to move to the right
+            if (x < target.position.x)
+            {
+                if (gameController.IsPassable(x + 1, y))
+                {
+                    Move(x + 1, y);
+                    return;
+                }
+            }
+            // We need to move to the left
+            if (x > target.position.x)
+            {
+                if (gameController.IsPassable(x - 1, y))
+                {
+                    Move(x - 1, y);
+                    return;
+                }
+            }
+        }
+
+        // We either need to move vertically
+        // or needed to move horizontally but couldn't
+        if (y < target.position.y)
+        {
+            // Try to move up
+            if (gameController.IsPassable(x, y + 1))
+            {
+                Move(x, y + 1);
+                return;
+            }
+        }
+
+        // We haven't moved and
+        // we need to move down
+        if (y > target.position.y)
+        {
+            // Try to move down
+            if (gameController.IsPassable(x, y - 1))
+            {
+                Move(x, y - 1);
+                return;
+            }
+        }
+
+        // We didn't move at all
+    }
+
+    public void Move(int newX, int newY)
+    {
+        if (!gameController.IsPassable(newX, newY))
+        {
+            Debug.Log("invalid zombie move");
+            Debug.Break();
+            gameController.IsPassable(newX, newY);
+            return;
+        }
+
+        x = newX;
+        y = newY;
+        transform.localPosition = new Vector3(x, y);
+    }
+
+    public void MoveRandomly()
+    {
+        bool passable = false;
+        int newX, newY, direction;
+
+        newX = x;
+        newY = y;
+
+        do
+        {
+            if (!gameController.IsPassable(x, y + 1) &&
+                !gameController.IsPassable(x + 1, y) &&
+                !gameController.IsPassable(x, y - 1) &&
+                !gameController.IsPassable(x - 1, y))
+            {
+                // Can't move in any direction, pretend as though you have moved
+                passable = true;
+            }
+            else
+            {
+                direction = Random.Range(0, 4);
+                switch (direction)
+                {
+                    case 0:
+                        newX = x;
+                        newY = y + 1;
+                        if (gameController.IsPassable(newX, newY))
+                            passable = true;
+                        break;
+                    case 1:
+                        newX = x + 1;
+                        newY = y;
+                        if (gameController.IsPassable(newX, newY))
+                            passable = true;
+                        break;
+                    case 2:
+                        newX = x;
+                        newY = y - 1;
+                        if (gameController.IsPassable(newX, newY))
+                            passable = true;
+                        break;
+                    case 3:
+                        newX = x - 1;
+                        newY = y;
+                        if (gameController.IsPassable(newX, newY))
+                            passable = true;
+                        break;
+                }
+            }
+        } while (!passable);
+
+        if (newX != x || newY != y)
+        {
+            x = newX;
+            y = newY;
+            transform.localPosition = new Vector3(newX, newY);
+        }
     }
 }

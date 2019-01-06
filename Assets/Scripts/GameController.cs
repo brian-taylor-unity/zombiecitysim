@@ -9,15 +9,14 @@ public class GameController : MonoBehaviour
     public int numHumans;
     public int numZombies;
 
-    public Transform city;
+    public City cityPrefab;
 
-    public Transform humanCharacterPrefab;
-    public Transform zombieCharacterPrefab;
+    public GameObject humans;
+    public GameObject zombies;
+    public HumanCharacter humanCharacterPrefab;
+    public ZombieCharacter zombieCharacterPrefab;
 
-    private Transform prefabInstance;
     private City cityInstance;
-    private HumanCharacter humanCharacter;
-    private ZombieCharacter zombieCharacter;
     private List<GameObject> humanCharacters;
     private List<GameObject> zombieCharacters;
 
@@ -32,14 +31,15 @@ public class GameController : MonoBehaviour
             Destroy(gameObject);
 
         DontDestroyOnLoad(gameObject);
+
+        cityInstance = Instantiate(cityPrefab);
+        cityInstance.transform.SetParent(transform, false);
     }
 
     // Use this for initialization
     void Start()
     {
         int randomX, randomY;
-
-        cityInstance = city.GetComponent<City>();
 
         humanCharacters = new List<GameObject>();
         zombieCharacters = new List<GameObject>();
@@ -51,7 +51,7 @@ public class GameController : MonoBehaviour
             {
                 randomX = Random.Range(1, cityInstance.numTilesX - 1);
                 randomY = Random.Range(1, cityInstance.numTilesY - 1);
-            } while (!cityInstance.IsPassable(randomX, randomY));
+            } while (!IsPassable(randomX, randomY));
 
             AddHumanCharacter(randomX, randomY);
         }
@@ -63,7 +63,7 @@ public class GameController : MonoBehaviour
             {
                 randomX = Random.Range(1, cityInstance.numTilesX - 1);
                 randomY = Random.Range(1, cityInstance.numTilesY - 1);
-            } while (!cityInstance.IsPassable(randomX, randomY));
+            } while (!IsPassable(randomX, randomY));
 
             AddZombieCharacter(randomX, randomY);
         }
@@ -75,14 +75,12 @@ public class GameController : MonoBehaviour
         // Move characters
         foreach (GameObject human in humanCharacters)
         {
-            humanCharacter = human.GetComponent<HumanCharacter>();
-            // humanCharacter.MoveHuman();
+            human.GetComponent<HumanCharacter>().Move();
         }
 
         foreach (GameObject zombie in zombieCharacters)
         {
-            zombieCharacter = zombie.GetComponent<ZombieCharacter>();
-            zombieCharacter.MoveZombie();
+            zombie.GetComponent<ZombieCharacter>().Move();
         }
 
         if (humanCharacters.Count == 0 && !finished)
@@ -96,35 +94,63 @@ public class GameController : MonoBehaviour
 
     public void AddHumanCharacter(int x, int y)
     {
-        prefabInstance = Instantiate(humanCharacterPrefab, new Vector3(x, y), Quaternion.identity) as Transform;
-        prefabInstance.parent = transform;
+        if (!IsPassable(x, y))
+            return;
 
-        humanCharacter = prefabInstance.gameObject.GetComponent<HumanCharacter>();
+        HumanCharacter humanInstance = Instantiate(humanCharacterPrefab);
+        humanInstance.transform.SetParent(humans.transform);
 
-        humanCharacters.Add(prefabInstance.gameObject);
+        humanInstance.Move(x, y);
+        humanCharacters.Add(humanInstance.gameObject);
     }
 
     public void AddZombieCharacter(int x, int y)
     {
-        prefabInstance = Instantiate(zombieCharacterPrefab, new Vector3(x, y), Quaternion.identity) as Transform;
-        prefabInstance.parent = transform;
+        if (!IsPassable(x, y))
+            return;
 
-        zombieCharacter = prefabInstance.gameObject.GetComponent<ZombieCharacter>();
+        ZombieCharacter zombieInstance = Instantiate(zombieCharacterPrefab);
+        zombieInstance.transform.SetParent(zombies.transform);
 
-        zombieCharacters.Add(prefabInstance.gameObject);
+        zombieInstance.Move(x, y);
+        zombieCharacters.Add(zombieInstance.gameObject);
     }
 
     public void RemoveHumanCharacter(GameObject human)
     {
-        // cityInstance.SetPassable((int)human.transform.position.x, (int)human.transform.position.y, true);
         humanCharacters.Remove(human);
         Destroy(human);
     }
 
     public void RemoveZombieCharacter(GameObject zombie)
     {
-        // cityInstance.SetPassable((int)zombie.transform.position.x, (int)zombie.transform.position.y, true);
         zombieCharacters.Remove(zombie);
         Destroy(zombie);
+    }
+
+    public bool IsPassable(int x, int y)
+    {
+        bool passable = true;
+        foreach (GameObject obj in humanCharacters)
+        {
+            HumanCharacter human = obj.GetComponent<HumanCharacter>();
+            if (human.x == x && human.y == y)
+            {
+                passable = false;
+                break;
+            }
+        }
+
+        foreach (GameObject obj in zombieCharacters)
+        {
+            ZombieCharacter zombie = obj.GetComponent<ZombieCharacter>();
+            if (zombie.x == x && zombie.y == y)
+            {
+                passable = false;
+                break;
+            }
+        }
+
+        return passable && cityInstance.IsPassable(x, y);
     }
 }

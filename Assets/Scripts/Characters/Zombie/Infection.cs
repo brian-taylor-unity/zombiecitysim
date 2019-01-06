@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class OldInfection : MonoBehaviour 
+public class Infection : MonoBehaviour 
 {
 	// Use this for initialization
 	void Start ()
@@ -27,10 +27,10 @@ public class OldInfection : MonoBehaviour
 			y = (int)other.transform.position.y;
 			
 			// Remove human gameObject
-			OldGameController.instance.RemoveHumanCharacter(other.gameObject);
+			GameController.instance.RemoveHumanCharacter(other.gameObject);
 			
 			// Instatiate new zombie gameObject in its place
-			OldGameController.instance.AddZombieCharacter(x, y);
+			GameController.instance.AddZombieCharacter(x, y);
 		}
 	}
 }

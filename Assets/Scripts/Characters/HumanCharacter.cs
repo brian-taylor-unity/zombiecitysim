@@ -1,17 +1,24 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class HumanCharacter : MovableCharacter
+public class HumanCharacter : MonoBehaviour
 {
-	public int turnsPerMove = 1;
+	public int x;
+	public int y;
 
-	private int turnsSinceMove = 1;
+	private GameController gameController;
+
+	void Awake()
+	{
+		gameController = GameObject.FindGameObjectWithTag(Tags.gameController).GetComponent<GameController>();
+		x = 0;
+		y = 0;
+	}
 
 	// Use this for initialization
-	protected override void Start()
+	void Start()
 	{
 
-        base.Start();
 	}
 	
 	// Update is called once per frame
@@ -20,71 +27,71 @@ public class HumanCharacter : MovableCharacter
 	
 	}
 
-	protected override bool AttemptMove<T>(int xDir, int yDir)
+	public void Move(int newX, int newY)
 	{
-        Debug.Log("Human attemptMove");
-        return base.AttemptMove<T>(xDir, yDir);
-	}
-
-    public void MoveHuman()
-    {
-        if (turnsSinceMove != turnsPerMove)
-        {
-            turnsSinceMove++;
+        if (!gameController.IsPassable(newX, newY))
             return;
-        }
-        turnsSinceMove = 1;
 
-
-        // Move Randomly
-        bool didMove = false;
-        int moveTries = 0;
-        int direction = Random.Range(0, 4);
-
-        while (moveTries < 4)
-        {
-            switch (direction)
-            {
-                // Move Up
-                case 0:
-                    didMove = AttemptMove<ZombieCharacter>(0, 1);
-                    if (!didMove)
-                        moveTries++;
-                    break;
-                // Move Right
-                case 1:
-                    didMove = AttemptMove<ZombieCharacter>(1, 0);
-                    if (!didMove)
-                        moveTries++;
-                    break;
-                // Move Down
-                case 2:
-                    didMove = AttemptMove<ZombieCharacter>(0, -1);
-                    if (!didMove)
-                        moveTries++;
-                    break;
-                // Move Left
-                case 3:
-                    didMove = AttemptMove<ZombieCharacter>(-1, 0);
-                    if (!didMove)
-                        moveTries++;
-                    break;
-            }
-            if (didMove)
-                break;
-
-            direction = Random.Range(0, 4);
-        }
-
-    }
-
-	protected override void OnCantMove<T>(T component)
-	{
-        // Remove zombie health
+        x = newX;
+		y = newY;
+		transform.localPosition = new Vector3(x, y);
 	}
 
-    public void BecomeZombie()
-    {
+	public void Move()
+	{
+		MoveRandomly();
+	}
 
+	public void MoveRandomly()
+	{
+		bool passable = false;
+		int newX, newY, direction;
+
+		newX = x;
+		newY = y;
+
+		do {
+			if (!gameController.IsPassable(x, y + 1) &&
+				!gameController.IsPassable(x + 1, y) &&
+				!gameController.IsPassable(x, y - 1) &&
+				!gameController.IsPassable(x - 1, y)) {
+				// Can't move in any direction, pretend as though you have moved
+				passable = true;
+			} else {
+				direction = Random.Range(0, 4);
+				switch (direction) {
+				case 0:
+					newX = x;
+					newY = y + 1;
+					if (gameController.IsPassable(newX, newY))
+						passable = true;
+					break;
+				case 1:
+					newX = x + 1;
+					newY = y;
+					if (gameController.IsPassable(newX, newY))
+						passable = true;
+					break;
+				case 2:
+					newX = x;
+					newY = y - 1;
+					if (gameController.IsPassable(newX, newY))
+						passable = true;
+					break;
+				case 3:
+					newX = x - 1;
+					newY = y;
+					if (gameController.IsPassable(newX, newY))
+						passable = true;
+					break;
+				}
+			}
+		} while (!passable);
+		
+		if (newX != x || newY != y) {
+            x = newX;
+            y = newY;
+            transform.localPosition = new Vector3(newX, newY);
+        }
     }
 }
