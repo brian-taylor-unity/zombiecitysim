@@ -24,7 +24,7 @@ public class HumanCharacter : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-	
+        Move();
 	}
 
 	public void Move(int newX, int newY)

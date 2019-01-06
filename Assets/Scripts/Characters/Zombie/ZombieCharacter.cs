@@ -27,7 +27,7 @@ public class ZombieCharacter : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        Move();
     }
 
     public void Move()
@@ -112,12 +112,7 @@ public class ZombieCharacter : MonoBehaviour
     public void Move(int newX, int newY)
     {
         if (!gameController.IsPassable(newX, newY))
-        {
-            Debug.Log("invalid zombie move");
-            Debug.Break();
-            gameController.IsPassable(newX, newY);
             return;
-        }
 
         x = newX;
         y = newY;

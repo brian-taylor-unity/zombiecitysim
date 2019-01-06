@@ -1,11 +1,17 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
+using UnityEngine;
 using System.Collections.Generic;
 
 public class GameController : MonoBehaviour
 {
+    private EntityManager manager;
+
     public static GameController instance = null;
 
+    public int numTilesX = 130;
+    public int numTilesY = 130;
     public int numHumans;
     public int numZombies;
 
@@ -13,8 +19,8 @@ public class GameController : MonoBehaviour
 
     public GameObject humans;
     public GameObject zombies;
-    public HumanCharacter humanCharacterPrefab;
-    public ZombieCharacter zombieCharacterPrefab;
+    public GameObject humanCharacterPrefab;
+    public GameObject zombieCharacterPrefab;
 
     private City cityInstance;
     private List<GameObject> humanCharacters;
@@ -25,6 +31,8 @@ public class GameController : MonoBehaviour
 
     void Awake()
     {
+        manager = World.Active.GetOrCreateManager<EntityManager>();
+
         if (instance == null)
             instance = this;
         else if (instance != this)
@@ -32,6 +40,11 @@ public class GameController : MonoBehaviour
 
         DontDestroyOnLoad(gameObject);
 
+        humanCharacters = new List<GameObject>();
+        zombieCharacters = new List<GameObject>();
+
+        cityPrefab.numTilesX = numTilesX;
+        cityPrefab.numTilesY = numTilesY;
         cityInstance = Instantiate(cityPrefab);
         cityInstance.transform.SetParent(transform, false);
     }
@@ -41,16 +54,13 @@ public class GameController : MonoBehaviour
     {
         int randomX, randomY;
 
-        humanCharacters = new List<GameObject>();
-        zombieCharacters = new List<GameObject>();
-
         for (int i = 0; i < numHumans; i++)
         {
             // Place human in random place
             do
             {
-                randomX = Random.Range(1, cityInstance.numTilesX - 1);
-                randomY = Random.Range(1, cityInstance.numTilesY - 1);
+                randomX = UnityEngine.Random.Range(1, cityInstance.numTilesX - 1);
+                randomY = UnityEngine.Random.Range(1, cityInstance.numTilesY - 1);
             } while (!IsPassable(randomX, randomY));
 
             AddHumanCharacter(randomX, randomY);
@@ -61,8 +71,8 @@ public class GameController : MonoBehaviour
             // Place zombie in random place
             do
             {
-                randomX = Random.Range(1, cityInstance.numTilesX - 1);
-                randomY = Random.Range(1, cityInstance.numTilesY - 1);
+                randomX = UnityEngine.Random.Range(1, cityInstance.numTilesX - 1);
+                randomY = UnityEngine.Random.Range(1, cityInstance.numTilesY - 1);
             } while (!IsPassable(randomX, randomY));
 
             AddZombieCharacter(randomX, randomY);
@@ -72,18 +82,18 @@ public class GameController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Move characters
-        foreach (GameObject human in humanCharacters)
-        {
-            human.GetComponent<HumanCharacter>().Move();
-        }
+        //// Move characters
+        //foreach (GameObject human in humanCharacters)
+        //{
+        //    human.GetComponent<HumanCharacter>().Move();
+        //}
 
-        foreach (GameObject zombie in zombieCharacters)
-        {
-            zombie.GetComponent<ZombieCharacter>().Move();
-        }
+        //foreach (GameObject zombie in zombieCharacters)
+        //{
+        //    zombie.GetComponent<ZombieCharacter>().Move();
+        //}
 
-        if (humanCharacters.Count == 0 && !finished)
+        if (!finished && humanCharacters.Count == 0)
         {
             Debug.Log("numSteps: " + numSteps);
             finished = true;
@@ -97,11 +107,15 @@ public class GameController : MonoBehaviour
         if (!IsPassable(x, y))
             return;
 
-        HumanCharacter humanInstance = Instantiate(humanCharacterPrefab);
-        humanInstance.transform.SetParent(humans.transform);
+        Entity entity = manager.Instantiate(humanCharacterPrefab);
+        manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
+        manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
 
-        humanInstance.Move(x, y);
-        humanCharacters.Add(humanInstance.gameObject);
+        //HumanCharacter humanInstance = Instantiate(humanCharacterPrefab);
+        //humanInstance.transform.SetParent(humans.transform);
+
+        //humanInstance.Move(x, y);
+        //humanCharacters.Add(humanInstance.gameObject);
     }
 
     public void AddZombieCharacter(int x, int y)
@@ -109,11 +123,15 @@ public class GameController : MonoBehaviour
         if (!IsPassable(x, y))
             return;
 
-        ZombieCharacter zombieInstance = Instantiate(zombieCharacterPrefab);
-        zombieInstance.transform.SetParent(zombies.transform);
+        Entity entity = manager.Instantiate(zombieCharacterPrefab);
+        manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
+        manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 0, y) });
 
-        zombieInstance.Move(x, y);
-        zombieCharacters.Add(zombieInstance.gameObject);
+        //ZombieCharacter zombieInstance = Instantiate(zombieCharacterPrefab);
+        //zombieInstance.transform.SetParent(zombies.transform);
+
+        //zombieInstance.Move(x, y);
+        //zombieCharacters.Add(zombieInstance.gameObject);
     }
 
     public void RemoveHumanCharacter(GameObject human)
