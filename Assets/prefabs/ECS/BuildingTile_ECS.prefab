@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 8102587292980931434}
   - component: {fileID: 9014596575364302758}
   - component: {fileID: 9014596575364302759}
-  - component: {fileID: 9219748802032140270}
   m_Layer: 0
   m_Name: BuildingTile_ECS
   m_TagString: Untagged
@@ -112,20 +111,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fec6ea2355cd0942950cda84a762f49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &9219748802032140270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9014596575364302756}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1060dcfa4c8484da9a56580361de6f9f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SerializedData:
-    Value:
-      x: 1
-      y: 3
-      z: 1

@@ -39,6 +39,11 @@ public class City : MonoBehaviour
         return tilePassable[y, x];
     }
 
+    public void SetPassable(bool passable, int x, int y)
+    {
+        tilePassable[y, x] = passable;
+    }
+
     private void AddTile(GameObject tile, int x, int y)
     {
         //Tile tileInstance = Instantiate(tile, new Vector3(x, y, transform.position.z), Quaternion.identity);
@@ -50,6 +55,10 @@ public class City : MonoBehaviour
         manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 0, y) });
         if (tile == buildingTilePrefab)
         {
+            entity = manager.Instantiate(tile);
+            manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
+            manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+
             tileExists[y, x] = true;
             tilePassable[y, x] = false;
         }

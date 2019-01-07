@@ -104,12 +104,10 @@ public class GameController : MonoBehaviour
 
     public void AddHumanCharacter(int x, int y)
     {
-        if (!IsPassable(x, y))
-            return;
-
         Entity entity = manager.Instantiate(humanCharacterPrefab);
         manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
         manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+        cityInstance.SetPassable(false, x, y);
 
         //HumanCharacter humanInstance = Instantiate(humanCharacterPrefab);
         //humanInstance.transform.SetParent(humans.transform);
@@ -120,12 +118,10 @@ public class GameController : MonoBehaviour
 
     public void AddZombieCharacter(int x, int y)
     {
-        if (!IsPassable(x, y))
-            return;
-
         Entity entity = manager.Instantiate(zombieCharacterPrefab);
         manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
         manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+        cityInstance.SetPassable(false, x, y);
 
         //ZombieCharacter zombieInstance = Instantiate(zombieCharacterPrefab);
         //zombieInstance.transform.SetParent(zombies.transform);

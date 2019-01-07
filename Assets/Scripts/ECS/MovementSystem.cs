@@ -4,6 +4,8 @@ using Unity.Mathematics;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Burst;
+using UnityEngine;
+using Random = Unity.Mathematics.Random;
 
 public class MovementSystem : JobComponentSystem
 {
@@ -12,64 +14,54 @@ public class MovementSystem : JobComponentSystem
 
     struct PrevGridState
     {
-        public NativeHashMap<int, int> hashMap;
+        public NativeMultiHashMap<int, int> collidableHashMap;
     }
 
     [BurstCompile]
-    struct HashCollidablePositions : IJobParallelFor
+    struct HashGridPositionsJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> collidableGridPositions;
-        public NativeHashMap<int, int>.Concurrent hashMap;
+        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
+        public NativeMultiHashMap<int, int>.Concurrent hashMap;
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(collidableGridPositions[index].Value);
-            hashMap.TryAdd(hash, index);
+            var hash = GridHash.Hash(gridPositions[index].Value);
+            hashMap.Add(hash, index);
         }
     }
 
-    //[BurstCompile]
-    struct MovementJob : IJobProcessComponentData<Position, GridPosition, Movable>
+    [BurstCompile]
+    struct TryMovementJob : IJobProcessComponentData<GridPosition, Movable>
     {
-        [ReadOnly] public NativeHashMap<int, int> hashMap;
+        [ReadOnly] public NativeMultiHashMap<int, int> collidableHashMap;
+        [ReadOnly] public int tick;
 
-        public void Execute(ref Position position, ref GridPosition gridPosition, [ReadOnly] ref Movable moveable)
+        public void Execute(ref GridPosition gridPosition, [ReadOnly] ref Movable moveable)
         {
-            float3 myPosition = position.Value;
-            int3 myGridPostion = gridPosition.Value;
+            int3 myGridPositionValue = gridPosition.Value;
 
-            int upDirKey = GridHash.Hash(new int3(myGridPostion.x, myGridPostion.y, myGridPostion.z + 1));
-            int rightDirKey = GridHash.Hash(new int3(myGridPostion.x + 1, myGridPostion.y, myGridPostion.z));
-            int downDirKey = GridHash.Hash(new int3(myGridPostion.x, myGridPostion.y, myGridPostion.z - 1));
-            int leftDirKey = GridHash.Hash(new int3(myGridPostion.x - 1, myGridPostion.y, myGridPostion.z));
+            int upDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+            int rightDirKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+            int downDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+            int leftDirKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
 
             bool upMoveAvail = true;
             bool rightMoveAvail = true;
             bool downMoveAvail = true;
             bool leftMoveAvail = true;
 
-            if (hashMap.TryGetValue(upDirKey, out _))
+            if (collidableHashMap.TryGetFirstValue(upDirKey, out _, out _))
                 upMoveAvail = false;
-            if (hashMap.TryGetValue(rightDirKey, out _))
+            if (collidableHashMap.TryGetFirstValue(upDirKey, out _, out _))
                 rightMoveAvail = false;
-            if (hashMap.TryGetValue(downDirKey, out _))
+            if (collidableHashMap.TryGetFirstValue(upDirKey, out _, out _))
                 downMoveAvail = false;
-            if (hashMap.TryGetValue(leftDirKey, out _))
+            if (collidableHashMap.TryGetFirstValue(upDirKey, out _, out _))
                 leftMoveAvail = false;
 
-            if (upMoveAvail)
-                UnityEngine.Debug.Log("upMoveAvail");
-            if (rightMoveAvail)
-                UnityEngine.Debug.Log("rightMoveAvail");
-            if (downMoveAvail)
-                UnityEngine.Debug.Log("downMoveAvail");
-            if (leftMoveAvail)
-                UnityEngine.Debug.Log("leftMoveAvail");
-
             // Pick a random direction to move
-            Random rand = new Random((uint)GridHash.Hash(myGridPostion));
+            Random rand = new Random((uint)(tick ^ GridHash.Hash(myGridPositionValue)));
             int randomDirIndex = rand.NextInt(0, 4);
-            UnityEngine.Debug.Log(randomDirIndex);
 
             bool moved = false;
             for (int i = 0; i < 4; i++)
@@ -80,32 +72,28 @@ public class MovementSystem : JobComponentSystem
                     case 0:
                         if (upMoveAvail)
                         {
-                            myPosition.z += 1f;
-                            myGridPostion.z += 1;
+                            myGridPositionValue.z += 1;
                             moved = true;
                         }
                         break;
                     case 1:
                         if (rightMoveAvail)
                         {
-                            myPosition.x += 1f;
-                            myGridPostion.x += 1;
+                            myGridPositionValue.x += 1;
                             moved = true;
                         }
                         break;
                     case 2:
                         if (downMoveAvail)
                         {
-                            myPosition.z -= 1f;
-                            myGridPostion.z -= 1;
+                            myGridPositionValue.z -= 1;
                             moved = true;
                         }
                         break;
                     case 3:
                         if (leftMoveAvail)
                         {
-                            myPosition.x -= 1f;
-                            myGridPostion.x -= 1;
+                            myGridPositionValue.x -= 1;
                             moved = true;
                         }
                         break;
@@ -113,11 +101,28 @@ public class MovementSystem : JobComponentSystem
 
                 if (moved)
                 {
-                    position.Value = myPosition;
-                    gridPosition.Value = myGridPostion;
+                    gridPosition.Value = myGridPositionValue;
                     break;
                 }
             }
+        }
+    }
+
+    [BurstCompile]
+    struct FinalizeMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
+    {
+
+        public NativeArray<Position> positions;
+
+        public void ExecuteFirst(int index)
+        {
+            // This was the first unit added, update its Position
+
+        }
+
+        public void ExecuteNext(int cellIndex, int index)
+        {
+
         }
     }
 
@@ -131,36 +136,57 @@ public class MovementSystem : JobComponentSystem
 
     protected override void OnDestroyManager()
     {
-        m_PrevGridState.hashMap.Dispose();
+        if (m_PrevGridState.collidableHashMap.IsCreated)
+            m_PrevGridState.collidableHashMap.Dispose();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         var collidableGridPositions = m_CollidableGroup.GetComponentDataArray<GridPosition>();
         var collidableCount = collidableGridPositions.Length;
-        var hashMap = new NativeHashMap<int, int>(collidableCount, Allocator.TempJob);
+        var collidableHashMap = new NativeMultiHashMap<int, int>(collidableCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
-            hashMap = hashMap,
+            collidableHashMap = collidableHashMap,
         };
-        if (m_PrevGridState.hashMap.IsCreated)
-            m_PrevGridState.hashMap.Dispose();
+        if (m_PrevGridState.collidableHashMap.IsCreated)
+            m_PrevGridState.collidableHashMap.Dispose();
+
         m_PrevGridState = nextGridState;
 
-        var hashCollidablePositionsJob = new HashCollidablePositions
+        var hashCollidablePositionsJob = new HashGridPositionsJob
         {
-            collidableGridPositions = collidableGridPositions,
-            hashMap = hashMap.ToConcurrent()
+            gridPositions = collidableGridPositions,
+            hashMap = collidableHashMap.ToConcurrent(),
         };
         var hashCollidablePositionsJobHandle = hashCollidablePositionsJob.Schedule(collidableCount, 64, inputDeps);
 
-        var movementJob = new MovementJob
+        var tryMovementJob = new TryMovementJob
         {
-            hashMap = hashMap,
+            collidableHashMap = collidableHashMap,
+            tick = Time.frameCount,
         };
-        var movementJobHandle = movementJob.Schedule(this, hashCollidablePositionsJobHandle);
+        var tryMovementJobHandle = tryMovementJob.Schedule(this, hashCollidablePositionsJobHandle);
 
-        return movementJobHandle;
+        if (collidableHashMap.IsCreated)
+            collidableHashMap.Dispose();
+        collidableHashMap = new NativeMultiHashMap<int, int>(collidableCount, Allocator.Temp);
+        hashCollidablePositionsJob = new HashGridPositionsJob
+        {
+            gridPositions = collidableGridPositions,
+            hashMap = collidableHashMap.ToConcurrent(),
+        };
+        hashCollidablePositionsJobHandle =
+            hashCollidablePositionsJob.Schedule(collidableCount, 64, tryMovementJobHandle);
+
+        var finalizeMovementJob = new FinalizeMovementJob
+        {
+
+        };
+        var finalizeMovementJobHandle =
+            finalizeMovementJob.Schedule(collidableHashMap, 64, hashCollidablePositionsJobHandle);
+
+        return tryMovementJobHandle;
     }
 }
