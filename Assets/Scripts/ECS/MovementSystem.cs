@@ -1,49 +1,67 @@
-﻿//using Unity.Collections;
-//using Unity.Entities;
-//using Unity.Jobs;
-//using Unity.Burst;
+﻿using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
+using Unity.Burst;
 
-//public class MovementSystem : JobComponentSystem
-//{
-//    private ComponentGroup m_CollidableGroup;
+public class MovementSystem : JobComponentSystem
+{
+    private ComponentGroup m_CollidableGroup;
+    private PrevGridState m_PrevGridState;
 
-//    [BurstCompile]
-//    struct HashCollidablePositions : IJobParallelFor
-//    {
-//        [ReadOnly] public ComponentDataArray<GridPosition> positions;
-//        public NativeHashMap<int, int>.Concurrent hashMap;
+    struct PrevGridState
+    {
+        public NativeHashMap<int, int> hashMap;
+    }
 
-//        public void Execute(int index)
-//        {
-//            var hash = GridHash.Hash(positions[index].Value);
-//            hashMap.TryAdd(hash, index);
-//        }
-//    }
+    [BurstCompile]
+    struct HashCollidablePositions : IJobParallelFor
+    {
+        [ReadOnly] public ComponentDataArray<GridPosition> positions;
+        public NativeHashMap<int, int>.Concurrent hashMap;
 
-//    protected override void OnCreateManager()
-//    {
-//        m_CollidableGroup = GetComponentGroup(
-//            ComponentType.ReadOnly(typeof(Collidable)),
-//            ComponentType.ReadOnly(typeof(GridPosition))
-//        );
-//    }
+        public void Execute(int index)
+        {
+            var hash = GridHash.Hash(positions[index].Value);
+            hashMap.TryAdd(hash, index);
+        }
+    }
 
-//    protected override JobHandle OnUpdate(JobHandle inputDeps)
-//    {
-//        var positions = m_CollidableGroup.GetComponentDataArray<GridPosition>();
-//        var collidableCount = positions.Length;
-//        var hashMap = new NativeHashMap<int, int>(collidableCount, Allocator.TempJob);
+    protected override void OnCreateManager()
+    {
+        m_CollidableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Collidable)),
+            ComponentType.ReadOnly(typeof(GridPosition))
+        );
+    }
 
-//        var hashCollidablePositionsJob = new HashCollidablePositions
-//        {
-//            positions = positions,
-//            hashMap = hashMap.ToConcurrent()
-//        };
+    protected override void OnDestroyManager()
+    {
+        m_PrevGridState.hashMap.Dispose();
+    }
 
-//        var hashCollidablePositionsJobHandle = hashCollidablePositionsJob.Schedule(collidableCount, 64, inputDeps);
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    {
+        var positions = m_CollidableGroup.GetComponentDataArray<GridPosition>();
+        var collidableCount = positions.Length;
+        var hashMap = new NativeHashMap<int, int>(collidableCount, Allocator.TempJob);
 
-//        hashMap.Dispose();
+        var nextGridState = new PrevGridState
+        {
+            hashMap = hashMap,
+        };
+        if (m_PrevGridState.hashMap.IsCreated)
+            m_PrevGridState.hashMap.Dispose();
+        m_PrevGridState = nextGridState;
 
-//        return hashCollidablePositionsJobHandle;
-//    }
-//}
+        var hashCollidablePositionsJob = new HashCollidablePositions
+        {
+            positions = positions,
+            hashMap = hashMap.ToConcurrent()
+        };
+        var hashCollidablePositionsJobHandle = hashCollidablePositionsJob.Schedule(collidableCount, 64, inputDeps);
+
+
+
+        return hashCollidablePositionsJobHandle;
+    }
+}
