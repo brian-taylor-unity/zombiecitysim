@@ -125,7 +125,7 @@ public class GameController : MonoBehaviour
 
         Entity entity = manager.Instantiate(zombieCharacterPrefab);
         manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
-        manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 0, y) });
+        manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
 
         //ZombieCharacter zombieInstance = Instantiate(zombieCharacterPrefab);
         //zombieInstance.transform.SetParent(zombies.transform);
