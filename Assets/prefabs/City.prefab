@@ -46,7 +46,7 @@ MonoBehaviour:
   numTilesX: 130
   numTilesY: 130
   unitsPerTile: 1
-  numStreets: 6
+  numStreets: 30
   roadTilePrefab: {fileID: 9014596575364302756, guid: 50dfa7c0b4a8652449dd7a0ce5b509c3,
     type: 3}
   buildingTilePrefab: {fileID: 9014596575364302756, guid: 398b723bb4b34ec4aa4f8ac53e5bab93,

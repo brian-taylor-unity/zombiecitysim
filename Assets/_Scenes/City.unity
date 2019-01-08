@@ -393,7 +393,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numTilesX: 30
   numTilesY: 30
-  numHumans: 2
+  numHumans: 16
   numZombies: 1
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}
