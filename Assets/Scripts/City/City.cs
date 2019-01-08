@@ -9,7 +9,6 @@ public class City : MonoBehaviour
 
     public int numTilesX;
     public int numTilesY;
-    public int unitsPerTile = 1;
     public int numStreets;
     public GameObject roadTilePrefab;
     public GameObject buildingTilePrefab;

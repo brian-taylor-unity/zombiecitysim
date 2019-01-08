@@ -12,6 +12,7 @@ public class GameController : MonoBehaviour
 
     public int numTilesX = 130;
     public int numTilesY = 130;
+    public int numStreets = 30;
     public int numHumans;
     public int numZombies;
 
@@ -45,6 +46,7 @@ public class GameController : MonoBehaviour
 
         cityPrefab.numTilesX = numTilesX;
         cityPrefab.numTilesY = numTilesY;
+        cityPrefab.numStreets = numStreets;
         cityInstance = Instantiate(cityPrefab);
         cityInstance.transform.SetParent(transform, false);
     }
