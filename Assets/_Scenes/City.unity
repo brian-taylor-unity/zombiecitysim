@@ -256,13 +256,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 292301223}
-  m_LocalRotation: {x: 0.3883391, y: 0.34681216, z: -0.16061713, w: 0.8385203}
-  m_LocalPosition: {x: -19.35, y: 103, z: -15.27}
+  m_LocalRotation: {x: 0.5299155, y: 0.31347594, z: -0.21949817, w: 0.7567979}
+  m_LocalPosition: {x: 120, y: 400, z: 120}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 49.7, y: 44.94, z: 0}
+  m_LocalEulerAnglesHint: {x: 70, y: 45, z: 0}
 --- !u!1 &764395441
 GameObject:
   m_ObjectHideFlags: 0
@@ -391,11 +391,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 200
-  numTilesY: 200
-  numStreets: 200
-  numHumans: 200
-  numZombies: 1
+  numTilesX: 500
+  numTilesY: 500
+  numStreets: 500
+  numHumans: 28000
+  numZombies: 1000
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}
   humans: {fileID: 1282689808}
