@@ -43,6 +43,15 @@ public class MovementSystem : JobComponentSystem
     }
 
     [BurstCompile]
+    struct TryFollowMovementJob : IJobParallelFor
+    {
+        public void Execute(int index)
+        {
+
+        }
+    }
+
+    [BurstCompile]
     struct TryRandomMovementJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
@@ -134,12 +143,10 @@ public class MovementSystem : JobComponentSystem
         public void ExecuteFirst(int index)
         {
             // This was the first unit added
-            // Debug.Log("[ExecuteFirst] index: " + index + " gridPosition: " + gridPositions[index].Value + " nextGridPosition: " + nextGridPositions[index].Value);
         }
 
         public void ExecuteNext(int innerIndex, int index)
         {
-            // Debug.Log("[ExecuteNext] index: " + index + " innerIndex: " + innerIndex + " gridPosition: " + gridPositions[index].Value + " nextGridPosition: " + nextGridPositions[index].Value);
             nextGridPositions[index] = gridPositions[index];
         }
     }
@@ -156,8 +163,6 @@ public class MovementSystem : JobComponentSystem
 
             position = new Position { Value = new float3(nextGridPositions[index].Value) };
             gridPosition = nextGridPositions[index];
-
-            // Debug.Log("found: " + found + " index: " + index + " gridPosition: " + gridPosition.Value);
         }
     }
 
