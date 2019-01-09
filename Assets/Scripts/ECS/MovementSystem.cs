@@ -119,11 +119,9 @@ public class MovementSystem : JobComponentSystem
                 }
 
                 if (moved)
-                {
-                    nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
                     break;
-                }
             }
+            nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
     }
 
@@ -149,17 +147,14 @@ public class MovementSystem : JobComponentSystem
     [BurstCompile]
     struct FinalizeMovementJob : IJobProcessComponentData<Position, GridPosition, Movable>
     {
-        [ReadOnly] public NativeMultiHashMap<int, int> gridHashMap;
+        [ReadOnly] public NativeMultiHashMap<int, int> initialGridHashMap;
         [ReadOnly] public NativeArray<GridPosition> nextGridPositions;
-        [ReadOnly] public NativeMultiHashMap<int, int> nextGridHashMap;
 
         public void Execute(ref Position position, ref GridPosition gridPosition, [ReadOnly] ref Movable moveable)
         {
-            bool found = gridHashMap.TryGetFirstValue(GridHash.Hash(gridPosition.Value), out int index, out _);
+            bool found = initialGridHashMap.TryGetFirstValue(GridHash.Hash(gridPosition.Value), out int index, out _);
+
             position = new Position { Value = new float3(nextGridPositions[index].Value) };
-
-
-
             gridPosition = nextGridPositions[index];
 
             // Debug.Log("found: " + found + " index: " + index + " gridPosition: " + gridPosition.Value);
@@ -342,8 +337,7 @@ public class MovementSystem : JobComponentSystem
 
         var finalizeMovementJob = new FinalizeMovementJob
         {
-            gridHashMap = initialMovableHashMap,
-            nextGridHashMap = updatedMovableHashMap,
+            initialGridHashMap = initialMovableHashMap,
             nextGridPositions = updatedMovableGridPositions,
         };
         var finalizeMovementJobHandle = finalizeMovementJob.Schedule(this, revertCollidedMovementJobHandle);
