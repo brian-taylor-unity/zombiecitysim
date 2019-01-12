@@ -11,7 +11,8 @@ public class MovementSystem : JobComponentSystem
 {
     private ComponentGroup m_NonMovableCollidableGroup;
     private ComponentGroup m_MovableCollidableGroup;
-    private ComponentGroup m_MovableGroup;
+    private ComponentGroup m_HumanMovableGroup;
+    private ComponentGroup m_ZombieMovableGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
@@ -22,11 +23,15 @@ public class MovementSystem : JobComponentSystem
         public NativeArray<GridPosition> nativeMovableCollidableGridPositions;
         public NativeMultiHashMap<int, int> movableCollidableHashMap;
 
-        public NativeArray<GridPosition> initialMovableGridPositions;
-        public NativeMultiHashMap<int, int> initialMovableHashMap;
+        public NativeArray<GridPosition> initialHumanGridPositions;
+        public NativeMultiHashMap<int, int> initialHumanGridPositionsHashMap;
+        public NativeArray<GridPosition> updatedHumanGridPositions;
+        public NativeMultiHashMap<int, int> updatedHumanGridPositionsHashMap;
 
-        public NativeArray<GridPosition> updatedMovableGridPositions;
-        public NativeMultiHashMap<int, int> updatedMovableHashMap;
+        public NativeArray<GridPosition> initialZombieGridPositions;
+        public NativeMultiHashMap<int, int> initialZombieGridPositionsHashMap;
+        public NativeArray<GridPosition> updatedZombieGridPositions;
+        public NativeMultiHashMap<int, int> updatedZombieGridPositionsHashMap;
     }
 
     [BurstCompile]
@@ -42,14 +47,109 @@ public class MovementSystem : JobComponentSystem
         }
     }
 
-    [BurstCompile]
+    //[BurstCompile]
     struct TryFollowMovementJob : IJobParallelFor
     {
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
+        public NativeArray<GridPosition> nextGridPositions;
+        [ReadOnly] public NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
+        [ReadOnly] public NativeMultiHashMap<int, int> movableCollidableHashMap;
+        [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
+
         public void Execute(int index)
         {
+            int3 myGridPositionValue = gridPositions[index].Value;
+            int visionDist = 5;
 
+            NativeList<int3> validTargetsList = new NativeList<int3>(Allocator.Temp);
+
+            // Get nearest target
+            for (int checkDist = 1; checkDist <= visionDist; checkDist++)
+            {
+                // Check all grid positions that are checkDist
+                for (int y = -checkDist; y < checkDist; y++)
+                {
+                    for (int x = -checkDist; x < checkDist; x++)
+                    {
+                        int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + y);
+                        int targetKey = GridHash.Hash(targetGridPosition);
+                        if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
+                        {
+                            validTargetsList.Add(targetGridPosition);
+                        }
+                    }
+                }
+            }
+
+            if (validTargetsList.Length > 0)
+            {
+                int nearestIndex = 0;
+                float nearestDistance = math.lengthsq(new float3(myGridPositionValue) - new float3(validTargetsList[0]));
+                for (int i = 0; i < validTargetsList.Length; i++)
+                {
+                    var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(validTargetsList[i]));
+                    var nearest = distance < nearestDistance;
+
+                    nearestDistance = math.@select(nearestDistance, distance, nearest);
+                    nearestIndex = math.@select(nearestIndex, i, nearest);
+                }
+                int3 direction = validTargetsList[nearestIndex] - myGridPositionValue;
+
+                // Check if space is already occupied
+                int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+                int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+                bool moved = false;
+                if (math.abs(direction.x) >= math.abs(direction.z))
+                {
+                    // Move horizontally
+                    if (direction.x < 0)
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                        {
+                            myGridPositionValue.x--;
+                            moved = true;
+                        }
+                    }
+                    else
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                        {
+                            myGridPositionValue.x++;
+                            moved = true;
+                        }
+                    }
+                }
+                if (!moved)
+                {
+                    // Move vertically
+                    if (direction.z < 0)
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                        {
+                            myGridPositionValue.z--;
+                        }
+                    }
+                    else
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                        {
+                            myGridPositionValue.z++;
+                        }
+                    }
+                }
+            }
+
+            nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
+
+            validTargetsList.Dispose();
         }
-    }
+}
 
     [BurstCompile]
     struct TryRandomMovementJob : IJobParallelFor
@@ -135,34 +235,27 @@ public class MovementSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct RevertCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
+    struct ResolveCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
     {
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeArray<GridPosition> nextGridPositions;
+        [ReadOnly] public NativeArray<GridPosition> updatedGridPositions;
+        public ComponentDataArray<GridPosition> gridPositionComponentData;
+        public ComponentDataArray<Position> positionComponentData;
+        [ReadOnly] public NativeMultiHashMap<int, int> updatedCollisionGridPositionsHashMap;
 
         public void ExecuteFirst(int index)
         {
             // This was the first unit added
+            int seed = GridHash.Hash(updatedGridPositions[index].Value);
+            if (updatedCollisionGridPositionsHashMap.TryGetFirstValue(seed, out _, out _))
+                return;
+
+            gridPositionComponentData[index] = updatedGridPositions[index];
+            positionComponentData[index] = new Position { Value = new float3(updatedGridPositions[index].Value) };
         }
 
         public void ExecuteNext(int innerIndex, int index)
         {
-            nextGridPositions[index] = gridPositions[index];
-        }
-    }
-
-    [BurstCompile]
-    struct FinalizeMovementJob : IJobProcessComponentData<Position, GridPosition, Movable>
-    {
-        [ReadOnly] public NativeMultiHashMap<int, int> initialGridHashMap;
-        [ReadOnly] public NativeArray<GridPosition> nextGridPositions;
-
-        public void Execute(ref Position position, ref GridPosition gridPosition, [ReadOnly] ref Movable moveable)
-        {
-            bool found = initialGridHashMap.TryGetFirstValue(GridHash.Hash(gridPosition.Value), out int index, out _);
-
-            position = new Position { Value = new float3(nextGridPositions[index].Value) };
-            gridPosition = nextGridPositions[index];
+            // Don't move this unit
         }
     }
 
@@ -177,10 +270,17 @@ public class MovementSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Movable))
         );
-        m_MovableGroup = GetComponentGroup(
+        m_HumanMovableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Human)),
             ComponentType.ReadOnly(typeof(Movable)),
-            ComponentType.ReadOnly(typeof(GridPosition)),
-            ComponentType.ReadOnly(typeof(Position))
+            typeof(GridPosition),
+            typeof(Position)
+        );
+        m_ZombieMovableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Zombie)),
+            ComponentType.ReadOnly(typeof(Movable)),
+            typeof(GridPosition),
+            typeof(Position)
         );
     }
 
@@ -196,20 +296,27 @@ public class MovementSystem : JobComponentSystem
         if (m_PrevGridState.movableCollidableHashMap.IsCreated)
             m_PrevGridState.movableCollidableHashMap.Dispose();
 
-        if (m_PrevGridState.initialMovableGridPositions.IsCreated)
-            m_PrevGridState.initialMovableGridPositions.Dispose();
-        if (m_PrevGridState.initialMovableHashMap.IsCreated)
-            m_PrevGridState.initialMovableHashMap.Dispose();
+        if (m_PrevGridState.initialHumanGridPositions.IsCreated)
+            m_PrevGridState.initialHumanGridPositions.Dispose();
+        if (m_PrevGridState.initialHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialHumanGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositions.IsCreated)
+            m_PrevGridState.updatedHumanGridPositions.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedHumanGridPositionsHashMap.Dispose();
 
-        if (m_PrevGridState.updatedMovableGridPositions.IsCreated)
-            m_PrevGridState.updatedMovableGridPositions.Dispose();
-        if (m_PrevGridState.updatedMovableHashMap.IsCreated)
-            m_PrevGridState.updatedMovableHashMap.Dispose();
+        if (m_PrevGridState.initialZombieGridPositions.IsCreated)
+            m_PrevGridState.initialZombieGridPositions.Dispose();
+        if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
+            m_PrevGridState.updatedZombieGridPositions.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedZombieGridPositionsHashMap.Dispose();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        int nonMovableCollidableCount = 0;
         NativeArray<GridPosition> nativeNonMovableCollidableGridPositions;
         NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
 
@@ -218,12 +325,21 @@ public class MovementSystem : JobComponentSystem
         var nativeMovableCollidableGridPositions = new NativeArray<GridPosition>(movableCollidableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var movableCollidableHashMap = new NativeMultiHashMap<int, int>(movableCollidableCount, Allocator.TempJob);
 
-        var movableGridPositions = m_MovableGroup.GetComponentDataArray<GridPosition>();
-        var movableCount = movableGridPositions.Length;
-        var initialMovableGridPositions = new NativeArray<GridPosition>(movableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-        var initialMovableHashMap = new NativeMultiHashMap<int, int>(movableCount, Allocator.TempJob);
-        var updatedMovableGridPositions = new NativeArray<GridPosition>(movableCount, Allocator.TempJob);
-        var updatedMovableHashMap = new NativeMultiHashMap<int, int>(movableCount, Allocator.TempJob);
+        var humanMovableGridPositions = m_HumanMovableGroup.GetComponentDataArray<GridPosition>();
+        var humanMovablePositions = m_HumanMovableGroup.GetComponentDataArray<Position>();
+        var humanMovableCount = humanMovableGridPositions.Length;
+        var initialHumanGridPositions = new NativeArray<GridPosition>(humanMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        var initialHumanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanMovableCount, Allocator.TempJob);
+        var updatedHumanGridPositions = new NativeArray<GridPosition>(humanMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        var updatedHumanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanMovableCount, Allocator.TempJob);
+
+        var zombieMovableGridPositions = m_ZombieMovableGroup.GetComponentDataArray<GridPosition>();
+        var zombieMovablePositions = m_ZombieMovableGroup.GetComponentDataArray<Position>();
+        var zombieMovableCount = zombieMovableGridPositions.Length;
+        var initialZombieGridPositions = new NativeArray<GridPosition>(zombieMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        var initialZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
+        var updatedZombieGridPositions = new NativeArray<GridPosition>(zombieMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        var updatedZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
@@ -233,24 +349,27 @@ public class MovementSystem : JobComponentSystem
             nativeMovableCollidableGridPositions = nativeMovableCollidableGridPositions,
             movableCollidableHashMap = movableCollidableHashMap,
 
-            initialMovableGridPositions = initialMovableGridPositions,
-            initialMovableHashMap = initialMovableHashMap,
+            initialHumanGridPositions = initialHumanGridPositions,
+            initialHumanGridPositionsHashMap = initialHumanGridPositionsHashMap,
+            updatedHumanGridPositions = updatedHumanGridPositions,
+            updatedHumanGridPositionsHashMap = updatedHumanGridPositionsHashMap,
 
-            updatedMovableGridPositions = updatedMovableGridPositions,
-            updatedMovableHashMap = updatedMovableHashMap,
+            initialZombieGridPositions = initialZombieGridPositions,
+            initialZombieGridPositionsHashMap = initialZombieGridPositionsHashMap,
+            updatedZombieGridPositions = updatedZombieGridPositions,
+            updatedZombieGridPositionsHashMap = updatedZombieGridPositionsHashMap,
         };
 
         JobHandle hashNonMovableCollidablePositionsJobHandle = inputDeps;
         if (m_PrevGridState.nativeNonMovableCollidableGridPositions.IsCreated)
         {
             nativeNonMovableCollidableGridPositions = m_PrevGridState.nativeNonMovableCollidableGridPositions;
-            nonMovableCollidableCount = nativeNonMovableCollidableGridPositions.Length;
             nonMovableCollidableHashMap = m_PrevGridState.nonMovableCollidableHashMap;
         }
         else
         {
             ComponentDataArray<GridPosition> nonMovableCollidableGridPositions = m_NonMovableCollidableGroup.GetComponentDataArray<GridPosition>();
-            nonMovableCollidableCount = nonMovableCollidableGridPositions.Length;
+            var nonMovableCollidableCount = nonMovableCollidableGridPositions.Length;
             nextGridState.nativeNonMovableCollidableGridPositions = nativeNonMovableCollidableGridPositions = new NativeArray<GridPosition>(nonMovableCollidableCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             nextGridState.nonMovableCollidableHashMap = nonMovableCollidableHashMap = new NativeMultiHashMap<int, int>(nonMovableCollidableCount, Allocator.Persistent);
 
@@ -274,15 +393,23 @@ public class MovementSystem : JobComponentSystem
         if (m_PrevGridState.movableCollidableHashMap.IsCreated)
             m_PrevGridState.movableCollidableHashMap.Dispose();
 
-        if (m_PrevGridState.initialMovableGridPositions.IsCreated)
-            m_PrevGridState.initialMovableGridPositions.Dispose();
-        if (m_PrevGridState.initialMovableHashMap.IsCreated)
-            m_PrevGridState.initialMovableHashMap.Dispose();
+        if (m_PrevGridState.initialHumanGridPositions.IsCreated)
+            m_PrevGridState.initialHumanGridPositions.Dispose();
+        if (m_PrevGridState.initialHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialHumanGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositions.IsCreated)
+            m_PrevGridState.updatedHumanGridPositions.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedHumanGridPositionsHashMap.Dispose();
 
-        if (m_PrevGridState.updatedMovableGridPositions.IsCreated)
-            m_PrevGridState.updatedMovableGridPositions.Dispose();
-        if (m_PrevGridState.updatedMovableHashMap.IsCreated)
-            m_PrevGridState.updatedMovableHashMap.Dispose();
+        if (m_PrevGridState.initialZombieGridPositions.IsCreated)
+            m_PrevGridState.initialZombieGridPositions.Dispose();
+        if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
+            m_PrevGridState.updatedZombieGridPositions.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedZombieGridPositionsHashMap.Dispose();
 
         m_PrevGridState = nextGridState;
 
@@ -300,53 +427,95 @@ public class MovementSystem : JobComponentSystem
         };
         var hashMovableCollidablePositionsJobHandle = hashMovableCollidablePositionsJob.Schedule(movableCollidableCount, 64, copyNativeMovableCollidableGridPositionsJobHandle);
 
-        var copyNativeMovableGridPositionsJob = new CopyComponentData<GridPosition>
+        var copyNativeHumanMovableGridPositionsJob = new CopyComponentData<GridPosition>
         {
-            Source = movableGridPositions,
-            Results = initialMovableGridPositions
+            Source = humanMovableGridPositions,
+            Results = initialHumanGridPositions
         };
-        var copyNativeMovableGridPositionsJobHandle = copyNativeMovableGridPositionsJob.Schedule(movableCount, 2, inputDeps);
+        var copyNativeHumanGridPositionsJobHandle = copyNativeHumanMovableGridPositionsJob.Schedule(humanMovableCount, 2, inputDeps);
 
-        var hashMovableInitialGridPositionsJob = new HashGridPositionsJob
+        var hashInitialHumanGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = initialMovableGridPositions,
-            hashMap = initialMovableHashMap.ToConcurrent(),
+            gridPositions = initialHumanGridPositions,
+            hashMap = initialHumanGridPositionsHashMap.ToConcurrent(),
         };
-        var hashMovableInitialGridPositionsJobHandle = hashMovableInitialGridPositionsJob.Schedule(movableCount, 64, copyNativeMovableGridPositionsJobHandle);
+        var hashInitialHumanGridPositionsJobHandle = hashInitialHumanGridPositionsJob.Schedule(humanMovableCount, 64, copyNativeHumanGridPositionsJobHandle);
 
-        var movementBarrierHandle = JobHandle.CombineDependencies(hashNonMovableCollidablePositionsJobHandle, hashMovableCollidablePositionsJobHandle, hashMovableInitialGridPositionsJobHandle);
+        var humanMovementBarrierHandle = JobHandle.CombineDependencies(hashNonMovableCollidablePositionsJobHandle, hashMovableCollidablePositionsJobHandle, hashInitialHumanGridPositionsJobHandle);
 
         var tryRandomMovementJob = new TryRandomMovementJob
         {
-            gridPositions = initialMovableGridPositions,
-            nextGridPositions = updatedMovableGridPositions,
+            gridPositions = initialHumanGridPositions,
+            nextGridPositions = updatedHumanGridPositions,
             nonMovableCollidableHashMap = nonMovableCollidableHashMap,
             movableCollidableHashMap = movableCollidableHashMap,
             tick = Time.frameCount,
         };
-        var tryRandomMovementJobHandle = tryRandomMovementJob.Schedule(movableCount, 64, movementBarrierHandle);
+        var tryRandomMovementJobHandle = tryRandomMovementJob.Schedule(humanMovableCount, 64, humanMovementBarrierHandle);
 
-        var hashMovableUpdatedGridPositionsJob = new HashGridPositionsJob
+        var copyNativeZombieMovableGridPositionsJob = new CopyComponentData<GridPosition>
         {
-            gridPositions = updatedMovableGridPositions,
-            hashMap = updatedMovableHashMap.ToConcurrent(),
+            Source = zombieMovableGridPositions,
+            Results = initialZombieGridPositions
         };
-        var hashMovableUpdatedGridPositionsJobHandle = hashMovableUpdatedGridPositionsJob.Schedule(movableCount, 64, tryRandomMovementJobHandle);
+        var copyNativeZombieGridPositionsJobHandle = copyNativeZombieMovableGridPositionsJob.Schedule(zombieMovableCount, 2, inputDeps);
 
-        var revertCollidedMovementJob = new RevertCollidedMovementJob
+        var hashInitialZombieGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = initialMovableGridPositions,
-            nextGridPositions = updatedMovableGridPositions,
+            gridPositions = initialZombieGridPositions,
+            hashMap = initialZombieGridPositionsHashMap.ToConcurrent(),
         };
-        var revertCollidedMovementJobHandle = revertCollidedMovementJob.Schedule(updatedMovableHashMap, 64, hashMovableUpdatedGridPositionsJobHandle);
+        var hashInitialZombieGridPositionsJobHandle = hashInitialZombieGridPositionsJob.Schedule(zombieMovableCount, 64, copyNativeZombieGridPositionsJobHandle);
 
-        var finalizeMovementJob = new FinalizeMovementJob
+        var zombieMovementBarrier = JobHandle.CombineDependencies(hashNonMovableCollidablePositionsJobHandle, hashMovableCollidablePositionsJobHandle, hashInitialZombieGridPositionsJobHandle);
+        zombieMovementBarrier = JobHandle.CombineDependencies(zombieMovementBarrier, hashInitialHumanGridPositionsJobHandle);
+
+        var tryFollowMovementJob = new TryFollowMovementJob
         {
-            initialGridHashMap = initialMovableHashMap,
-            nextGridPositions = updatedMovableGridPositions,
+            gridPositions = initialZombieGridPositions,
+            nextGridPositions = updatedZombieGridPositions,
+            nonMovableCollidableHashMap = nonMovableCollidableHashMap,
+            movableCollidableHashMap = movableCollidableHashMap,
+            targetGridPositionsHashMap = initialHumanGridPositionsHashMap,
         };
-        var finalizeMovementJobHandle = finalizeMovementJob.Schedule(this, revertCollidedMovementJobHandle);
+        var tryFollowMovementJobHandle = tryFollowMovementJob.Schedule(zombieMovableCount, 64, zombieMovementBarrier);
 
-        return finalizeMovementJobHandle;
+        var finalizeMovementBarrier = JobHandle.CombineDependencies(tryRandomMovementJobHandle, tryFollowMovementJobHandle);
+
+        var hashHumanUpdatedGridPositionsJob = new HashGridPositionsJob
+        {
+            gridPositions = updatedHumanGridPositions,
+            hashMap = updatedHumanGridPositionsHashMap.ToConcurrent(),
+        };
+        var hashHumanUpdatedGridPositionsJobHandle = hashHumanUpdatedGridPositionsJob.Schedule(humanMovableCount, 64, finalizeMovementBarrier);
+
+        var hashZombieUpdatedGridPositionsJob = new HashGridPositionsJob
+        {
+            gridPositions = updatedZombieGridPositions,
+            hashMap = updatedZombieGridPositionsHashMap.ToConcurrent(),
+        };
+        var hashZombieUpdatedGridPositionsJobHandle = hashZombieUpdatedGridPositionsJob.Schedule(zombieMovableCount, 64, finalizeMovementBarrier);
+
+        var resolveMovementBarrier = JobHandle.CombineDependencies(hashHumanUpdatedGridPositionsJobHandle, hashZombieUpdatedGridPositionsJobHandle);
+
+        var resolveCollidedZombieMovementJob = new ResolveCollidedMovementJob
+        {
+            updatedGridPositions = updatedZombieGridPositions,
+            gridPositionComponentData = zombieMovableGridPositions,
+            positionComponentData = zombieMovablePositions,
+            updatedCollisionGridPositionsHashMap = updatedHumanGridPositionsHashMap,
+        };
+        var resolveCollidedZombieMovementJobHandle = resolveCollidedZombieMovementJob.Schedule(updatedZombieGridPositionsHashMap, 64, resolveMovementBarrier);
+
+        var resolveCollidedHumanMovementJob = new ResolveCollidedMovementJob
+        {
+            updatedGridPositions = updatedHumanGridPositions,
+            gridPositionComponentData = humanMovableGridPositions,
+            positionComponentData = humanMovablePositions,
+            updatedCollisionGridPositionsHashMap = updatedZombieGridPositionsHashMap,
+        };
+        var resolveCollidedHumanMovementJobHandle = resolveCollidedHumanMovementJob.Schedule(updatedHumanGridPositionsHashMap, 64, resolveCollidedZombieMovementJobHandle);
+
+        return resolveCollidedHumanMovementJobHandle;
     }
 }

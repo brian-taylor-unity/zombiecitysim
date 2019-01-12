@@ -257,7 +257,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 292301223}
   m_LocalRotation: {x: 0.5299155, y: 0.31347594, z: -0.21949817, w: 0.7567979}
-  m_LocalPosition: {x: 120, y: 400, z: 120}
+  m_LocalPosition: {x: 50, y: 300, z: 50}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -391,11 +391,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 400
-  numTilesY: 400
-  numStreets: 350
-  numHumans: 10000
-  numZombies: 1000
+  numTilesX: 200
+  numTilesY: 200
+  numStreets: 250
+  numHumans: 2000
+  numZombies: 100
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}
   humans: {fileID: 1282689808}
