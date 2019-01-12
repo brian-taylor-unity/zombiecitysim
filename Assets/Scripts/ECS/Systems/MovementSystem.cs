@@ -262,63 +262,6 @@ public class MovementSystem : JobComponentSystem
         }
     }
 
-    protected override void OnCreateManager()
-    {
-        m_NonMovableCollidableGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(Collidable)),
-            ComponentType.ReadOnly(typeof(GridPosition))
-        );
-        m_MovableCollidableGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(Collidable)),
-            ComponentType.ReadOnly(typeof(GridPosition)),
-            ComponentType.ReadOnly(typeof(Movable))
-        );
-        m_HumanMovableGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(Human)),
-            ComponentType.ReadOnly(typeof(Movable)),
-            typeof(GridPosition),
-            typeof(Position)
-        );
-        m_ZombieMovableGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(Zombie)),
-            ComponentType.ReadOnly(typeof(Movable)),
-            typeof(GridPosition),
-            typeof(Position)
-        );
-        m_ZombieViewDistance = 5;
-    }
-
-    protected override void OnDestroyManager()
-    {
-        if (m_PrevGridState.nonMovableCollidableHashMap.IsCreated)
-            m_PrevGridState.nonMovableCollidableHashMap.Dispose();
-
-        if (m_PrevGridState.nativeMovableCollidableGridPositions.IsCreated)
-            m_PrevGridState.nativeMovableCollidableGridPositions.Dispose();
-        if (m_PrevGridState.movableCollidableHashMap.IsCreated)
-            m_PrevGridState.movableCollidableHashMap.Dispose();
-
-        if (m_PrevGridState.initialHumanGridPositions.IsCreated)
-            m_PrevGridState.initialHumanGridPositions.Dispose();
-        if (m_PrevGridState.initialHumanGridPositionsHashMap.IsCreated)
-            m_PrevGridState.initialHumanGridPositionsHashMap.Dispose();
-        if (m_PrevGridState.updatedHumanGridPositions.IsCreated)
-            m_PrevGridState.updatedHumanGridPositions.Dispose();
-        if (m_PrevGridState.updatedHumanGridPositionsHashMap.IsCreated)
-            m_PrevGridState.updatedHumanGridPositionsHashMap.Dispose();
-
-        if (m_PrevGridState.initialZombieGridPositions.IsCreated)
-            m_PrevGridState.initialZombieGridPositions.Dispose();
-        if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
-            m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
-        if (m_PrevGridState.zombieTargetValuesArray.IsCreated)
-            m_PrevGridState.zombieTargetValuesArray.Dispose();
-        if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
-            m_PrevGridState.updatedZombieGridPositions.Dispose();
-        if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
-            m_PrevGridState.updatedZombieGridPositionsHashMap.Dispose();
-    }
-
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
@@ -527,5 +470,61 @@ public class MovementSystem : JobComponentSystem
         var resolveCollidedHumanMovementJobHandle = resolveCollidedHumanMovementJob.Schedule(updatedHumanGridPositionsHashMap, 64, resolveCollidedZombieMovementJobHandle);
 
         return resolveCollidedHumanMovementJobHandle;
+    }
+    protected override void OnCreateManager()
+    {
+        m_NonMovableCollidableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Collidable)),
+            ComponentType.ReadOnly(typeof(GridPosition))
+        );
+        m_MovableCollidableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Collidable)),
+            ComponentType.ReadOnly(typeof(GridPosition)),
+            ComponentType.ReadOnly(typeof(Movable))
+        );
+        m_HumanMovableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Human)),
+            ComponentType.ReadOnly(typeof(Movable)),
+            typeof(GridPosition),
+            typeof(Position)
+        );
+        m_ZombieMovableGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Zombie)),
+            ComponentType.ReadOnly(typeof(Movable)),
+            typeof(GridPosition),
+            typeof(Position)
+        );
+        m_ZombieViewDistance = 5;
+    }
+
+    protected override void OnDestroyManager()
+    {
+        if (m_PrevGridState.nonMovableCollidableHashMap.IsCreated)
+            m_PrevGridState.nonMovableCollidableHashMap.Dispose();
+
+        if (m_PrevGridState.nativeMovableCollidableGridPositions.IsCreated)
+            m_PrevGridState.nativeMovableCollidableGridPositions.Dispose();
+        if (m_PrevGridState.movableCollidableHashMap.IsCreated)
+            m_PrevGridState.movableCollidableHashMap.Dispose();
+
+        if (m_PrevGridState.initialHumanGridPositions.IsCreated)
+            m_PrevGridState.initialHumanGridPositions.Dispose();
+        if (m_PrevGridState.initialHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialHumanGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositions.IsCreated)
+            m_PrevGridState.updatedHumanGridPositions.Dispose();
+        if (m_PrevGridState.updatedHumanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedHumanGridPositionsHashMap.Dispose();
+
+        if (m_PrevGridState.initialZombieGridPositions.IsCreated)
+            m_PrevGridState.initialZombieGridPositions.Dispose();
+        if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.zombieTargetValuesArray.IsCreated)
+            m_PrevGridState.zombieTargetValuesArray.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
+            m_PrevGridState.updatedZombieGridPositions.Dispose();
+        if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.updatedZombieGridPositionsHashMap.Dispose();
     }
 }

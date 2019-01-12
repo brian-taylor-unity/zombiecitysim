@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 397960084852048340}
   - component: {fileID: 2364861050308010292}
   - component: {fileID: 263349018980552540}
+  - component: {fileID: 6604536280613987579}
+  - component: {fileID: 5597241832683624477}
   m_Layer: 0
   m_Name: ZombieCharacter_ECS
   m_TagString: Untagged
@@ -137,3 +139,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7a917d0c88b7464f91d05912d2a01e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &6604536280613987579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397960084852048346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4da5f24defdea4f4680144a095642b92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SerializedData:
+    Value: 70
+--- !u!114 &5597241832683624477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397960084852048346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e581aca93642d1842918bae24d99fee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SerializedData:
+    Value: 20

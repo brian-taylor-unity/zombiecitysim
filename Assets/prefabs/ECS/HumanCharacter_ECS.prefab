@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 397960084852048340}
   - component: {fileID: 1097979162798193014}
   - component: {fileID: 6193959011088996168}
+  - component: {fileID: 6563695078975124510}
+  - component: {fileID: 7442275882200104299}
   m_Layer: 0
   m_Name: HumanCharacter_ECS
   m_TagString: Untagged
@@ -137,3 +139,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32ddada8baf8f6b408302519c605b4eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &6563695078975124510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397960084852048346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4da5f24defdea4f4680144a095642b92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SerializedData:
+    Value: 100
+--- !u!114 &7442275882200104299
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397960084852048346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e581aca93642d1842918bae24d99fee1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SerializedData:
+    Value: 0

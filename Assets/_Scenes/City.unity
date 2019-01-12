@@ -395,7 +395,7 @@ MonoBehaviour:
   numTilesY: 200
   numStreets: 250
   numHumans: 2000
-  numZombies: 100
+  numZombies: 500
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}
   humans: {fileID: 1282689808}
