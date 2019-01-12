@@ -17,7 +17,6 @@ public class MovementSystem : JobComponentSystem
 
     struct PrevGridState
     {
-        public NativeArray<GridPosition> nativeNonMovableCollidableGridPositions;
         public NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
 
         public NativeArray<GridPosition> nativeMovableCollidableGridPositions;
@@ -286,8 +285,6 @@ public class MovementSystem : JobComponentSystem
 
     protected override void OnDestroyManager()
     {
-        if (m_PrevGridState.nativeNonMovableCollidableGridPositions.IsCreated)
-            m_PrevGridState.nativeNonMovableCollidableGridPositions.Dispose();
         if (m_PrevGridState.nonMovableCollidableHashMap.IsCreated)
             m_PrevGridState.nonMovableCollidableHashMap.Dispose();
 
@@ -317,7 +314,6 @@ public class MovementSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        NativeArray<GridPosition> nativeNonMovableCollidableGridPositions;
         NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
 
         var movableCollidableGridPositions = m_MovableCollidableGroup.GetComponentDataArray<GridPosition>();
@@ -343,7 +339,6 @@ public class MovementSystem : JobComponentSystem
 
         var nextGridState = new PrevGridState
         {
-            nativeNonMovableCollidableGridPositions = m_PrevGridState.nativeNonMovableCollidableGridPositions,
             nonMovableCollidableHashMap = m_PrevGridState.nonMovableCollidableHashMap,
 
             nativeMovableCollidableGridPositions = nativeMovableCollidableGridPositions,
@@ -361,16 +356,15 @@ public class MovementSystem : JobComponentSystem
         };
 
         JobHandle hashNonMovableCollidablePositionsJobHandle = inputDeps;
-        if (m_PrevGridState.nativeNonMovableCollidableGridPositions.IsCreated)
+        if (m_PrevGridState.nonMovableCollidableHashMap.IsCreated)
         {
-            nativeNonMovableCollidableGridPositions = m_PrevGridState.nativeNonMovableCollidableGridPositions;
             nonMovableCollidableHashMap = m_PrevGridState.nonMovableCollidableHashMap;
         }
         else
         {
             ComponentDataArray<GridPosition> nonMovableCollidableGridPositions = m_NonMovableCollidableGroup.GetComponentDataArray<GridPosition>();
             var nonMovableCollidableCount = nonMovableCollidableGridPositions.Length;
-            nextGridState.nativeNonMovableCollidableGridPositions = nativeNonMovableCollidableGridPositions = new NativeArray<GridPosition>(nonMovableCollidableCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            var nativeNonMovableCollidableGridPositions = new NativeArray<GridPosition>(nonMovableCollidableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
             nextGridState.nonMovableCollidableHashMap = nonMovableCollidableHashMap = new NativeMultiHashMap<int, int>(nonMovableCollidableCount, Allocator.Persistent);
 
             var copyNativeNonMovableCollidableGridPositionsJob = new CopyComponentData<GridPosition>
@@ -386,6 +380,9 @@ public class MovementSystem : JobComponentSystem
                 hashMap = nonMovableCollidableHashMap.ToConcurrent(),
             };
             hashNonMovableCollidablePositionsJobHandle = hashNonMovableCollidablePositionsJob.Schedule(nonMovableCollidableCount, 64, copyNativeNonMovableCollidableGridPositionsJobHandle);
+
+            hashNonMovableCollidablePositionsJobHandle.Complete();
+            nativeNonMovableCollidableGridPositions.Dispose();
         }
 
         if (m_PrevGridState.nativeMovableCollidableGridPositions.IsCreated)
