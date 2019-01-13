@@ -3,16 +3,14 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 
-public class RemoveAndSpawnBarrier : BarrierSystem
+public class RemoveDeadUnitsBarrier : BarrierSystem
 {
 }
 
-[UpdateAfter(typeof(DamageSystem))]
-public class RemoveAndSpawnSystem : JobComponentSystem
+[UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
+public class RemoveDeadUnitsSystem : JobComponentSystem
 {
-    private ComponentGroup m_HealthGroup;
-
-    [Inject] private RemoveAndSpawnBarrier m_RemoveAndSpawnBarrier;
+    [Inject] private RemoveDeadUnitsBarrier m_RemoveAndSpawnBarrier;
 
     [BurstCompile]
     struct RemoveDeadJob : IJobProcessComponentDataWithEntity<Health>
@@ -24,14 +22,11 @@ public class RemoveAndSpawnSystem : JobComponentSystem
             if (health.Value <= 0)
                 Commands.DestroyEntity(index, entity);
 
-            // remove component data for human, change to zombie, etc.
         }
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var componentHealthArray = m_HealthGroup.GetComponentDataArray<Health>();
-
         var removeDeadJob = new RemoveDeadJob
         {
             Commands = m_RemoveAndSpawnBarrier.CreateCommandBuffer().ToConcurrent(),
@@ -39,12 +34,5 @@ public class RemoveAndSpawnSystem : JobComponentSystem
         var removeDeadJobHandle = removeDeadJob.Schedule(this, inputDeps);
 
         return removeDeadJobHandle;
-    }
-
-    protected override void OnCreateManager()
-    {
-        m_HealthGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(Health))
-        );
     }
 }
