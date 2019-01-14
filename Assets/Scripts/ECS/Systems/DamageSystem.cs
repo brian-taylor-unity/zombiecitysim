@@ -8,6 +8,7 @@ using Unity.Mathematics;
 public class DamageSystem : JobComponentSystem
 {
     private ComponentGroup m_ZombieGroup;
+    private ComponentGroup m_HumanGroup;
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
@@ -60,6 +61,11 @@ public class DamageSystem : JobComponentSystem
         var zombieHealthComponents = m_ZombieGroup.GetComponentDataArray<Health>();
         var zombieDamageComponents = m_ZombieGroup.GetComponentDataArray<Damage>();
 
+        var humanGridPositionComponents = m_HumanGroup.GetComponentDataArray<GridPosition>();
+        var humanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanGridPositionComponents.Length, Allocator.TempJob);
+        var humanHealthComponents = m_HumanGroup.GetComponentDataArray<Health>();
+        var humanDamageComponents = m_HumanGroup.GetComponentDataArray<Damage>();
+
         var hashZombieGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = zombieGridPositionComponents,
@@ -67,33 +73,54 @@ public class DamageSystem : JobComponentSystem
         };
         var hashZombieGridPositionsJobHandle = hashZombieGridPositionsJob.Schedule(zombieDamageComponents.Length, 64, inputDeps);
 
+        var hashHumanGridPositionsJob = new HashGridPositionsJob
+        {
+            gridPositions = humanGridPositionComponents,
+            hashMap = humanGridPositionsHashMap.ToConcurrent(),
+        };
+        var hashHumanGridPositionsJobHandle = hashHumanGridPositionsJob.Schedule(humanDamageComponents.Length, 64, inputDeps);
+
+        var hashGridPositionsBarrier = JobHandle.CombineDependencies(hashZombieGridPositionsJobHandle, hashHumanGridPositionsJobHandle);
+
         var damageZombiesJob = new DamageJob
         {
             gridPositions = zombieGridPositionComponents,
-            damagingUnitsDamageArray = zombieDamageComponents,
-            damagingUnitsHashMap = zombieGridPositionsHashMap,
+            damagingUnitsDamageArray = humanDamageComponents,
+            damagingUnitsHashMap = humanGridPositionsHashMap,
             healthArray = zombieHealthComponents,
         };
-        var damageZombiesJobHandle = damageZombiesJob.Schedule(zombieDamageComponents.Length, 64, hashZombieGridPositionsJobHandle);
+        var damageZombiesJobHandle = damageZombiesJob.Schedule(zombieDamageComponents.Length, 64, hashGridPositionsBarrier);
+
+        var damageHumansJob = new DamageJob
+        {
+            gridPositions = humanGridPositionComponents,
+            damagingUnitsDamageArray = zombieDamageComponents,
+            damagingUnitsHashMap = zombieGridPositionsHashMap,
+            healthArray = humanHealthComponents,
+        };
+        var damageHumansJobHandle = damageHumansJob.Schedule(humanDamageComponents.Length, 64, damageZombiesJobHandle);
 
         damageZombiesJobHandle.Complete();
+        damageHumansJobHandle.Complete();
         zombieGridPositionsHashMap.Dispose();
+        humanGridPositionsHashMap.Dispose();
 
-        return damageZombiesJobHandle;
+        return damageHumansJobHandle;
     }
 
     protected override void OnCreateManager()
     {
         m_ZombieGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Zombie)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
             typeof(Health)
         );
-        //m_HumanGroup = GetComponentGroup(
-        //    ComponentType.ReadOnly(typeof(Human)),
-        //    ComponentType.ReadOnly(typeof(GridPosition)),
-        //    ComponentType.ReadOnly(typeof(Damage)),
-        //    typeof(Health)
-        //);
+        m_HumanGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Human)),
+            ComponentType.ReadOnly(typeof(GridPosition)),
+            ComponentType.ReadOnly(typeof(Damage)),
+            typeof(Health)
+        );
     }
 }

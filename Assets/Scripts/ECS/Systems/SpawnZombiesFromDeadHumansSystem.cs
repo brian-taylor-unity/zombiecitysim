@@ -30,6 +30,7 @@ public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
     protected override void OnCreateManager()
     {
         m_HumansGroup = GetComponentGroup(
+            ComponentType.ReadOnly(typeof(Human)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Health))
         );

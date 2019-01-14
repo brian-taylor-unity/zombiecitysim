@@ -9,7 +9,7 @@ public sealed class Bootstrap
     public static EntityArchetype ZombieArchetype;
 
     public static int HumanStartingHealth = 100;
-    public static int HumanDamage = 0;
+    public static int HumanDamage = 5;
     public static MeshInstanceRenderer HumanMeshInstanceRenderer;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;

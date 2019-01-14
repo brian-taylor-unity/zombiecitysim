@@ -455,8 +455,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numTilesX: 300
   numTilesY: 300
-  numStreets: 400
-  numHumans: 10000
+  numStreets: 350
+  numHumans: 5000
   numZombies: 1
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}
