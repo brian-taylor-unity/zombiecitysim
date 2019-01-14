@@ -453,10 +453,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 300
-  numTilesY: 300
-  numStreets: 350
-  numHumans: 5000
+  numTilesX: 350
+  numTilesY: 350
+  numStreets: 400
+  numHumans: 8000
   numZombies: 1
   cityPrefab: {fileID: 2945855640325903172, guid: 600381bfa26730f47967cfbed78c7a31,
     type: 3}

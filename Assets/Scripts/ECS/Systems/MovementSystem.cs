@@ -96,15 +96,16 @@ public class MovementSystem : JobComponentSystem
                 // Get the closest target from our list of targets
                 int nearestIndex = -1;
                 float nearestDistance = math.lengthsq(new float3(myGridPositionValue) - new float3(myValidTargetList[0]));
-                for (int i = 0; i < myValidTargetList.Length; i++)
+                for (int i = 0; i < myValidTargetIndexArray.Length; i++)
                 {
                     if (myValidTargetIndexArray[i] != -1)
                     {
-                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(myValidTargetList[i]));
+                        int myIndex = myValidTargetIndexArray[i];
+                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(myValidTargetList[myIndex]));
                         var nearest = distance < nearestDistance;
 
                         nearestDistance = math.@select(nearestDistance, distance, nearest);
-                        nearestIndex = math.@select(nearestIndex, i, nearest);
+                        nearestIndex = math.@select(nearestIndex, myIndex, nearest);
                     }
                 }
 
