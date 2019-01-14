@@ -30,7 +30,6 @@ public class MovementSystem : JobComponentSystem
 
         public NativeArray<GridPosition> initialZombieGridPositions;
         public NativeMultiHashMap<int, int> initialZombieGridPositionsHashMap;
-        public NativeArray<int3> zombieTargetValuesArray;
         public NativeArray<GridPosition> updatedZombieGridPositions;
         public NativeMultiHashMap<int, int> updatedZombieGridPositionsHashMap;
     }
@@ -48,7 +47,7 @@ public class MovementSystem : JobComponentSystem
         }
     }
 
-    [BurstCompile]
+    //[BurstCompile]
     struct TryFollowMovementJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
@@ -57,12 +56,12 @@ public class MovementSystem : JobComponentSystem
         [ReadOnly] public NativeMultiHashMap<int, int> movableCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
         public int viewDistance;
-        [NativeDisableParallelForRestriction] public NativeArray<int3> validTargetsList;
 
         public void Execute(int index)
         {
             int arraySliceSize = (viewDistance * 2) * (viewDistance * 2);
-            var myValidTargetList = validTargetsList.Slice(index * arraySliceSize, arraySliceSize);
+            //var myValidTargetList = validTargetsList.Slice(index * arraySliceSize, arraySliceSize);
+            var myValidTargetList = new NativeList<int3>(arraySliceSize, Allocator.Temp);
             int3 myGridPositionValue = gridPositions[index].Value;
 
             // Get nearest target
@@ -77,8 +76,9 @@ public class MovementSystem : JobComponentSystem
                         int targetKey = GridHash.Hash(targetGridPosition);
                         if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
                         {
-                            int myIndex = (y + checkDist) * checkDist + (x + checkDist);
-                            myValidTargetList[myIndex] = targetGridPosition;
+                            //int myIndex = (y + checkDist) * checkDist + (x + checkDist);
+                            //myValidTargetList[myIndex] = targetGridPosition;
+                            myValidTargetList.Add(targetGridPosition);
                         }
                     }
                 }
@@ -151,6 +151,7 @@ public class MovementSystem : JobComponentSystem
             }
 
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
+            myValidTargetList.Dispose();
         }
     }
 
@@ -284,7 +285,6 @@ public class MovementSystem : JobComponentSystem
         var zombieMovableCount = zombieMovableGridPositions.Length;
         var initialZombieGridPositions = new NativeArray<GridPosition>(zombieMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var initialZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
-        var zombieTargetValuesArray = new NativeArray<int3>(zombieMovableCount * (m_ZombieViewDistance * 2) * (m_ZombieViewDistance * 2), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var updatedZombieGridPositions = new NativeArray<GridPosition>(zombieMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var updatedZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
 
@@ -302,7 +302,6 @@ public class MovementSystem : JobComponentSystem
 
             initialZombieGridPositions = initialZombieGridPositions,
             initialZombieGridPositionsHashMap = initialZombieGridPositionsHashMap,
-            zombieTargetValuesArray = zombieTargetValuesArray,
             updatedZombieGridPositions = updatedZombieGridPositions,
             updatedZombieGridPositionsHashMap = updatedZombieGridPositionsHashMap,
         };
@@ -355,8 +354,6 @@ public class MovementSystem : JobComponentSystem
             m_PrevGridState.initialZombieGridPositions.Dispose();
         if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
-        if (m_PrevGridState.zombieTargetValuesArray.IsCreated)
-            m_PrevGridState.zombieTargetValuesArray.Dispose();
         if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
             m_PrevGridState.updatedZombieGridPositions.Dispose();
         if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
@@ -428,7 +425,6 @@ public class MovementSystem : JobComponentSystem
             nonMovableCollidableHashMap = nonMovableCollidableHashMap,
             movableCollidableHashMap = movableCollidableHashMap,
             targetGridPositionsHashMap = initialHumanGridPositionsHashMap,
-            validTargetsList = zombieTargetValuesArray,
             viewDistance = m_ZombieViewDistance,
         };
         var tryFollowMovementJobHandle = tryFollowMovementJob.Schedule(zombieMovableCount, 64, zombieMovementBarrier);
@@ -520,8 +516,6 @@ public class MovementSystem : JobComponentSystem
             m_PrevGridState.initialZombieGridPositions.Dispose();
         if (m_PrevGridState.initialZombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.initialZombieGridPositionsHashMap.Dispose();
-        if (m_PrevGridState.zombieTargetValuesArray.IsCreated)
-            m_PrevGridState.zombieTargetValuesArray.Dispose();
         if (m_PrevGridState.updatedZombieGridPositions.IsCreated)
             m_PrevGridState.updatedZombieGridPositions.Dispose();
         if (m_PrevGridState.updatedZombieGridPositionsHashMap.IsCreated)
