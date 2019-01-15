@@ -51,7 +51,6 @@ public class City : MonoBehaviour
 
         Entity entity = manager.Instantiate(tile);
         manager.SetComponentData(entity, new Position { Value = new float3(x, 0f, y) });
-        manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 0, y) });
         if (tile == buildingTilePrefab)
         {
             entity = manager.Instantiate(tile);
