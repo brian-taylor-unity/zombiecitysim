@@ -20,7 +20,6 @@ public class City : MonoBehaviour
     void Awake()
     {
         manager = World.Active.GetOrCreateManager<EntityManager>();
-
         Generate();
     }
 
@@ -34,7 +33,6 @@ public class City : MonoBehaviour
 
     public bool IsPassable(int x, int y)
     {
-        //return tileGrid.IsPassable(x, y);
         return tilePassable[y, x];
     }
 
@@ -43,58 +41,39 @@ public class City : MonoBehaviour
         tilePassable[y, x] = passable;
     }
 
-    private void AddTile(GameObject tile, int x, int y)
+    private void AddBuildingTile(GameObject tile, int x, int y, int z, bool gridPosition)
     {
-        //Tile tileInstance = Instantiate(tile, new Vector3(x, y, transform.position.z), Quaternion.identity);
-        //tileInstance.transform.SetParent(transform);
-        //tileGrid.AddTile(tileInstance, x, y);
-
         Entity entity = manager.Instantiate(tile);
-        manager.SetComponentData(entity, new Position { Value = new float3(x, 0f, y) });
-        if (tile == buildingTilePrefab)
-        {
-            entity = manager.Instantiate(tile);
-            manager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
-            manager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+        entity = manager.Instantiate(tile);
+        manager.SetComponentData(entity, new Position { Value = new float3(x, y, z) });
+        if (gridPosition)
+            manager.SetComponentData(entity, new GridPosition { Value = new int3(x, y, z) });
 
-            tileExists[y, x] = true;
-            tilePassable[y, x] = false;
-        }
-        if (tile == roadTilePrefab)
-        {
-            tileExists[y, x] = true;
-            tilePassable[y, x] = true;
-        }
+        tileExists[y, x] = true;
+        tilePassable[y, x] = false;
     }
 
     private void Generate()
     {
-        // tileGrid = new TileGrid(numTilesX, numTilesY);
         tileExists = new bool[numTilesY, numTilesX];
         tilePassable = new bool[numTilesY, numTilesX];
 
         // Line the grid with impassable tiles
         for (int y = 0; y < numTilesY; y++)
         {
-            AddTile(buildingTilePrefab, 0, y);
-            AddTile(buildingTilePrefab, numTilesX - 1, y);
+            AddBuildingTile(buildingTilePrefab, 0, 0, y, false);
+            AddBuildingTile(buildingTilePrefab, 0, 1, y, true);
+
+            AddBuildingTile(buildingTilePrefab, numTilesX - 1, 0, y, false);
+            AddBuildingTile(buildingTilePrefab, numTilesX - 1, 1, y, true);
         }
         for (int x = 1; x < numTilesX - 1; x++)
         {
-            AddTile(buildingTilePrefab, x, 0);
-            AddTile(buildingTilePrefab, x, numTilesY - 1);
+            AddBuildingTile(buildingTilePrefab, x, 0, 0, false);
+            AddBuildingTile(buildingTilePrefab, x, 1, 0, true);
+            AddBuildingTile(buildingTilePrefab, x, 0, numTilesY - 1, false);
+            AddBuildingTile(buildingTilePrefab, x, 1, numTilesY - 1, true);
         }
-
-        // Randomly create tiles
-        //for (int y = 1; y < numTilesY - 1; y++)
-        //{
-        //    for (int x = 1; x < numTilesX - 1; x++)
-        //    {
-        //        randomTile = Random.Range(0.0f, 1.0f);
-        //        tile = Instantiate((randomTile < 0.5f ? roadTile : buildingTile), new Vector3(x, y), Quaternion.identity) as Transform;
-        //        tile.parent = transform;
-        //    }
-        //}
 
         CreateStreets();
 
@@ -105,15 +84,10 @@ public class City : MonoBehaviour
             {
                 if (!tileExists[y, x])
                 {
-                    AddTile(buildingTilePrefab, x, y);
+                    AddBuildingTile(buildingTilePrefab, x, 1, y, true);
                 }
             }
         }
-
-        //for (int numBuildings = numTilesX * numTilesY / 10; numBuildings > 0; numBuildings--)
-        //{
-        //    CreateBuilding(numTilesX / 10, numTilesY / 10);
-        //}
     }
 
     private void CreateStreets()
@@ -137,7 +111,8 @@ public class City : MonoBehaviour
                 {
                     if (!tileExists[yPos, xPos])
                     {
-                        AddTile(roadTilePrefab, xPos, yPos);
+                        tileExists[yPos, xPos] = true;
+                        tilePassable[yPos, xPos] = true;
                     }
                 }
                 xPos++;
@@ -161,7 +136,8 @@ public class City : MonoBehaviour
                 {
                     if (!tileExists[yPos, xPos])
                     {
-                        AddTile(roadTilePrefab, xPos, yPos);
+                        tileExists[yPos, xPos] = true;
+                        tilePassable[yPos, xPos] = true;
                     }
                 }
                 yPos++;
@@ -169,10 +145,8 @@ public class City : MonoBehaviour
             }
         }
 
-    }
-
-    private void CreateBuilding(int width, int height)
-    {
-
+        Entity entity = manager.Instantiate(roadTilePrefab);
+        manager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2, 0f, (float)numTilesY / 2) });
+        manager.SetComponentData(entity, new Scale { Value = new float3(numTilesX, 1f, numTilesY) });
     }
 }
