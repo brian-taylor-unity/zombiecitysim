@@ -57,6 +57,7 @@ public class MovementSystem : JobComponentSystem
     {
         [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
+        public ComponentDataArray<PrevMoveDirection> prevMoveDirectionArray;
         [ReadOnly] public NativeMultiHashMap<int, int> nonMovableCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> movableCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
@@ -66,13 +67,15 @@ public class MovementSystem : JobComponentSystem
 
         public void Execute(int index)
         {
+            int3 myGridPositionValue = gridPositions[index].Value;
+
             int arraySliceSize = (viewDistance * 2 + 1) * (viewDistance * 2 + 1);
             var myValidTargetIndexArray = validTargetIndexArray.Slice(index * arraySliceSize, arraySliceSize);
             var myValidTargetList = validTargetsArray.Slice(index * arraySliceSize, arraySliceSize);
-            int3 myGridPositionValue = gridPositions[index].Value;
+            int validIndex = 0;
+            bool moved = false;
 
             // Get nearest target
-            int validIndex = 0;
             // Check all grid positions that are checkDist away in the x or y direction
             for (int y = -viewDistance; y < viewDistance; y++)
             {
@@ -121,7 +124,6 @@ public class MovementSystem : JobComponentSystem
                     int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
                     int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
                     int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-                    bool moved = false;
                     if (math.abs(direction.x) >= math.abs(direction.z))
                     {
                         // Move horizontally
@@ -168,6 +170,18 @@ public class MovementSystem : JobComponentSystem
                 }
             }
 
+            //if (!moved && !prevMoveDirectionArray[index].Value.Equals(new int3(0, 0, 0)))
+            //{
+            //    // Try to move in the same direction as last turn
+            //    int movePrevKey = GridHash.Hash(myGridPositionValue + prevMoveDirectionArray[index].Value);
+            //    if (!nonMovableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _) &&
+            //        !movableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _))
+            //    {
+            //        myGridPositionValue += prevMoveDirectionArray[index].Value;
+            //    }
+            //}
+
+            prevMoveDirectionArray[index] = new PrevMoveDirection { Value = myGridPositionValue - gridPositions[index].Value };
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
     }
@@ -309,6 +323,7 @@ public class MovementSystem : JobComponentSystem
         var updatedHumanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanMovableCount, Allocator.TempJob);
 
         var zombieMovableGridPositions = m_ZombieMovableGroup.GetComponentDataArray<GridPosition>();
+        var zombiePrevMoveDirectionArray = m_ZombieMovableGroup.GetComponentDataArray<PrevMoveDirection>();
         var zombieMovablePositions = m_ZombieMovableGroup.GetComponentDataArray<Position>();
         var zombieMovableCount = zombieMovableGridPositions.Length;
         var initialZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
@@ -403,6 +418,7 @@ public class MovementSystem : JobComponentSystem
         {
             gridPositions = zombieMovableGridPositions,
             nextGridPositions = updatedZombieGridPositions,
+            prevMoveDirectionArray = zombiePrevMoveDirectionArray,
             nonMovableCollidableHashMap = nonMovableCollidableHashMap,
             movableCollidableHashMap = movableCollidableHashMap,
             targetGridPositionsHashMap = initialHumanGridPositionsHashMap,
@@ -480,9 +496,10 @@ public class MovementSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(Zombie)),
             ComponentType.ReadOnly(typeof(Movable)),
             typeof(GridPosition),
+            typeof(PrevMoveDirection),
             typeof(Position)
         );
-        m_ZombieViewDistance = 5;
+        m_ZombieViewDistance = Bootstrap.ZombieVisionDistance;
     }
 
     protected override void OnDestroyManager()

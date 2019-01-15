@@ -11,6 +11,7 @@ public sealed class Bootstrap
     public static int HumanStartingHealth = 100;
     public static int HumanDamage = 0;
     public static MeshInstanceRenderer HumanMeshInstanceRenderer;
+    public static int ZombieVisionDistance = 4;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
     public static MeshInstanceRenderer ZombieMeshInstanceRenderer;
@@ -33,6 +34,7 @@ public sealed class Bootstrap
             typeof(Zombie),
             typeof(Position),
             typeof(GridPosition),
+            typeof(PrevMoveDirection),
             typeof(Collidable),
             typeof(Movable),
             typeof(Health),
