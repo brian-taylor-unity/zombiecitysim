@@ -8,8 +8,6 @@ public class GameController : MonoBehaviour
 {
     private EntityManager manager;
 
-    public static GameController instance = null;
-
     public int numTilesX = 130;
     public int numTilesY = 130;
     public int numStreets = 30;
@@ -33,13 +31,6 @@ public class GameController : MonoBehaviour
     void Awake()
     {
         manager = World.Active.GetOrCreateManager<EntityManager>();
-
-        if (instance == null)
-            instance = this;
-        else if (instance != this)
-            Destroy(gameObject);
-
-        DontDestroyOnLoad(gameObject);
 
         humanCharacters = new List<GameObject>();
         zombieCharacters = new List<GameObject>();
@@ -146,27 +137,6 @@ public class GameController : MonoBehaviour
 
     public bool IsPassable(int x, int y)
     {
-        bool passable = true;
-        foreach (GameObject obj in humanCharacters)
-        {
-            HumanCharacter human = obj.GetComponent<HumanCharacter>();
-            if (human.x == x && human.y == y)
-            {
-                passable = false;
-                break;
-            }
-        }
-
-        foreach (GameObject obj in zombieCharacters)
-        {
-            ZombieCharacter zombie = obj.GetComponent<ZombieCharacter>();
-            if (zombie.x == x && zombie.y == y)
-            {
-                passable = false;
-                break;
-            }
-        }
-
-        return passable && cityInstance.IsPassable(x, y);
+        return cityInstance.IsPassable(x, y);
     }
 }
