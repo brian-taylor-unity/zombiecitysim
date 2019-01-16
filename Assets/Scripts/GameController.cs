@@ -11,8 +11,8 @@ public class GameController : MonoBehaviour
     public int numTilesX = 130;
     public int numTilesY = 130;
     public int numStreets = 30;
-    public int numHumans;
-    public int numZombies;
+    public int numHumans = 1000;
+    public int numZombies = 1;
 
     void Awake()
     {
