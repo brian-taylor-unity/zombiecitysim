@@ -13,7 +13,6 @@ public class MovementSystem : JobComponentSystem
     private ComponentGroup m_MovableCollidableGroup;
     private ComponentGroup m_HumanMovableGroup;
     private ComponentGroup m_ZombieMovableGroup;
-    private int m_ZombieViewDistance;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
@@ -62,21 +61,17 @@ public class MovementSystem : JobComponentSystem
         [ReadOnly] public NativeMultiHashMap<int, int> movableCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
         public int viewDistance;
-        [NativeDisableParallelForRestriction] public NativeArray<int> validTargetIndexArray;
-        [NativeDisableParallelForRestriction] public NativeArray<int3> validTargetsArray;
 
         public void Execute(int index)
         {
             int3 myGridPositionValue = gridPositions[index].Value;
-
-            int arraySliceSize = (viewDistance * 2 + 1) * (viewDistance * 2 + 1);
-            var myValidTargetIndexArray = validTargetIndexArray.Slice(index * arraySliceSize, arraySliceSize);
-            var myValidTargetList = validTargetsArray.Slice(index * arraySliceSize, arraySliceSize);
-            int validIndex = 0;
             bool moved = false;
 
             // Get nearest target
             // Check all grid positions that are checkDist away in the x or y direction
+            bool foundTarget = false;
+            int3 nearestTarget = myGridPositionValue;
+            float nearestDistance = viewDistance * viewDistance;
             for (int y = -viewDistance; y < viewDistance; y++)
             {
                 for (int x = -viewDistance; x < viewDistance; x++)
@@ -87,84 +82,67 @@ public class MovementSystem : JobComponentSystem
                         int targetKey = GridHash.Hash(targetGridPosition);
                         if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
                         {
-                            int myIndex = (y + viewDistance) * viewDistance + (x + viewDistance);
-                            myValidTargetIndexArray[validIndex] = myIndex;
-                            myValidTargetList[myIndex] = targetGridPosition;
+                            var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                            var nearest = distance < nearestDistance;
+
+                            nearestDistance = math.@select(nearestDistance, distance, nearest);
+                            nearestTarget = targetGridPosition;
+
+                            foundTarget = true;
                         }
                     }
-
-                    validIndex++;
                 }
             }
 
-            if (myValidTargetList.Length > 0)
+            if (foundTarget)
             {
-                // Get the closest target from our list of targets
-                int nearestIndex = -1;
-                float nearestDistance = math.lengthsq(new float3(myGridPositionValue) - new float3(myValidTargetList[0]));
-                for (int i = 0; i < myValidTargetIndexArray.Length; i++)
-                {
-                    if (myValidTargetIndexArray[i] != -1)
-                    {
-                        int myIndex = myValidTargetIndexArray[i];
-                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(myValidTargetList[myIndex]));
-                        var nearest = distance < nearestDistance;
+                int3 direction = nearestTarget - myGridPositionValue;
 
-                        nearestDistance = math.@select(nearestDistance, distance, nearest);
-                        nearestIndex = math.@select(nearestIndex, myIndex, nearest);
+                // Check if space is already occupied
+                int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+                int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+                if (math.abs(direction.x) >= math.abs(direction.z))
+                {
+                    // Move horizontally
+                    if (direction.x < 0)
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                        {
+                            myGridPositionValue.x--;
+                            moved = true;
+                        }
+                    }
+                    else if (direction.x > 0)
+                    {
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                        {
+                            myGridPositionValue.x++;
+                            moved = true;
+                        }
                     }
                 }
-
-                if (nearestIndex != -1)
+                // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
+                if (!moved)
                 {
-                    int3 direction = myValidTargetList[nearestIndex] - myGridPositionValue;
-
-                    // Check if space is already occupied
-                    int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-                    int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-                    int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-                    int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-                    if (math.abs(direction.x) >= math.abs(direction.z))
+                    // Move vertically
+                    if (direction.z < 0)
                     {
-                        // Move horizontally
-                        if (direction.x < 0)
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
                         {
-                            if (!nonMovableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
-                                !movableCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
-                            {
-                                myGridPositionValue.x--;
-                                moved = true;
-                            }
-                        }
-                        else if (direction.x > 0)
-                        {
-                            if (!nonMovableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
-                                !movableCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
-                            {
-                                myGridPositionValue.x++;
-                                moved = true;
-                            }
+                            myGridPositionValue.z--;
                         }
                     }
-                    // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
-                    if (!moved)
+                    else if (direction.z > 0)
                     {
-                        // Move vertically
-                        if (direction.z < 0)
+                        if (!nonMovableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
+                            !movableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
                         {
-                            if (!nonMovableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
-                                !movableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
-                            {
-                                myGridPositionValue.z--;
-                            }
-                        }
-                        else if (direction.z > 0)
-                        {
-                            if (!nonMovableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
-                                !movableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
-                            {
-                                myGridPositionValue.z++;
-                            }
+                            myGridPositionValue.z++;
                         }
                     }
                 }
@@ -298,8 +276,6 @@ public class MovementSystem : JobComponentSystem
     struct DeallocateJob : IJob
     {
         [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<GridPosition> updatedHumanGridPositions;
-        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<int> zombieTargetIndexArray;
-        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<int3> zombieTargetValuesArray;
         [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<GridPosition> updatedZombieGridPositions;
 
         public void Execute()
@@ -327,12 +303,6 @@ public class MovementSystem : JobComponentSystem
         var zombieMovablePositions = m_ZombieMovableGroup.GetComponentDataArray<Position>();
         var zombieMovableCount = zombieMovableGridPositions.Length;
         var initialZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
-        var zombieTargetIndexArray = new NativeArray<int>(zombieMovableCount * (m_ZombieViewDistance * 2 + 1) * (m_ZombieViewDistance * 2 + 1), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-        for (int i = 0; i < zombieTargetIndexArray.Length; i++)
-        {
-            zombieTargetIndexArray[i] = -1;
-        }
-        var zombieTargetValuesArray = new NativeArray<int3>(zombieMovableCount * (m_ZombieViewDistance * 2 + 1) * (m_ZombieViewDistance * 2 + 1), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var updatedZombieGridPositions = new NativeArray<GridPosition>(zombieMovableCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var updatedZombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieMovableCount, Allocator.TempJob);
 
@@ -422,9 +392,7 @@ public class MovementSystem : JobComponentSystem
             nonMovableCollidableHashMap = nonMovableCollidableHashMap,
             movableCollidableHashMap = movableCollidableHashMap,
             targetGridPositionsHashMap = initialHumanGridPositionsHashMap,
-            validTargetIndexArray = zombieTargetIndexArray,
-            validTargetsArray = zombieTargetValuesArray,
-            viewDistance = m_ZombieViewDistance,
+            viewDistance = Bootstrap.ZombieVisionDistance,
         };
         var tryFollowMovementJobHandle = tryFollowMovementJob.Schedule(zombieMovableCount, 64, zombieMovementBarrier);
 
@@ -467,8 +435,6 @@ public class MovementSystem : JobComponentSystem
         var deallocateJob = new DeallocateJob
         {
             updatedHumanGridPositions = updatedHumanGridPositions,
-            zombieTargetIndexArray = zombieTargetIndexArray,
-            zombieTargetValuesArray = zombieTargetValuesArray,
             updatedZombieGridPositions = updatedZombieGridPositions,
         };
         var deallocateJobHandle = deallocateJob.Schedule(resolveCollidedHumanMovementJobHandle);
@@ -499,7 +465,6 @@ public class MovementSystem : JobComponentSystem
             typeof(PrevMoveDirection),
             typeof(Position)
         );
-        m_ZombieViewDistance = Bootstrap.ZombieVisionDistance;
     }
 
     protected override void OnDestroyManager()
