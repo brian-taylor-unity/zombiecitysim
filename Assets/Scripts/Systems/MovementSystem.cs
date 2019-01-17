@@ -52,7 +52,7 @@ public class MovementSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct TryFollowMovementJob : IJobParallelFor
+    struct TryZombieMovementJob : IJobParallelFor
     {
         [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
@@ -135,6 +135,7 @@ public class MovementSystem : JobComponentSystem
                             !movableCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
                         {
                             myGridPositionValue.z--;
+                            moved = true;
                         }
                     }
                     else if (direction.z > 0)
@@ -143,29 +144,30 @@ public class MovementSystem : JobComponentSystem
                             !movableCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
                         {
                             myGridPositionValue.z++;
+                            moved = true;
                         }
                     }
                 }
             }
+            else if (!prevMoveDirectionArray[index].Value.Equals(new int3(0, 0, 0)))
+            {
+                // Try to move in the same direction as last turn
+                int movePrevKey = GridHash.Hash(myGridPositionValue + prevMoveDirectionArray[index].Value);
+                if (!nonMovableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _) &&
+                    !movableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _))
+                {
+                    myGridPositionValue += prevMoveDirectionArray[index].Value;
+                }
+            }
 
-            //if (!moved && !prevMoveDirectionArray[index].Value.Equals(new int3(0, 0, 0)))
-            //{
-            //    // Try to move in the same direction as last turn
-            //    int movePrevKey = GridHash.Hash(myGridPositionValue + prevMoveDirectionArray[index].Value);
-            //    if (!nonMovableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _) &&
-            //        !movableCollidableHashMap.TryGetFirstValue(movePrevKey, out _, out _))
-            //    {
-            //        myGridPositionValue += prevMoveDirectionArray[index].Value;
-            //    }
-            //}
-
+            //Debug.Log("index " + index + " moving from " + gridPositions[index].Value + " to " + myGridPositionValue);
             prevMoveDirectionArray[index] = new PrevMoveDirection { Value = myGridPositionValue - gridPositions[index].Value };
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
     }
 
     [BurstCompile]
-    struct TryRandomMovementJob : IJobParallelFor
+    struct TryHumanMovementJob : IJobParallelFor
     {
         [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
@@ -371,7 +373,7 @@ public class MovementSystem : JobComponentSystem
 
         var humanMovementBarrierHandle = JobHandle.CombineDependencies(hashNonMovableCollidablePositionsJobHandle, hashMovableCollidablePositionsJobHandle, hashInitialHumanGridPositionsJobHandle);
 
-        var tryRandomMovementJob = new TryRandomMovementJob
+        var tryHumanMovementJob = new TryHumanMovementJob
         {
             gridPositions = humanMovableGridPositions,
             nextGridPositions = updatedHumanGridPositions,
@@ -379,12 +381,12 @@ public class MovementSystem : JobComponentSystem
             movableCollidableHashMap = movableCollidableHashMap,
             tick = Time.frameCount,
         };
-        var tryRandomMovementJobHandle = tryRandomMovementJob.Schedule(humanMovableCount, 64, humanMovementBarrierHandle);
+        var tryHumanMovementJobHandle = tryHumanMovementJob.Schedule(humanMovableCount, 64, humanMovementBarrierHandle);
 
         var zombieMovementBarrier = JobHandle.CombineDependencies(hashNonMovableCollidablePositionsJobHandle, hashMovableCollidablePositionsJobHandle, hashInitialZombieGridPositionsJobHandle);
         zombieMovementBarrier = JobHandle.CombineDependencies(zombieMovementBarrier, hashInitialHumanGridPositionsJobHandle);
 
-        var tryFollowMovementJob = new TryFollowMovementJob
+        var tryZombieMovementJob = new TryZombieMovementJob
         {
             gridPositions = zombieMovableGridPositions,
             nextGridPositions = updatedZombieGridPositions,
@@ -394,9 +396,9 @@ public class MovementSystem : JobComponentSystem
             targetGridPositionsHashMap = initialHumanGridPositionsHashMap,
             viewDistance = Bootstrap.ZombieVisionDistance,
         };
-        var tryFollowMovementJobHandle = tryFollowMovementJob.Schedule(zombieMovableCount, 64, zombieMovementBarrier);
+        var tryZombieMovementJobHandle = tryZombieMovementJob.Schedule(zombieMovableCount, 64, zombieMovementBarrier);
 
-        var finalizeMovementBarrier = JobHandle.CombineDependencies(tryRandomMovementJobHandle, tryFollowMovementJobHandle);
+        var finalizeMovementBarrier = JobHandle.CombineDependencies(tryHumanMovementJobHandle, tryZombieMovementJobHandle);
 
         var hashHumanUpdatedGridPositionsJob = new HashGridPositionsNativeArrayJob
         {
