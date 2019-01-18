@@ -160,7 +160,6 @@ public class MovementSystem : JobComponentSystem
                 }
             }
 
-            //Debug.Log("index " + index + " moving from " + gridPositions[index].Value + " to " + myGridPositionValue);
             prevMoveDirectionArray[index] = new PrevMoveDirection { Value = myGridPositionValue - gridPositions[index].Value };
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
