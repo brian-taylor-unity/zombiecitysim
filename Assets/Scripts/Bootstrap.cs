@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
-using Unity.Rendering;
 using Unity.Transforms;
 using Unity.Mathematics;
+using Unity.Rendering;
 using UnityEngine;
 
 public sealed class Bootstrap
@@ -21,19 +21,19 @@ public sealed class Bootstrap
     /// <summary>
     /// Building Tile definitions
     /// </summary>
-    public static MeshInstanceRenderer BuildingTileMeshInstanceRenderer;
+    public static RenderMesh BuildingTileMeshInstanceRenderer;
 
     /// <summary>
     /// Building Tile definitions
     /// </summary>
-    public static MeshInstanceRenderer RoadTileMeshInstanceRenderer;
+    public static RenderMesh RoadTileMeshInstanceRenderer;
 
     /// <summary>
     /// Human definitions
     /// </summary>
     public static int HumanStartingHealth = 100;
     public static int HumanDamage = 0;
-    public static MeshInstanceRenderer HumanMeshInstanceRenderer;
+    public static RenderMesh HumanMeshInstanceRenderer;
 
     /// <summary>
     /// Zombie definitions
@@ -41,7 +41,7 @@ public sealed class Bootstrap
     public static int ZombieVisionDistance = 4;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
-    public static MeshInstanceRenderer ZombieMeshInstanceRenderer;
+    public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
     private static bool[,] _tileExists;
@@ -128,10 +128,10 @@ public sealed class Bootstrap
         }
     }
 
-    private static MeshInstanceRenderer GetMeshInstanceRendererFromPrototype(string protoName)
+    private static RenderMesh GetMeshInstanceRendererFromPrototype(string protoName)
     {
         var proto = GameObject.Find(protoName);
-        var result = proto.GetComponent<MeshInstanceRendererComponent>().Value;
+        var result = proto.GetComponent<RenderMeshComponent>().Value;
         Object.Destroy(proto);
         return result;
     }
