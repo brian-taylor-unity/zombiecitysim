@@ -55,7 +55,7 @@ public sealed class Bootstrap
         BuildingTileArchetype = _entityManager.CreateArchetype(
             typeof(Position),
             typeof(GridPosition),
-            typeof(Collidable)
+            typeof(StaticCollidable)
         );
 
         RoadFloorArchetype = _entityManager.CreateArchetype(
@@ -67,8 +67,9 @@ public sealed class Bootstrap
             typeof(Human),
             typeof(Position),
             typeof(GridPosition),
-            typeof(Collidable),
-            typeof(Movable),
+            typeof(DynamicCollidable),
+            typeof(FollowTarget),
+            typeof(MoveRandomly),
             typeof(Health),
             typeof(Damage)
         );
@@ -76,9 +77,8 @@ public sealed class Bootstrap
             typeof(Zombie),
             typeof(Position),
             typeof(GridPosition),
-            typeof(PrevMoveDirection),
-            typeof(Collidable),
-            typeof(Movable),
+            typeof(DynamicCollidable),
+            typeof(MoveFollowTarget),
             typeof(Health),
             typeof(Damage)
         );
