@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class CameraControl : MonoBehaviour
 {
@@ -54,7 +52,6 @@ public class CameraControl : MonoBehaviour
 
     private void AdjustRotation(float delta)
     {
-        Debug.Log("rotate");
         rotationAngle += delta * rotationSpeed * Time.deltaTime;
         if (rotationAngle < 0f)
             rotationAngle += 360f;
