@@ -413,7 +413,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 462561628}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 292301226}
@@ -443,14 +443,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 636033466}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.2588191, y: 0, z: 0, w: 0.9659258}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 462561629}
   m_Father: {fileID: 1669595722}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 30, y: 0, z: 0}
 --- !u!1 &877119358
 GameObject:
   m_ObjectHideFlags: 0
@@ -661,12 +661,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stickMinZoom: -250
-  stickMaxZoom: 200
-  swivelMinZoom: 90
-  swivelMaxZoom: 45
+  stickMaxZoom: -20
+  swivelMinZoom: 85
+  swivelMaxZoom: 30
   rotationSpeed: 180
   moveSpeedMinZoom: 100
-  moveSpeedMaxZoom: 180
+  moveSpeedMaxZoom: 150
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
@@ -675,7 +675,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1669595720}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 179.84, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 636033467}
