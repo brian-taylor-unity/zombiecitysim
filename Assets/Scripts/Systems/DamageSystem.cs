@@ -36,19 +36,19 @@ public class DamageSystem : JobComponentSystem
             int myHealth = healthArray[index].Value;
 
             // Check all directions for damaging units
-            int damageKey = GridHash.Hash(new int3(myGridPosition.x - 1, myGridPosition.y, myGridPosition.z));
-            int damageIndex;
-            if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
-                myHealth -= damagingUnitsDamageArray[damageIndex].Value;
-            damageKey = GridHash.Hash(new int3(myGridPosition.x + 1, myGridPosition.y, myGridPosition.z));
-            if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
-                myHealth -= damagingUnitsDamageArray[damageIndex].Value;
-            damageKey = GridHash.Hash(new int3(myGridPosition.x, myGridPosition.y, myGridPosition.z - 1));
-            if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
-                myHealth -= damagingUnitsDamageArray[damageIndex].Value;
-            damageKey = GridHash.Hash(new int3(myGridPosition.x, myGridPosition.y, myGridPosition.z + 1));
-            if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
-                myHealth -= damagingUnitsDamageArray[damageIndex].Value;
+            for (int z = -1; z <= 1; z++)
+            {
+                for (int x = -1; x <= 1; x++)
+                {
+                    if (x != 0 && z != 0)
+                    {
+                        int damageKey = GridHash.Hash(new int3(myGridPosition.x + x, myGridPosition.y, myGridPosition.z + z));
+                        int damageIndex;
+                        if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
+                            myHealth -= damagingUnitsDamageArray[damageIndex].Value;
+                    }
+                }
+            }
 
             healthArray[index] = new Health { Value = myHealth };
         }
