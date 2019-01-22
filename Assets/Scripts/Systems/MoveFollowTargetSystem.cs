@@ -67,27 +67,34 @@ public class MoveFollowTargetSystem : JobComponentSystem
             // Check all grid positions that are checkDist away in the x or y direction
             bool foundTarget = false;
             int3 nearestTarget = myGridPositionValue;
-            float nearestDistance = viewDistance * viewDistance;
-            for (int y = -viewDistance; y < viewDistance; y++)
+            for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
             {
-                for (int x = -viewDistance; x < viewDistance; x++)
+                float nearestDistance = (checkDist + 1) * (checkDist + 1);
+                for (int z = -checkDist; z <= checkDist; z++)
                 {
-                    if (x != 0 || y != 0)
+                    for (int x = -checkDist; x <= checkDist; x++)
                     {
-                        int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + y);
-                        int targetKey = GridHash.Hash(targetGridPosition);
-                        if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
+                        if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                         {
-                            var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
-                            var nearest = distance < nearestDistance;
+                            int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
-                            nearestDistance = math.@select(nearestDistance, distance, nearest);
-                            nearestTarget = targetGridPosition;
+                            int targetKey = GridHash.Hash(targetGridPosition);
+                            if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
+                            {
+                                var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                                var nearest = distance < nearestDistance;
 
-                            foundTarget = true;
+                                nearestDistance = math.@select(nearestDistance, distance, nearest);
+                                nearestTarget = math.@select(nearestTarget, targetGridPosition, nearest);
+
+                                foundTarget = true;
+                            }
                         }
                     }
                 }
+
+                if (foundTarget)
+                    break;
             }
 
             if (foundTarget)
