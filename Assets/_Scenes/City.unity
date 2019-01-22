@@ -215,6 +215,7 @@ MonoBehaviour:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 78f7a985db61b9c4b8579f674222943a, type: 2}
     subMesh: 0
+    layer: 0
     castShadows: 1
     receiveShadows: 1
 --- !u!114 &115511966
@@ -277,6 +278,7 @@ MonoBehaviour:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: afa7cbd3cf8665246b3160e047d34b37, type: 2}
     subMesh: 0
+    layer: 0
     castShadows: 0
     receiveShadows: 1
 --- !u!114 &226833501
@@ -485,10 +487,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 650
-  numTilesY: 650
-  numStreets: 675
-  numHumans: 20000
+  numTilesX: 500
+  numTilesY: 500
+  numStreets: 550
+  numHumans: 10000
   numZombies: 1
 --- !u!4 &944363108
 Transform:
@@ -538,6 +540,7 @@ MonoBehaviour:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 6fede7af98ec2b24f97489109424db56, type: 2}
     subMesh: 0
+    layer: 0
     castShadows: 1
     receiveShadows: 1
 --- !u!114 &1469409397
@@ -600,6 +603,7 @@ MonoBehaviour:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 0947b462c175b124ea47433c8832129f, type: 2}
     subMesh: 0
+    layer: 0
     castShadows: 1
     receiveShadows: 1
 --- !u!114 &1727161620
