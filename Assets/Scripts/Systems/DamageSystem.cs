@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-[UpdateAfter(typeof(MoveRandomlySystem))]
+[UpdateAfter(typeof(MoveFollowTarget))]
 public class DamageSystem : JobComponentSystem
 {
     private ComponentGroup m_ZombieGroup;
