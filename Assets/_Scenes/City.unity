@@ -665,8 +665,8 @@ MonoBehaviour:
   swivelMinZoom: 85
   swivelMaxZoom: 30
   rotationSpeed: 180
-  moveSpeedMinZoom: 100
-  moveSpeedMaxZoom: 150
+  moveSpeedMinZoom: 200
+  moveSpeedMaxZoom: 50
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
