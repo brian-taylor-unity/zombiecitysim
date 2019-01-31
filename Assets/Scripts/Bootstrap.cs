@@ -12,6 +12,8 @@ public sealed class Bootstrap
     public static EntityArchetype HumanArchetype;
     public static EntityArchetype ZombieArchetype;
 
+    public static EntityArchetype AudibleArchetype;
+
     public static int numTilesX;
     public static int numTilesY;
     public static int numStreets;
@@ -39,6 +41,7 @@ public sealed class Bootstrap
     /// Zombie definitions
     /// </summary>
     public static int ZombieVisionDistance = 4;
+    public static int ZombieHearingDistance = 10;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
     public static RenderMesh ZombieMeshInstanceRenderer;
@@ -78,9 +81,14 @@ public sealed class Bootstrap
             typeof(Position),
             typeof(GridPosition),
             typeof(DynamicCollidable),
-            typeof(MoveFollowTarget),
+            typeof(MoveTowardsTarget),
             typeof(Health),
             typeof(Damage)
+        );
+
+        AudibleArchetype = _entityManager.CreateArchetype(
+            typeof(GridPosition),
+            typeof(Audible)
         );
     }
 
