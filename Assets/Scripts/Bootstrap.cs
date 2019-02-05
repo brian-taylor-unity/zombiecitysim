@@ -46,6 +46,8 @@ public sealed class Bootstrap
     public static int ZombieDamage = 20;
     public static RenderMesh ZombieMeshInstanceRenderer;
 
+    public static RenderMesh AudibleMesh;
+
     private static EntityManager _entityManager;
     private static bool[,] _tileExists;
     private static bool[,] _tilePassable;
@@ -87,6 +89,8 @@ public sealed class Bootstrap
         );
 
         AudibleArchetype = _entityManager.CreateArchetype(
+            typeof(Position),
+            typeof(Scale),
             typeof(GridPosition),
             typeof(Audible)
         );
@@ -105,6 +109,7 @@ public sealed class Bootstrap
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
         HumanMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype");
         ZombieMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype");
+        AudibleMesh = GetMeshInstanceRendererFromPrototype("AudibleMeshPrototype");
 
         // Instantiate city tiles
         Generate();

@@ -3,12 +3,14 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 using Unity.Mathematics;
+using Unity.Transforms;
+using Unity.Rendering;
 
 public class CreateAudiblesBarrier : BarrierSystem
 {
 }
 
-[UpdateBefore(typeof(MoveRandomlySystem))]
+[UpdateBefore(typeof(MoveTowardsTargetSystem))]
 public class CreateAudiblesSystem : JobComponentSystem
 {
     private ComponentGroup m_FollowTargetGroup;
@@ -37,7 +39,7 @@ public class CreateAudiblesSystem : JobComponentSystem
     struct CreateAudiblesJob : IJobProcessComponentDataWithEntity<MoveTowardsTarget, GridPosition>
     {
         [ReadOnly] public NativeMultiHashMap<int, int> visibleHashMap;
-        public int hearingDistance;
+        public int visionDistance;
         public EntityCommandBuffer.Concurrent Commands;
         public EntityArchetype archetype;
 
@@ -45,13 +47,12 @@ public class CreateAudiblesSystem : JobComponentSystem
         {
             var myGridPositionValue = gridPosition.Value;
 
-            bool found = false;
-            for (int checkDist = 1; checkDist < hearingDistance && !found; checkDist++)
+            for (int checkDist = 1; checkDist < visionDistance; checkDist++)
             {
                 float nearestDistance = (checkDist + 1) * (checkDist + 1);
-                for (int z = -checkDist; z < checkDist && !found; z++)
+                for (int z = -checkDist; z < checkDist; z++)
                 {
-                    for (int x = -checkDist; x < checkDist && !found; x++)
+                    for (int x = -checkDist; x < checkDist; x++)
                     {
                         if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                         {
@@ -61,8 +62,10 @@ public class CreateAudiblesSystem : JobComponentSystem
                             if (visibleHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 Commands.CreateEntity(index, archetype);
+                                Commands.SetComponent(index, entity, new Position { Value = new float3(myGridPositionValue) });
+                                // Some bug doesn't allow me to set the scale?
+                                //Commands.SetComponent(index, entity, new Scale { Value = new float3(visionDistance, visionDistance, visionDistance) });
                                 Commands.SetComponent(index, entity, new GridPosition { Value = myGridPositionValue });
-                                found = true;
                             }
                         }
                     }
@@ -99,7 +102,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         var createAudiblesJob = new CreateAudiblesJob
         {
             visibleHashMap = followTargetHashMap,
-            hearingDistance = Bootstrap.ZombieHearingDistance,
+            visionDistance = Bootstrap.ZombieVisionDistance,
             Commands = Commands,
             archetype = Bootstrap.AudibleArchetype,
         };
