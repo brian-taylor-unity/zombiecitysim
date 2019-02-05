@@ -66,6 +66,7 @@ public class CreateAudiblesSystem : JobComponentSystem
                                 // Some bug doesn't allow me to set the scale?
                                 //Commands.SetComponent(index, entity, new Scale { Value = new float3(visionDistance, visionDistance, visionDistance) });
                                 Commands.SetComponent(index, entity, new GridPosition { Value = myGridPositionValue });
+                                Commands.SetComponent(index, entity, new Audible { Value = targetGridPosition });
                             }
                         }
                     }

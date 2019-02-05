@@ -58,6 +58,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
+        [ReadOnly] public ComponentDataArray<GridPosition> audibleGridPositions;
         [ReadOnly] public NativeMultiHashMap<int, int> audibleGridPositionsHashMap;
         public int viewDistance;
         public int hearingDistance;
@@ -110,13 +111,14 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                             int targetKey = GridHash.Hash(targetGridPosition);
-                            if (audibleGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
+                            if (audibleGridPositionsHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
                             {
-                                var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                                var audiblePointingToValue = audibleGridPositions[audibleIndex].Value;
+                                var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audiblePointingToValue));
                                 var nearest = distance < nearestDistance;
 
                                 nearestDistance = math.@select(nearestDistance, distance, nearest);
-                                nearestTarget = math.@select(nearestTarget, targetGridPosition, nearest);
+                                nearestTarget = math.@select(nearestTarget, audiblePointingToValue, nearest);
 
                                 foundTarget = true;
                             }
@@ -308,6 +310,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             targetGridPositionsHashMap = followTargetGridPositionsHashMap,
+            audibleGridPositions = audibleGridPositions,
             audibleGridPositionsHashMap = audibleGridPositionsHashMap,
             viewDistance = Bootstrap.ZombieVisionDistance,
             hearingDistance = Bootstrap.ZombieHearingDistance,
