@@ -68,7 +68,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             int3 myGridPositionValue = gridPositions[index].Value;
             bool moved = false;
 
-            // Get nearest target
+            // Get nearest visible target
             // Check all grid positions that are checkDist away in the x or y direction
             bool foundTarget = false;
             int3 nearestTarget = myGridPositionValue;
@@ -99,6 +99,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 }
             }
 
+            // Check for Audible entities in range
             for (int checkDist = 1; checkDist <= hearingDistance && !foundTarget; checkDist++)
             {
                 float nearestDistance = (checkDist + 1) * (checkDist + 1);

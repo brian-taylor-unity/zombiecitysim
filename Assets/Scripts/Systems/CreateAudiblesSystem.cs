@@ -61,10 +61,9 @@ public class CreateAudiblesSystem : JobComponentSystem
                             if (visibleHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 Entity audibleEntity = Commands.CreateEntity(index, archetype);
-                                Commands.SetComponent(index, audibleEntity, new Audible { Value = targetGridPosition });
                                 Commands.SetComponent(index, audibleEntity, new Position { Value = new float3(myGridPositionValue) });
-                                Commands.SetComponent(index, audibleEntity, new Scale { Value = new float3(visionDistance, visionDistance, visionDistance) });
                                 Commands.SetComponent(index, audibleEntity, new GridPosition { Value = myGridPositionValue });
+                                Commands.SetComponent(index, audibleEntity, new Audible { Value = targetGridPosition });
                             }
                         }
                     }

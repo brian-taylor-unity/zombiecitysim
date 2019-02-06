@@ -41,12 +41,10 @@ public sealed class Bootstrap
     /// Zombie definitions
     /// </summary>
     public static int ZombieVisionDistance = 4;
-    public static int ZombieHearingDistance = 10;
+    public static int ZombieHearingDistance = 8;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
     public static RenderMesh ZombieMeshInstanceRenderer;
-
-    public static RenderMesh AudibleMesh;
 
     private static EntityManager _entityManager;
     private static bool[,] _tileExists;
@@ -90,7 +88,6 @@ public sealed class Bootstrap
 
         AudibleArchetype = _entityManager.CreateArchetype(
             typeof(Position),
-            typeof(Scale),
             typeof(GridPosition),
             typeof(Audible)
         );
@@ -109,7 +106,6 @@ public sealed class Bootstrap
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
         HumanMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype");
         ZombieMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype");
-        AudibleMesh = GetMeshInstanceRendererFromPrototype("AudibleMeshPrototype");
 
         // Instantiate city tiles
         Generate();
@@ -197,7 +193,7 @@ public sealed class Bootstrap
         {
             roadSize = UnityEngine.Random.Range(1, 3);
 
-            xPos = xPos + UnityEngine.Random.Range(0, 2 * (numTilesX / (numStreets / 2)));
+            xPos += UnityEngine.Random.Range(0, 2 * (numTilesX / (numStreets / 2)));
             if (xPos >= numTilesX - 1)
                 break;
 
@@ -222,7 +218,7 @@ public sealed class Bootstrap
         {
             roadSize = UnityEngine.Random.Range(1, 3);
 
-            yPos = yPos + UnityEngine.Random.Range(0, 2 * (numTilesY / (numStreets / 2)));
+            yPos += UnityEngine.Random.Range(0, 2 * (numTilesY / (numStreets / 2)));
             if (yPos >= numTilesY - 1)
                 break;
 
