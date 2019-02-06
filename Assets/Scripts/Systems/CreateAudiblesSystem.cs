@@ -49,7 +49,6 @@ public class CreateAudiblesSystem : JobComponentSystem
 
             for (int checkDist = 1; checkDist < visionDistance; checkDist++)
             {
-                float nearestDistance = (checkDist + 1) * (checkDist + 1);
                 for (int z = -checkDist; z < checkDist; z++)
                 {
                     for (int x = -checkDist; x < checkDist; x++)
@@ -61,12 +60,11 @@ public class CreateAudiblesSystem : JobComponentSystem
                             int targetKey = GridHash.Hash(targetGridPosition);
                             if (visibleHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
-                                Commands.CreateEntity(index, archetype);
-                                Commands.SetComponent(index, entity, new Position { Value = new float3(myGridPositionValue) });
-                                // Some bug doesn't allow me to set the scale?
-                                //Commands.SetComponent(index, entity, new Scale { Value = new float3(visionDistance, visionDistance, visionDistance) });
-                                Commands.SetComponent(index, entity, new GridPosition { Value = myGridPositionValue });
-                                Commands.SetComponent(index, entity, new Audible { Value = targetGridPosition });
+                                Entity audibleEntity = Commands.CreateEntity(index, archetype);
+                                Commands.SetComponent(index, audibleEntity, new Audible { Value = targetGridPosition });
+                                Commands.SetComponent(index, audibleEntity, new Position { Value = new float3(myGridPositionValue) });
+                                Commands.SetComponent(index, audibleEntity, new Scale { Value = new float3(visionDistance, visionDistance, visionDistance) });
+                                Commands.SetComponent(index, audibleEntity, new GridPosition { Value = myGridPositionValue });
                             }
                         }
                     }
