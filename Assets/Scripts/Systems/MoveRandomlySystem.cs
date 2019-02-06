@@ -80,9 +80,9 @@ public class MoveRandomlySystem : JobComponentSystem
                 leftMoveAvail = false;
 
             // Pick a random direction to move
-            uint seed = (uint)(tick * GridHash.Hash(myGridPositionValue));
+            uint seed = (uint)(tick * GridHash.Hash(myGridPositionValue) * index);
             if (seed == 0)
-                seed += (uint)tick;
+                seed += (uint)(tick + index);
 
             Random rand = new Random(seed);
             int randomDirIndex = rand.NextInt(0, 4);
