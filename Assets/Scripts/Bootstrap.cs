@@ -271,6 +271,7 @@ public sealed class Bootstrap
         Entity entity = _entityManager.CreateEntity(ZombieArchetype);
         _entityManager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+        _entityManager.SetComponentData(entity, new MoveTowardsTarget { TurnsSinceMove = 0 });
         _entityManager.SetComponentData(entity, new Health { Value = ZombieStartingHealth });
         _entityManager.SetComponentData(entity, new Damage { Value = ZombieDamage });
         _entityManager.AddSharedComponentData(entity, ZombieMeshInstanceRenderer);

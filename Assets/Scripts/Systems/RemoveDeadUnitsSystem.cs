@@ -30,9 +30,12 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
     {
         public EntityCommandBuffer.Concurrent Commands;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref Audible audible)
+        public void Execute(Entity entity, int index, ref Audible audible)
         {
-            Commands.DestroyEntity(index, entity);
+            audible.Age++;
+
+            if (audible.Age > 5)
+                Commands.DestroyEntity(index, entity);
         }
     }
 

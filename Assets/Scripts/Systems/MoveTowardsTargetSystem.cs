@@ -55,6 +55,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
+        public ComponentDataArray<MoveTowardsTarget> moveTowardsTargetComponentDataArray;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
@@ -67,6 +68,15 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         {
             int3 myGridPositionValue = gridPositions[index].Value;
             bool moved = false;
+
+            int myTurnsSinceMove = moveTowardsTargetComponentDataArray[index].TurnsSinceMove;
+            if (myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
+            {
+                nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
+                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
+
+                return;
+            }
 
             // Get nearest visible target
             // Check all grid positions that are checkDist away in the x or y direction
@@ -184,6 +194,11 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 }
             }
 
+            if (!moved)
+                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
+            else
+                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = 0 };
+
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
     }
@@ -229,6 +244,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         var movingUnitsGridPositions = m_MoveFollowTargetGroup.GetComponentDataArray<GridPosition>();
         var movingUnitsPositions = m_MoveFollowTargetGroup.GetComponentDataArray<Position>();
+        var moveTowardsTargetComponentDataArray = m_MoveFollowTargetGroup.GetComponentDataArray<MoveTowardsTarget>();
         var movingUnitsCount = movingUnitsGridPositions.Length;
         var nextGridPositions = new NativeArray<GridPosition>(movingUnitsCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
@@ -308,6 +324,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         {
             gridPositions = movingUnitsGridPositions,
             nextGridPositions = nextGridPositions,
+            moveTowardsTargetComponentDataArray = moveTowardsTargetComponentDataArray,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             targetGridPositionsHashMap = followTargetGridPositionsHashMap,
@@ -354,7 +371,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         );
 
         m_MoveFollowTargetGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
+            typeof(MoveTowardsTarget),
             typeof(GridPosition),
             typeof(Position)
         );
