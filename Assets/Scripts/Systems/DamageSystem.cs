@@ -9,6 +9,13 @@ public class DamageSystem : JobComponentSystem
 {
     private ComponentGroup m_ZombieGroup;
     private ComponentGroup m_HumanGroup;
+    private PrevGridState m_PrevGridState;
+
+    struct PrevGridState
+    {
+        public NativeMultiHashMap<int, int> zombieGridPositionsHashMap;
+        public NativeMultiHashMap<int, int> humanGridPositionsHashMap;
+    }
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
@@ -66,6 +73,17 @@ public class DamageSystem : JobComponentSystem
         var humanHealthComponents = m_HumanGroup.GetComponentDataArray<Health>();
         var humanDamageComponents = m_HumanGroup.GetComponentDataArray<Damage>();
 
+        var nextGridState = new PrevGridState
+        {
+            zombieGridPositionsHashMap = zombieGridPositionsHashMap,
+            humanGridPositionsHashMap = humanGridPositionsHashMap,
+        };
+        if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.zombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.humanGridPositionsHashMap.Dispose();
+        m_PrevGridState = nextGridState;
+
         var hashZombieGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = zombieGridPositionComponents,
@@ -100,11 +118,6 @@ public class DamageSystem : JobComponentSystem
         };
         var damageHumansJobHandle = damageHumansJob.Schedule(humanDamageComponents.Length, 64, damageZombiesJobHandle);
 
-        damageZombiesJobHandle.Complete();
-        damageHumansJobHandle.Complete();
-        zombieGridPositionsHashMap.Dispose();
-        humanGridPositionsHashMap.Dispose();
-
         return damageHumansJobHandle;
     }
 
@@ -122,5 +135,13 @@ public class DamageSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(Damage)),
             typeof(Health)
         );
+    }
+
+    protected override void OnDestroyManager()
+    {
+        if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
+            m_PrevGridState.zombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
+            m_PrevGridState.humanGridPositionsHashMap.Dispose();
     }
 }

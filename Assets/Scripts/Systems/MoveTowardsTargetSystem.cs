@@ -70,7 +70,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             bool moved = false;
 
             int myTurnsSinceMove = moveTowardsTargetComponentDataArray[index].TurnsSinceMove;
-            if (myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
+            if (myTurnsSinceMove > 100 || myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
             {
                 nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
                 moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
@@ -99,8 +99,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                 var nearest = distance < nearestDistance;
 
-                                nearestDistance = math.@select(nearestDistance, distance, nearest);
-                                nearestTarget = math.@select(nearestTarget, targetGridPosition, nearest);
+                                nearestDistance = math.select(nearestDistance, distance, nearest);
+                                nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
 
                                 foundTarget = true;
                             }
@@ -128,8 +128,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audiblePointingToValue));
                                 var nearest = distance < nearestDistance;
 
-                                nearestDistance = math.@select(nearestDistance, distance, nearest);
-                                nearestTarget = math.@select(nearestTarget, audiblePointingToValue, nearest);
+                                nearestDistance = math.select(nearestDistance, distance, nearest);
+                                nearestTarget = math.select(nearestTarget, audiblePointingToValue, nearest);
 
                                 foundTarget = true;
                             }
@@ -213,7 +213,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         public void ExecuteFirst(int index)
         {
             // This was the first unit added
-            int seed = GridHash.Hash(nextGridPositions[index].Value);
             gridPositionComponentData[index] = nextGridPositions[index];
             positionComponentData[index] = new Position { Value = new float3(nextGridPositions[index].Value) };
         }
