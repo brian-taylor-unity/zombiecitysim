@@ -238,7 +238,7 @@ public sealed class Bootstrap
         }
 
         Entity entity = _entityManager.CreateEntity(RoadFloorArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 + 0.5f, 0f, (float)numTilesY / 2 + 0.5f) });
+        _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 - 0.5f, 0f, (float)numTilesY / 2 - 0.5f) });
         _entityManager.SetComponentData(entity, new Scale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
         _entityManager.AddSharedComponentData(entity, RoadTileMeshInstanceRenderer);
     }

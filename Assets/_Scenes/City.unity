@@ -549,10 +549,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 500
-  numTilesY: 500
-  numStreets: 575
-  numHumans: 20000
+  numTilesX: 800
+  numTilesY: 800
+  numStreets: 950
+  numHumans: 36000
   numZombies: 3
 --- !u!4 &944363108
 Transform:
