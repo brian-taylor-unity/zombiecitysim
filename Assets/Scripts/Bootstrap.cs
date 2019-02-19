@@ -140,7 +140,7 @@ public sealed class Bootstrap
     private static RenderMesh GetMeshInstanceRendererFromPrototype(string protoName)
     {
         var proto = GameObject.Find(protoName);
-        var result = proto.GetComponent<RenderMeshComponent>().Value;
+        var result = proto.GetComponent<RenderMeshProxy>().Value;
         Object.Destroy(proto);
         return result;
     }

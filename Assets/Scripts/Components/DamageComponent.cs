@@ -7,4 +7,4 @@ public struct Damage : IComponentData
     public int Value;
 }
 
-public class DamageComponent : ComponentDataWrapper<Damage> { }
+public class DamageComponent : ComponentDataProxy<Damage> { }

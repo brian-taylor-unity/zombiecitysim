@@ -9,4 +9,4 @@ public struct Audible : IComponentData
     public int Age;
 }
 
-public class AudibleComponent : ComponentDataWrapper<Audible> { }
+public class AudibleComponent : ComponentDataProxy<Audible> { }

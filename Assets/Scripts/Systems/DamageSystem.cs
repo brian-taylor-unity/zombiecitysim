@@ -50,8 +50,7 @@ public class DamageSystem : JobComponentSystem
                     if (x != 0 && z != 0)
                     {
                         int damageKey = GridHash.Hash(new int3(myGridPosition.x + x, myGridPosition.y, myGridPosition.z + z));
-                        int damageIndex;
-                        if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out damageIndex, out _))
+                        if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out int damageIndex, out _))
                             myHealth -= damagingUnitsDamageArray[damageIndex].Value;
                     }
                 }
