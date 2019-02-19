@@ -15,7 +15,7 @@ public class CameraControl : MonoBehaviour
     
     private float zoom = 1f;
     private float zoomTarget = 1f;
-    private float zoomAnimLength = 1.5f;
+    private readonly float zoomAnimLength = 1.5f;
     private float zoomAnimTimer;
     private float rotationAngle;
 
