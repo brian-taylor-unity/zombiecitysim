@@ -2,6 +2,7 @@
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections;
+using UnityEngine;
 
 public class LineOfSightSystem : JobComponentSystem
 {
@@ -50,7 +51,7 @@ public class LineOfSightSystem : JobComponentSystem
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
 
-        var unitsLineOfSight = m_LineOfSightGroup.GetComponentDataArray<LineOfSight>();
+        var unitsLineOfSight = m_LineOfSightGroup.GetComponentDataArray<GridPosition>();
         var unitsLineOfSightCount = unitsLineOfSight.Length;
         var unitsLineOfSightHashMap = new NativeMultiHashMap<int, int>(unitsLineOfSightCount, Allocator.TempJob);
 
@@ -118,7 +119,8 @@ public class LineOfSightSystem : JobComponentSystem
         );
 
         m_LineOfSightGroup = GetComponentGroup(
-            ComponentType.ReadOnly(typeof(LineOfSight))
+            ComponentType.ReadOnly(typeof(LineOfSight)),
+            ComponentType.ReadOnly(typeof(GridPosition))
         );
     }
 

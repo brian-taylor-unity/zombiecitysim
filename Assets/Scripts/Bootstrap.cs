@@ -70,6 +70,7 @@ public sealed class Bootstrap
             typeof(DynamicCollidable),
             typeof(FollowTarget),
             typeof(MoveRandomly),
+            typeof(LineOfSight),
             typeof(Health),
             typeof(Damage)
         );

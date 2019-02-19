@@ -4,4 +4,4 @@ using Unity.Entities;
 [Serializable]
 public struct MoveEscapeTarget : IComponentData { }
 
-public class MoveEscapeTargetComponent : ComponentDataWrapper<MoveEscapeTarget> { }
+public class MoveEscapeTargetComponent : ComponentDataProxy<MoveEscapeTarget> { }
