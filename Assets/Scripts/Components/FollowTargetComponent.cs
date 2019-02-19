@@ -4,4 +4,4 @@ using Unity.Entities;
 [Serializable]
 public struct FollowTarget : IComponentData { }
 
-public class FollowTargetComponent : ComponentDataWrapper<FollowTarget> { }
+public class FollowTargetComponent : ComponentDataProxy<FollowTarget> { }

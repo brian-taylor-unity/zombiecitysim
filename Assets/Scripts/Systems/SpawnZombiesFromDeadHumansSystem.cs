@@ -17,12 +17,12 @@ public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
         {
             if (healthArray[i].Value <= 0)
             {
-                manager.CreateEntity(Bootstrap.ZombieArchetype);
-                manager.SetComponent(new GridPosition { Value = gridPositionArray[i].Value });
-                manager.SetComponent(new Position { Value = new float3(gridPositionArray[i].Value) });
-                manager.SetComponent(new Health { Value = Bootstrap.ZombieStartingHealth });
-                manager.SetComponent(new Damage { Value = Bootstrap.ZombieDamage });
-                manager.AddSharedComponent(Bootstrap.ZombieMeshInstanceRenderer);
+                Entity entity = manager.CreateEntity(Bootstrap.ZombieArchetype);
+                manager.SetComponent(entity, new GridPosition { Value = gridPositionArray[i].Value });
+                manager.SetComponent(entity, new Position { Value = new float3(gridPositionArray[i].Value) });
+                manager.SetComponent(entity, new Health { Value = Bootstrap.ZombieStartingHealth });
+                manager.SetComponent(entity, new Damage { Value = Bootstrap.ZombieDamage });
+                manager.AddSharedComponent(entity, Bootstrap.ZombieMeshInstanceRenderer);
             }
         }
     }
