@@ -4,7 +4,6 @@ using Unity.Jobs;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
-using Unity.Rendering;
 
 public class CreateAudiblesBarrier : BarrierSystem
 {
@@ -36,10 +35,10 @@ public class CreateAudiblesSystem : JobComponentSystem
         }
     }
 
-    struct CreateAudiblesJob : IJobProcessComponentDataWithEntity<MoveTowardsTarget, GridPosition>
+    struct CreateAudiblesFromTargetsJob : IJobProcessComponentDataWithEntity<MoveTowardsTarget, GridPosition>
     {
-        [ReadOnly] public NativeMultiHashMap<int, int> visibleHashMap;
-        public int visionDistance;
+        [ReadOnly] public NativeMultiHashMap<int, int> targetHashMap;
+        public int detectDistance;
         public EntityCommandBuffer.Concurrent Commands;
         public EntityArchetype archetype;
 
@@ -47,7 +46,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         {
             var myGridPositionValue = gridPosition.Value;
 
-            for (int checkDist = 1; checkDist < visionDistance; checkDist++)
+            for (int checkDist = 1; checkDist < detectDistance; checkDist++)
             {
                 for (int z = -checkDist; z < checkDist; z++)
                 {
@@ -58,12 +57,12 @@ public class CreateAudiblesSystem : JobComponentSystem
                             int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                             int targetKey = GridHash.Hash(targetGridPosition);
-                            if (visibleHashMap.TryGetFirstValue(targetKey, out _, out _))
+                            if (targetHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 Entity audibleEntity = Commands.CreateEntity(index, archetype);
                                 Commands.SetComponent(index, audibleEntity, new Position { Value = new float3(myGridPositionValue) });
                                 Commands.SetComponent(index, audibleEntity, new GridPosition { Value = myGridPositionValue });
-                                Commands.SetComponent(index, audibleEntity, new Audible { Target = targetGridPosition, Age = 0 });
+                                Commands.SetComponent(index, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = targetGridPosition, Age = 0 });
                             }
                         }
                     }
@@ -90,23 +89,23 @@ public class CreateAudiblesSystem : JobComponentSystem
         
         m_PrevGridState = nextGridState;
 
-        var hashGridPositionsJob = new HashGridPositionsJob
+        var hashTargetGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = followTargetComponentArray,
             hashMap = followTargetHashMap.ToConcurrent(),
         };
-        var hashGridPositionsJobHandle = hashGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
+        var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
 
-        var createAudiblesJob = new CreateAudiblesJob
+        var createAudiblesFromTargetsJob = new CreateAudiblesFromTargetsJob
         {
-            visibleHashMap = followTargetHashMap,
-            visionDistance = Bootstrap.ZombieVisionDistance,
+            targetHashMap = followTargetHashMap,
+            detectDistance = Bootstrap.ZombieVisionDistance,
             Commands = Commands,
             archetype = Bootstrap.AudibleArchetype,
         };
-        var createAudiblesJobHandle = createAudiblesJob.Schedule(this, hashGridPositionsJobHandle);
+        var createAudiblesFromTargetsJobHandle = createAudiblesFromTargetsJob.Schedule(this, hashTargetGridPositionsJobHandle);
 
-        return createAudiblesJobHandle;
+        return createAudiblesFromTargetsJobHandle;
     }
 
     protected override void OnCreateManager()
