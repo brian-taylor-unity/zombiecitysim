@@ -125,7 +125,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             // Check for Audible entities in range
             for (int checkDist = 1; checkDist <= hearingDistance && !foundTarget; checkDist++)
             {
-                float nearestDistance = (checkDist + 1) * (checkDist + 1);
+                float nearestDistance = 300;
                 for (int z = -checkDist; z <= checkDist; z++)
                 {
                     for (int x = -checkDist; x <= checkDist; x++)

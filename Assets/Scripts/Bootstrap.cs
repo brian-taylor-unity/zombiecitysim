@@ -41,7 +41,7 @@ public sealed class Bootstrap
     /// Zombie definitions
     /// </summary>
     public static int ZombieVisionDistance = 4;
-    public static int ZombieHearingDistance = 8;
+    public static int ZombieHearingDistance = 12;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
     public static RenderMesh ZombieMeshInstanceRenderer;
