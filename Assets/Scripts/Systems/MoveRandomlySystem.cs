@@ -205,7 +205,6 @@ public class MoveRandomlySystem : JobComponentSystem
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
         if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
             m_PrevGridState.nextGridPositionsHashMap.Dispose();
-
         m_PrevGridState = nextGridState;
 
         var hashDynamicCollidablePositionsJob = new HashGridPositionsJob

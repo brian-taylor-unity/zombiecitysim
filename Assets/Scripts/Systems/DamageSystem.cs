@@ -117,7 +117,7 @@ public class DamageSystem : JobComponentSystem
         };
         var damageHumansJobHandle = damageHumansJob.Schedule(humanDamageComponents.Length, 64, damageZombiesJobHandle);
 
-        return damageHumansJobHandle;
+        return JobHandle.CombineDependencies(damageZombiesJobHandle, damageHumansJobHandle);
     }
 
     protected override void OnCreateManager()
