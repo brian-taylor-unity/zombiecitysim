@@ -3,6 +3,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public sealed class Bootstrap
 {
@@ -158,9 +159,11 @@ public sealed class Bootstrap
             AddBuildingTile(x, 1, numTilesY - 1, true);
         }
 
-        CreateStreets();
+        CreateMajorStreets();
 
-        // Fill in empty space with building tiles
+        //CreateBuildings();
+
+        //// Fill in empty space with building tiles
         for (int y = 1; y < numTilesY - 1; y++)
         {
             for (int x = 1; x < numTilesX - 1; x++)
@@ -173,58 +176,40 @@ public sealed class Bootstrap
         }
     }
 
-    private static void CreateStreets()
+    private static void CreateMajorStreets()
     {
-        int roadSize;
-        int xPos, yPos;
+        float percentMajor = Random.Range(0.5f, 0.7f);
+        int numMajorStreets = (int) (numStreets * percentMajor);
 
-        // Vertical Streets
-        xPos = 1;
-        for (int i = 0; i < numStreets / 2; i++)
+        float percentVertical = Random.Range(0.4f, 0.6f);
+        int numVerticalStreets = (int) (numMajorStreets * percentVertical);
+        int numHorizontalStreets = numMajorStreets - numVerticalStreets;
+
+        for (int verticalStreet = 0; verticalStreet < numVerticalStreets; verticalStreet++)
         {
-            roadSize = UnityEngine.Random.Range(1, 3);
+            int width = Random.Range(2, 4);
+            int startX = (numTilesX / numVerticalStreets) * verticalStreet + Random.Range(0, numTilesX / numVerticalStreets);
 
-            xPos = xPos + UnityEngine.Random.Range(0, 2 * (numTilesX / (numStreets / 2)));
-            if (xPos >= numTilesX - 1)
-                break;
-
-            while (roadSize >= 1 && xPos <= numTilesX - 1)
+            for (int y = 1; y < numTilesY; y++)
             {
-                for (yPos = 1; yPos < numTilesY - 1; yPos++)
+                for (int x = startX; x < startX + width; x++)
                 {
-                    if (!_tileExists[yPos, xPos])
-                    {
-                        _tileExists[yPos, xPos] = true;
-                        _tilePassable[yPos, xPos] = true;
-                    }
+                    _tileExists[y, x] = true;
                 }
-                xPos++;
-                roadSize--;
             }
         }
 
-        // Horizontal Streets
-        yPos = 1;
-        for (int i = 0; i < numStreets / 2; i++)
+        for (int horizontalStreet = 0; horizontalStreet < numHorizontalStreets; horizontalStreet++)
         {
-            roadSize = UnityEngine.Random.Range(1, 3);
+            int width = Random.Range(2, 4);
+            int startY = (numTilesY / numHorizontalStreets) * horizontalStreet + Random.Range(0, numTilesX / numHorizontalStreets);
 
-            yPos = yPos + UnityEngine.Random.Range(0, 2 * (numTilesY / (numStreets / 2)));
-            if (yPos >= numTilesY - 1)
-                break;
-
-            while (roadSize >= 1 && yPos <= numTilesY - 1)
+            for (int y = startY; y < startY + width; y++)
             {
-                for (xPos = 1; xPos < numTilesX - 1; xPos++)
+                for (int x = 1; x < numTilesX; x++)
                 {
-                    if (!_tileExists[yPos, xPos])
-                    {
-                        _tileExists[yPos, xPos] = true;
-                        _tilePassable[yPos, xPos] = true;
-                    }
+                    _tileExists[y, x] = true;
                 }
-                yPos++;
-                roadSize--;
             }
         }
 
@@ -232,6 +217,55 @@ public sealed class Bootstrap
         _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 + 0.5f, 0f, (float)numTilesY / 2 + 0.5f) });
         _entityManager.SetComponentData(entity, new Scale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
         _entityManager.AddSharedComponentData(entity, RoadTileMeshInstanceRenderer);
+    }
+
+    private static void CreateBuildings()
+    {
+        int xStart = 0;
+        int yStart = 0;
+        int xEnd = 0;
+        int yEnd = 0;
+
+        // Find area surrounded by roads
+        for (int y = 0; y < numTilesY; y++)
+        {
+            for (int x = 0; x < numTilesX; x++)
+            {
+                if (!_tileExists[y, x])
+                {
+                    xStart = x;
+                    yStart = y;
+                    break;
+                }
+            }
+
+            if (xStart != 0 && yStart != 0)
+                break;
+        }
+
+        for (int y = yStart; y < numTilesY; y++)
+        {
+            for (int x = xStart; x < numTilesX; x++)
+            {
+                if (_tileExists[y, x])
+                {
+                    xEnd = x - 1;
+                    yEnd = y - 1;
+                    break;
+                }
+            }
+
+            if (xStart != 0 && yStart != 0)
+                break;
+        }
+
+        for (int y = yStart; y <= yEnd; y++)
+        {
+            for (int x = xStart; x <= xEnd; x++)
+            {
+                AddBuildingTile(x, y, 0, true);
+            }
+        }
     }
 
     private static void AddBuildingTile(int x, int y, int z, bool gridPosition)
