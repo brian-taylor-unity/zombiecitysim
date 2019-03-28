@@ -13,6 +13,7 @@ public class GameController : MonoBehaviour
     public int numStreets = 30;
     public int numHumans = 1000;
     public int numZombies = 1;
+    public int zombieVisionDistance = 10;
 
     void Awake()
     {

@@ -39,7 +39,7 @@ public sealed class Bootstrap
     /// <summary>
     /// Zombie definitions
     /// </summary>
-    public static int ZombieVisionDistance = 4;
+    public static int ZombieVisionDistance;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
     public static RenderMesh ZombieMeshInstanceRenderer;
@@ -93,6 +93,7 @@ public sealed class Bootstrap
         numStreets = GameController.instance.numStreets;
         numHumans = GameController.instance.numHumans;
         numZombies = GameController.instance.numZombies;
+        ZombieVisionDistance = GameController.instance.zombieVisionDistance;
 
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
@@ -107,11 +108,13 @@ public sealed class Bootstrap
         for (int i = 0; i < numHumans; i++)
         {
             // Place human in random place
+            int attempts = 0;
             do
             {
                 randomX = UnityEngine.Random.Range(1, numTilesX - 1);
                 randomY = UnityEngine.Random.Range(1, numTilesY - 1);
-            } while (!_tilePassable[randomY, randomX]);
+                attempts++;
+            } while (!_tilePassable[randomY, randomX] && attempts < numTilesX * numTilesY);
 
             AddHumanCharacter(randomX, randomY);
         }
@@ -119,11 +122,12 @@ public sealed class Bootstrap
         for (int i = 0; i < numZombies; i++)
         {
             // Place zombie in random place
+            int attempts = 0;
             do
             {
                 randomX = UnityEngine.Random.Range(1, numTilesX - 1);
                 randomY = UnityEngine.Random.Range(1, numTilesY - 1);
-            } while (!_tilePassable[randomY, randomX]);
+            } while (!_tilePassable[randomY, randomX] && attempts < numTilesX * numTilesY);
 
             AddZombieCharacter(randomX, randomY);
         }
@@ -163,7 +167,7 @@ public sealed class Bootstrap
 
         //CreateBuildings();
 
-        //// Fill in empty space with building tiles
+        // Fill in empty space with building tiles
         for (int y = 1; y < numTilesY - 1; y++)
         {
             for (int x = 1; x < numTilesX - 1; x++)
@@ -187,34 +191,42 @@ public sealed class Bootstrap
 
         for (int verticalStreet = 0; verticalStreet < numVerticalStreets; verticalStreet++)
         {
-            int width = Random.Range(2, 4);
+            int width = Random.Range(4, 8);
             int startX = (numTilesX / numVerticalStreets) * verticalStreet + Random.Range(0, numTilesX / numVerticalStreets);
 
             for (int y = 1; y < numTilesY; y++)
             {
                 for (int x = startX; x < startX + width; x++)
                 {
+                    if (x >= numTilesX)
+                        break;
+
                     _tileExists[y, x] = true;
+                    _tilePassable[y, x] = true;
                 }
             }
         }
 
         for (int horizontalStreet = 0; horizontalStreet < numHorizontalStreets; horizontalStreet++)
         {
-            int width = Random.Range(2, 4);
+            int width = Random.Range(4, 8);
             int startY = (numTilesY / numHorizontalStreets) * horizontalStreet + Random.Range(0, numTilesX / numHorizontalStreets);
 
             for (int y = startY; y < startY + width; y++)
             {
+                if (y >= numTilesY)
+                    break;
+
                 for (int x = 1; x < numTilesX; x++)
                 {
                     _tileExists[y, x] = true;
+                    _tilePassable[y, x] = true;
                 }
             }
         }
 
         Entity entity = _entityManager.CreateEntity(RoadFloorArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 + 0.5f, 0f, (float)numTilesY / 2 + 0.5f) });
+        _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 - 0.5f, 0f, (float)numTilesY / 2 - 0.5f) });
         _entityManager.SetComponentData(entity, new Scale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
         _entityManager.AddSharedComponentData(entity, RoadTileMeshInstanceRenderer);
     }
