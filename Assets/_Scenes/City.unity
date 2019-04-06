@@ -676,7 +676,7 @@ GameObject:
   - component: {fileID: 1669595722}
   - component: {fileID: 1669595721}
   m_Layer: 0
-  m_Name: Camera Container
+  m_Name: Camera Controller
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -701,6 +701,7 @@ MonoBehaviour:
   rotationSpeed: 180
   moveSpeedMinZoom: 220
   moveSpeedMaxZoom: 40
+  fastMoveSpeedFactor: 2.5
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
