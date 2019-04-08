@@ -163,7 +163,7 @@ public sealed class Bootstrap
             AddBuildingTile(x, 1, numTilesY - 1, true);
         }
 
-        CreateMajorStreets();
+        CreateStreets();
 
         //CreateBuildings();
 
@@ -180,19 +180,24 @@ public sealed class Bootstrap
         }
     }
 
-    private static void CreateMajorStreets()
+    private static void CreateStreets()
     {
         float percentMajor = Random.Range(0.5f, 0.7f);
         int numMajorStreets = (int) (numStreets * percentMajor);
+        int numMinorStreets = numStreets - numMajorStreets;
 
-        float percentVertical = Random.Range(0.4f, 0.6f);
-        int numVerticalStreets = (int) (numMajorStreets * percentVertical);
-        int numHorizontalStreets = numMajorStreets - numVerticalStreets;
+        float percentMajorVertical = Random.Range(0.4f, 0.6f);
+        int numMajorVerticalStreets = (int) (numMajorStreets * percentMajorVertical);
+        int numMajorHorizontalStreets = numMajorStreets - numMajorVerticalStreets;
 
-        for (int verticalStreet = 0; verticalStreet < numVerticalStreets; verticalStreet++)
+        float percentMinorVertical = Random.Range(0.3f, 0.7f);
+        int numMinorVerticalStreets = (int) (numMinorStreets * percentMinorVertical);
+        int numMinorHorizontalStreets = numMinorStreets - numMinorVerticalStreets;
+
+        for (int verticalStreet = 0; verticalStreet < numMajorVerticalStreets; verticalStreet++)
         {
             int width = Random.Range(4, 8);
-            int startX = (numTilesX / numVerticalStreets) * verticalStreet + Random.Range(0, numTilesX / numVerticalStreets);
+            int startX = (numTilesX / numMajorVerticalStreets) * verticalStreet + Random.Range(0, numTilesX / numMajorVerticalStreets);
 
             for (int y = 1; y < numTilesY; y++)
             {
@@ -207,10 +212,46 @@ public sealed class Bootstrap
             }
         }
 
-        for (int horizontalStreet = 0; horizontalStreet < numHorizontalStreets; horizontalStreet++)
+        for (int horizontalStreet = 0; horizontalStreet < numMajorHorizontalStreets; horizontalStreet++)
         {
             int width = Random.Range(4, 8);
-            int startY = (numTilesY / numHorizontalStreets) * horizontalStreet + Random.Range(0, numTilesX / numHorizontalStreets);
+            int startY = (numTilesY / numMajorHorizontalStreets) * horizontalStreet + Random.Range(0, numTilesX / numMajorHorizontalStreets);
+
+            for (int y = startY; y < startY + width; y++)
+            {
+                if (y >= numTilesY)
+                    break;
+
+                for (int x = 1; x < numTilesX; x++)
+                {
+                    _tileExists[y, x] = true;
+                    _tilePassable[y, x] = true;
+                }
+            }
+        }
+
+        for (int verticalStreet = 0; verticalStreet < numMinorVerticalStreets; verticalStreet++)
+        {
+            int width = Random.Range(1, 3);
+            int startX = (numTilesX / numMinorVerticalStreets) * verticalStreet + Random.Range(0, numTilesX / numMinorVerticalStreets);
+
+            for (int y = 1; y < numTilesY; y++)
+            {
+                for (int x = startX; x < startX + width; x++)
+                {
+                    if (x >= numTilesX)
+                        break;
+
+                    _tileExists[y, x] = true;
+                    _tilePassable[y, x] = true;
+                }
+            }
+        }
+
+        for (int horizontalStreet = 0; horizontalStreet < numMinorHorizontalStreets; horizontalStreet++)
+        {
+            int width = Random.Range(1, 3);
+            int startY = (numTilesY / numMinorHorizontalStreets) * horizontalStreet + Random.Range(0, numTilesX / numMinorHorizontalStreets);
 
             for (int y = startY; y < startY + width; y++)
             {
