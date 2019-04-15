@@ -7,4 +7,4 @@ public struct Health : IComponentData
     public int Value;
 }
 
-public class HealthComponent : ComponentDataProxy<Health> { }
+public class HealthProxy : ComponentDataProxy<Health> { }

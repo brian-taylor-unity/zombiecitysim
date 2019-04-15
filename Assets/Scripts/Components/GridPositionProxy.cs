@@ -8,4 +8,4 @@ public struct GridPosition : IComponentData
     public int3 Value;
 }
 
-public class GridPositionComponent : ComponentDataProxy<GridPosition> { }
+public class GridPositionProxy : ComponentDataProxy<GridPosition> { }
