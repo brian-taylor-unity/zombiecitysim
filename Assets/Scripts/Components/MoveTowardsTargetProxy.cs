@@ -7,4 +7,4 @@ public struct MoveTowardsTarget : IComponentData
     public int TurnsSinceMove;
 }
 
-public class MoveTowardsTargetComponent : ComponentDataProxy<MoveTowardsTarget> { }
+public class MoveTowardsTargetProxy : ComponentDataProxy<MoveTowardsTarget> { }

@@ -4,4 +4,4 @@ using Unity.Entities;
 [Serializable]
 public struct DynamicCollidable : IComponentData { }
 
-public class DynamicCollidableComponent : ComponentDataProxy<DynamicCollidable> { }
+public class DynamicCollidableProxy : ComponentDataProxy<DynamicCollidable> { }
