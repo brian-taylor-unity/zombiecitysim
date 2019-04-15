@@ -4,4 +4,4 @@ using Unity.Entities;
 [Serializable]
 public struct Zombie : IComponentData { }
 
-public class ZombieComponent : ComponentDataProxy<Zombie> { }
+public class ZombieProxy : ComponentDataProxy<Zombie> { }
