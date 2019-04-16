@@ -8,35 +8,27 @@ using Unity.Transforms;
 [UpdateAfter(typeof(MoveRandomlySystem))]
 public class MoveFollowTargetSystem : JobComponentSystem
 {
-    private ComponentGroup m_StaticCollidableGroup;
-    private ComponentGroup m_DynamicCollidableGroup;
-    private ComponentGroup m_MoveFollowTargetGroup;
-    private ComponentGroup m_FollowTargetGroup;
+    private EntityQuery m_StaticCollidableGroup;
+    private EntityQuery m_DynamicCollidableGroup;
+    private EntityQuery m_MoveFollowTargetGroup;
+    private EntityQuery m_FollowTargetGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
         public NativeMultiHashMap<int, int> staticCollidableHashMap;
+        public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
+        public NativeArray<GridPosition> movingUnitsGridPositions;
+        public NativeArray<Translation> movingUnitsTranslations;
+        public NativeArray<GridPosition> nextGridPositions;
         public NativeMultiHashMap<int, int> nextGridPositionsHashMap;
+        public NativeArray<GridPosition> followTargetGridPositions;
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
     }
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
-    {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
-
-        public void Execute(int index)
-        {
-            var hash = GridHash.Hash(gridPositions[index].Value);
-            hashMap.Add(hash, index);
-        }
-    }
-
-    [BurstCompile]
-    struct HashGridPositionsNativeArrayJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.Concurrent hashMap;
@@ -51,7 +43,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
     [BurstCompile]
     struct MoveFollowTargetJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
@@ -161,15 +153,15 @@ public class MoveFollowTargetSystem : JobComponentSystem
     struct ResolveCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
     {
         [ReadOnly] public NativeArray<GridPosition> nextGridPositions;
-        public ComponentDataArray<GridPosition> gridPositionComponentData;
-        public ComponentDataArray<Position> positionComponentData;
+        public NativeArray<GridPosition> gridPositionArray;
+        public NativeArray<Translation> translationArray;
 
         public void ExecuteFirst(int index)
         {
             // This was the first unit added
             int seed = GridHash.Hash(nextGridPositions[index].Value);
-            gridPositionComponentData[index] = nextGridPositions[index];
-            positionComponentData[index] = new Position { Value = new float3(nextGridPositions[index].Value) };
+            gridPositionArray[index] = nextGridPositions[index];
+            translationArray[index] = new Translation { Value = new float3(nextGridPositions[index].Value) };
         }
 
         public void ExecuteNext(int innerIndex, int index)
@@ -179,10 +171,22 @@ public class MoveFollowTargetSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct DeallocateJob : IJob
+    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, Translation>
     {
-        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<GridPosition> gridPositionsArray;
+        [ReadOnly] public NativeArray<GridPosition> gridPositionArray;
+        [ReadOnly] public NativeArray<Translation> translationArray;
 
+        public void Execute(Entity entity, int index, ref GridPosition gridPosition, ref Translation translation)
+        {
+            gridPosition = new GridPosition { Value = gridPositionArray[index].Value };
+            translation = new Translation { Value = translationArray[index].Value };
+        }
+    }
+
+    [BurstCompile]
+    struct DisposeJob : IJob
+    {
+        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray; 
         public void Execute()
         {
         }
@@ -192,25 +196,30 @@ public class MoveFollowTargetSystem : JobComponentSystem
     {
         NativeMultiHashMap<int, int> staticCollidableHashMap;
 
-        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.GetComponentDataArray<GridPosition>();
+        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
 
-        var movingUnitsGridPositions = m_MoveFollowTargetGroup.GetComponentDataArray<GridPosition>();
-        var movingUnitsPositions = m_MoveFollowTargetGroup.GetComponentDataArray<Position>();
+        var movingUnitsGridPositions = m_MoveFollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var movingUnitsTranslations = m_MoveFollowTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
         var nextGridPositions = new NativeArray<GridPosition>(movingUnitsCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
 
-        var followTargetGridPositions = m_FollowTargetGroup.GetComponentDataArray<GridPosition>();
+        var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var followTargetCount = followTargetGridPositions.Length;
         var followTargetGridPositionsHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
             staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap,
+            dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
+            movingUnitsGridPositions = movingUnitsGridPositions,
+            movingUnitsTranslations = movingUnitsTranslations,
+            nextGridPositions = nextGridPositions,
             nextGridPositionsHashMap = nextGridPositionsHashMap,
+            followTargetGridPositions = followTargetGridPositions,
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
         };
 
@@ -221,7 +230,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
         }
         else
         {
-            ComponentDataArray<GridPosition> staticCollidableGridPositions = m_StaticCollidableGroup.GetComponentDataArray<GridPosition>();
+            var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
             var staticCollidableCount = staticCollidableGridPositions.Length;
             nextGridState.staticCollidableHashMap = staticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
 
@@ -231,15 +240,32 @@ public class MoveFollowTargetSystem : JobComponentSystem
                 hashMap = staticCollidableHashMap.ToConcurrent(),
             };
             hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
+
+            var disposeJob = new DisposeJob
+            {
+                nativeArray = staticCollidableGridPositions
+            };
+            hashStaticCollidablePositionsJobHandle = disposeJob.Schedule(hashStaticCollidablePositionsJobHandle);
         }
 
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
+            m_PrevGridState.movingUnitsGridPositions.Dispose();
+        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
+            m_PrevGridState.movingUnitsTranslations.Dispose();
+        if (m_PrevGridState.nextGridPositions.IsCreated)
+            m_PrevGridState.nextGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
             m_PrevGridState.nextGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.followTargetGridPositions.IsCreated)
+            m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
-
         m_PrevGridState = nextGridState;
 
         var hashDynamicCollidableGridPositionsJob = new HashGridPositionsJob
@@ -269,7 +295,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
         };
         var moveFollowTargetJobHandle = moveFollowTargetJob.Schedule(movingUnitsCount, 64, movementBarrierHandle);
 
-        var hashNextGridPositionsJob = new HashGridPositionsNativeArrayJob
+        var hashNextGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = nextGridPositions,
             hashMap = nextGridPositionsHashMap.ToConcurrent(),
@@ -279,37 +305,38 @@ public class MoveFollowTargetSystem : JobComponentSystem
         var resolveCollidedMovementJob = new ResolveCollidedMovementJob
         {
             nextGridPositions = nextGridPositions,
-            gridPositionComponentData = movingUnitsGridPositions,
-            positionComponentData = movingUnitsPositions,
+            gridPositionArray = movingUnitsGridPositions,
+            translationArray = movingUnitsTranslations,
         };
         var resolveCollidedMovementJobHandle = resolveCollidedMovementJob.Schedule(nextGridPositionsHashMap, 64, hashNextGridPositionsJobHandle);
 
-        var deallocateJob = new DeallocateJob
+        var writeEntityDataJob = new WriteEntityDataJob
         {
-            gridPositionsArray = nextGridPositions,
+            gridPositionArray = movingUnitsGridPositions,
+            translationArray = movingUnitsTranslations,
         };
-        var deallocateJobHandle = deallocateJob.Schedule(resolveCollidedMovementJobHandle);
+        var writeEntityDataJobHandle = writeEntityDataJob.Schedule(m_MoveFollowTargetGroup, resolveCollidedMovementJobHandle);
 
-        return deallocateJobHandle;
+        return writeEntityDataJobHandle;
     }
 
     protected override void OnCreateManager()
     {
-        m_StaticCollidableGroup = GetComponentGroup(
+        m_StaticCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(StaticCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
-        m_DynamicCollidableGroup = GetComponentGroup(
+        m_DynamicCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(DynamicCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
 
-        m_MoveFollowTargetGroup = GetComponentGroup(
+        m_MoveFollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveFollowTarget)),
             typeof(GridPosition),
-            typeof(Position)
+            typeof(Translation)
         );
-        m_FollowTargetGroup = GetComponentGroup(
+        m_FollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(FollowTarget)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
@@ -319,10 +346,20 @@ public class MoveFollowTargetSystem : JobComponentSystem
     {
         if (m_PrevGridState.staticCollidableHashMap.IsCreated)
             m_PrevGridState.staticCollidableHashMap.Dispose();
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
+            m_PrevGridState.movingUnitsGridPositions.Dispose();
+        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
+            m_PrevGridState.movingUnitsTranslations.Dispose();
+        if (m_PrevGridState.nextGridPositions.IsCreated)
+            m_PrevGridState.nextGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
             m_PrevGridState.nextGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.followTargetGridPositions.IsCreated)
+            m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
     }

@@ -3,17 +3,13 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 
-public class RemoveDeadUnitsBarrier : BarrierSystem
-{
-}
-
 [UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
 public class RemoveDeadUnitsSystem : JobComponentSystem
 {
-    [Inject] private RemoveDeadUnitsBarrier m_RemoveAndSpawnBarrier;
+    EntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     [BurstCompile]
-    struct RemoveDeadJob : IJobProcessComponentDataWithEntity<Health>
+    struct RemoveDeadJob : IJobForEachWithEntity<Health>
     {
         public EntityCommandBuffer.Concurrent Commands;
 
@@ -29,10 +25,16 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
     {
         var removeDeadJob = new RemoveDeadJob
         {
-            Commands = m_RemoveAndSpawnBarrier.CreateCommandBuffer().ToConcurrent(),
+            Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
         };
-        var removeDeadJobHandle = removeDeadJob.Schedule(this, inputDeps);
+        var removeDeadJobHandle = removeDeadJob.ScheduleSingle(this, inputDeps);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(removeDeadJobHandle);
 
         return removeDeadJobHandle;
+    }
+
+    protected override void OnCreate()
+    {
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EntityCommandBufferSystem>();
     }
 }
