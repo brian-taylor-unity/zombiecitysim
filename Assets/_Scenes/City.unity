@@ -602,11 +602,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numTilesX: 800
-  numTilesY: 800
-  numStreets: 950
-  numHumans: 36000
+  numTilesX: 1100
+  numTilesY: 1100
+  numStreets: 1200
+  numHumans: 42000
   numZombies: 3
+  zombieVisionDistance: 5
+  zombieHearingDistance: 7
+  zombieStartingHealth: 70
+  zombieDamage: 20
 --- !u!4 &944363108
 Transform:
   m_ObjectHideFlags: 0

@@ -40,10 +40,10 @@ public sealed class Bootstrap
     /// <summary>
     /// Zombie definitions
     /// </summary>
-    public static int ZombieVisionDistance = 4;
-    public static int ZombieHearingDistance = 12;
-    public static int ZombieStartingHealth = 70;
-    public static int ZombieDamage = 20;
+    public static int ZombieVisionDistance;
+    public static int ZombieHearingDistance;
+    public static int ZombieStartingHealth;
+    public static int ZombieDamage;
     public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
@@ -104,6 +104,11 @@ public sealed class Bootstrap
         numStreets = GameController.instance.numStreets;
         numHumans = GameController.instance.numHumans;
         numZombies = GameController.instance.numZombies;
+
+        ZombieVisionDistance = GameController.instance.zombieVisionDistance;
+        ZombieHearingDistance = GameController.instance.zombieHearingDistance;
+        ZombieStartingHealth = GameController.instance.zombieStartingHealth;
+        ZombieDamage = GameController.instance.zombieDamage;
 
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
