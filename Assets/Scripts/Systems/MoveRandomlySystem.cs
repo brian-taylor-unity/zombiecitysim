@@ -283,7 +283,7 @@ public class MoveRandomlySystem : JobComponentSystem
 
         return writeEntityDataJobHandle;
     }
-    protected override void OnCreateManager()
+    protected override void OnCreate()
     {
         m_StaticCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(StaticCollidable)),
@@ -301,7 +301,7 @@ public class MoveRandomlySystem : JobComponentSystem
         );
     }
 
-    protected override void OnDestroyManager()
+    protected override void OnStopRunning()
     {
         if (m_PrevGridState.staticCollidableHashMap.IsCreated)
             m_PrevGridState.staticCollidableHashMap.Dispose();

@@ -133,7 +133,7 @@ public class DamageSystem : JobComponentSystem
         return JobHandle.CombineDependencies(damageZombiesJobHandle, damageHumansJobHandle);
     }
 
-    protected override void OnCreateManager()
+    protected override void OnCreate()
     {
         m_ZombieGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Zombie)),
@@ -149,7 +149,7 @@ public class DamageSystem : JobComponentSystem
         );
     }
 
-    protected override void OnDestroyManager()
+    protected override void OnStopRunning()
     {
         if (m_PrevGridState.zombieGridPositionsArray.IsCreated)
             m_PrevGridState.zombieGridPositionsArray.Dispose();
