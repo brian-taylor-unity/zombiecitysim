@@ -51,22 +51,25 @@ public sealed class Bootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
     {
-        _entityManager = World.Active.GetOrCreateManager<EntityManager>();
+        _entityManager = World.Active.EntityManager;
 
         BuildingTileArchetype = _entityManager.CreateArchetype(
-            typeof(Position),
+            typeof(LocalToWorld),
+            typeof(Translation),
             typeof(GridPosition),
             typeof(StaticCollidable)
         );
 
         RoadFloorArchetype = _entityManager.CreateArchetype(
-            typeof(Position),
-            typeof(Scale)
+            typeof(LocalToWorld),
+            typeof(Translation),
+            typeof(NonUniformScale)
         );
 
         HumanArchetype = _entityManager.CreateArchetype(
             typeof(Human),
-            typeof(Position),
+            typeof(LocalToWorld),
+            typeof(Translation),
             typeof(GridPosition),
             typeof(DynamicCollidable),
             typeof(FollowTarget),
@@ -76,7 +79,8 @@ public sealed class Bootstrap
         );
         ZombieArchetype = _entityManager.CreateArchetype(
             typeof(Zombie),
-            typeof(Position),
+            typeof(LocalToWorld),
+            typeof(Translation),
             typeof(GridPosition),
             typeof(DynamicCollidable),
             typeof(MoveFollowTarget),
@@ -267,8 +271,8 @@ public sealed class Bootstrap
         }
 
         Entity entity = _entityManager.CreateEntity(RoadFloorArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3((float)numTilesX / 2 - 0.5f, 0f, (float)numTilesY / 2 - 0.5f) });
-        _entityManager.SetComponentData(entity, new Scale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
+        _entityManager.SetComponentData(entity, new Translation { Value = new float3((float)numTilesX / 2 - 0.5f, 0f, (float)numTilesY / 2 - 0.5f) });
+        _entityManager.SetComponentData(entity, new NonUniformScale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
         _entityManager.AddSharedComponentData(entity, RoadTileMeshInstanceRenderer);
     }
 
@@ -324,7 +328,7 @@ public sealed class Bootstrap
     private static void AddBuildingTile(int x, int y, int z, bool gridPosition)
     {
         Entity entity = _entityManager.CreateEntity(BuildingTileArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3(x, y, z) });
+        _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, y, z) });
         if (gridPosition)
             _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, y, z) });
         _entityManager.AddSharedComponentData(entity, BuildingTileMeshInstanceRenderer);
@@ -335,7 +339,7 @@ public sealed class Bootstrap
     private static void AddHumanCharacter(int x, int y)
     {
         Entity entity = _entityManager.CreateEntity(HumanArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
+        _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = HumanStartingHealth });
         _entityManager.SetComponentData(entity, new Damage { Value = HumanDamage });
@@ -347,7 +351,7 @@ public sealed class Bootstrap
     private static void AddZombieCharacter(int x, int y)
     {
         Entity entity = _entityManager.CreateEntity(ZombieArchetype);
-        _entityManager.SetComponentData(entity, new Position { Value = new float3(x, 1f, y) });
+        _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = ZombieStartingHealth });
         _entityManager.SetComponentData(entity, new Damage { Value = ZombieDamage });
