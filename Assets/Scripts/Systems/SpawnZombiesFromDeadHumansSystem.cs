@@ -31,7 +31,7 @@ public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
         healthArray.Dispose();
     }
 
-    protected override void OnCreateManager()
+    protected override void OnCreate()
     {
         m_HumansGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),
