@@ -8,37 +8,31 @@ using Unity.Transforms;
 [UpdateAfter(typeof(MoveRandomlySystem))]
 public class MoveTowardsTargetSystem : JobComponentSystem
 {
-    private ComponentGroup m_StaticCollidableGroup;
-    private ComponentGroup m_DynamicCollidableGroup;
-    private ComponentGroup m_MoveFollowTargetGroup;
-    private ComponentGroup m_FollowTargetGroup;
-    private ComponentGroup m_AudibleGroup;
+    private EntityQuery m_StaticCollidableGroup;
+    private EntityQuery m_DynamicCollidableGroup;
+    private EntityQuery m_MoveTowardsTargetGroup;
+    private EntityQuery m_FollowTargetGroup;
+    private EntityQuery m_AudibleGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
         public NativeMultiHashMap<int, int> staticCollidableHashMap;
+        public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
+        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
+        public NativeArray<GridPosition> movingUnitsGridPositions;
+        public NativeArray<Translation> movingUnitsTranslations;
+        public NativeArray<GridPosition> nextGridPositions;
         public NativeMultiHashMap<int, int> nextGridPositionsHashMap;
+        public NativeArray<GridPosition> followTargetGridPositions;
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
+        public NativeArray<Audible> audiblesArray;
         public NativeMultiHashMap<int, int> audiblesHashMap;
     }
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
-    {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
-
-        public void Execute(int index)
-        {
-            var hash = GridHash.Hash(gridPositions[index].Value);
-            hashMap.Add(hash, index);
-        }
-    }
-
-    [BurstCompile]
-    struct HashGridPositionsNativeArrayJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.Concurrent hashMap;
@@ -53,12 +47,12 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     [BurstCompile]
     struct HashAudiblesJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<Audible> audibles;
+        [ReadOnly] public NativeArray<Audible> audiblesArray;
         public NativeMultiHashMap<int, int>.Concurrent hashMap;
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(audibles[index].GridPositionValue);
+            var hash = GridHash.Hash(audiblesArray[index].GridPositionValue);
             hashMap.Add(hash, index);
         }
     }
@@ -66,13 +60,13 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     [BurstCompile]
     struct MoveTowardsTargetJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeArray<GridPosition> nextGridPositions;
-        public ComponentDataArray<MoveTowardsTarget> moveTowardsTargetComponentDataArray;
+        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
-        [ReadOnly] public ComponentDataArray<Audible> audibles;
+        [ReadOnly] public NativeArray<Audible> audiblesArray;
         [ReadOnly] public NativeMultiHashMap<int, int> audiblesHashMap;
         public int viewDistance;
         public int hearingDistance;
@@ -82,11 +76,11 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             int3 myGridPositionValue = gridPositions[index].Value;
             bool moved = false;
 
-            int myTurnsSinceMove = moveTowardsTargetComponentDataArray[index].TurnsSinceMove;
+            int myTurnsSinceMove = moveTowardsTargetArray[index].TurnsSinceMove;
             if (myTurnsSinceMove > 100 || myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
             {
                 nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
-                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
+                moveTowardsTargetArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
 
                 return;
             }
@@ -137,7 +131,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             int targetKey = GridHash.Hash(targetGridPosition);
                             if (audiblesHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
                             {
-                                var audiblePointingToValue = audibles[audibleIndex].Target;
+                                var audiblePointingToValue = audiblesArray[audibleIndex].Target;
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audiblePointingToValue));
                                 var nearest = distance < nearestDistance;
 
@@ -208,9 +202,9 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             }
 
             if (!moved)
-                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
+                moveTowardsTargetArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
             else
-                moveTowardsTargetComponentDataArray[index] = new MoveTowardsTarget { TurnsSinceMove = 0 };
+                moveTowardsTargetArray[index] = new MoveTowardsTarget { TurnsSinceMove = 0 };
 
             nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
         }
@@ -220,14 +214,14 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     struct ResolveCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
     {
         [ReadOnly] public NativeArray<GridPosition> nextGridPositions;
-        public ComponentDataArray<GridPosition> gridPositionComponentData;
-        public ComponentDataArray<Position> positionComponentData;
+        public NativeArray<GridPosition> gridPositionArray;
+        public NativeArray<Translation> translationArray;
 
         public void ExecuteFirst(int index)
         {
             // This was the first unit added
-            gridPositionComponentData[index] = nextGridPositions[index];
-            positionComponentData[index] = new Position { Value = new float3(nextGridPositions[index].Value) };
+            gridPositionArray[index] = nextGridPositions[index];
+            translationArray[index] = new Translation { Value = new float3(nextGridPositions[index].Value) };
         }
 
         public void ExecuteNext(int innerIndex, int index)
@@ -237,10 +231,22 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct DeallocateJob : IJob
+    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, Translation>
     {
-        [ReadOnly] [DeallocateOnJobCompletion] public NativeArray<GridPosition> gridPositionsArray;
+        [ReadOnly] public NativeArray<GridPosition> gridPositionArray;
+        [ReadOnly] public NativeArray<Translation> translationArray;
 
+        public void Execute(Entity entity, int index, ref GridPosition gridPosition, ref Translation translation)
+        {
+            gridPosition = new GridPosition { Value = gridPositionArray[index].Value };
+            translation = new Translation { Value = translationArray[index].Value };
+        }
+    }
+
+    [BurstCompile]
+    struct DisposeJob : IJob
+    {
+        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray;
         public void Execute()
         {
         }
@@ -250,31 +256,38 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         NativeMultiHashMap<int, int> staticCollidableHashMap;
 
-        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.GetComponentDataArray<GridPosition>();
+        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
 
-        var movingUnitsGridPositions = m_MoveFollowTargetGroup.GetComponentDataArray<GridPosition>();
-        var movingUnitsPositions = m_MoveFollowTargetGroup.GetComponentDataArray<Position>();
-        var moveTowardsTargetComponentDataArray = m_MoveFollowTargetGroup.GetComponentDataArray<MoveTowardsTarget>();
+        var moveTowardsTargetArray = m_MoveTowardsTargetGroup.ToComponentDataArray<MoveTowardsTarget>(Allocator.TempJob);
+        var movingUnitsGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var movingUnitsTranslations = m_MoveTowardsTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
         var nextGridPositions = new NativeArray<GridPosition>(movingUnitsCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
         var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
 
-        var followTargetGridPositions = m_FollowTargetGroup.GetComponentDataArray<GridPosition>();
+        var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var followTargetCount = followTargetGridPositions.Length;
         var followTargetGridPositionsHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
 
-        var audibles = m_AudibleGroup.GetComponentDataArray<Audible>();
-        var audiblesCount = audibles.Length;
+        var audiblesArray = m_AudibleGroup.ToComponentDataArray<Audible>(Allocator.TempJob);
+        var audiblesCount = audiblesArray.Length;
         var audiblesHashMap = new NativeMultiHashMap<int, int>(audiblesCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
             staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap,
+            dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
+            moveTowardsTargetArray = moveTowardsTargetArray,
+            movingUnitsGridPositions = movingUnitsGridPositions,
+            movingUnitsTranslations = movingUnitsTranslations,
+            nextGridPositions = nextGridPositions,
             nextGridPositionsHashMap = nextGridPositionsHashMap,
+            followTargetGridPositions = followTargetGridPositions,
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
+            audiblesArray = audiblesArray,
             audiblesHashMap = audiblesHashMap,
         };
 
@@ -285,7 +298,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         }
         else
         {
-            ComponentDataArray<GridPosition> staticCollidableGridPositions = m_StaticCollidableGroup.GetComponentDataArray<GridPosition>();
+            var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
             var staticCollidableCount = staticCollidableGridPositions.Length;
             nextGridState.staticCollidableHashMap = staticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
 
@@ -295,14 +308,34 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 hashMap = staticCollidableHashMap.ToConcurrent(),
             };
             hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
+
+            var disposeJob = new DisposeJob
+            {
+                nativeArray = staticCollidableGridPositions
+            };
+            hashStaticCollidablePositionsJobHandle = disposeJob.Schedule(hashStaticCollidablePositionsJobHandle);
         }
 
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
+        if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
+            m_PrevGridState.movingUnitsGridPositions.Dispose();
+        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
+            m_PrevGridState.movingUnitsTranslations.Dispose();
+        if (m_PrevGridState.nextGridPositions.IsCreated)
+            m_PrevGridState.nextGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
             m_PrevGridState.nextGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.followTargetGridPositions.IsCreated)
+            m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.audiblesArray.IsCreated)
+            m_PrevGridState.audiblesArray.Dispose();
         if (m_PrevGridState.audiblesHashMap.IsCreated)
             m_PrevGridState.audiblesHashMap.Dispose();
         m_PrevGridState = nextGridState;
@@ -323,7 +356,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         var hashAudibleGridPositionsJob = new HashAudiblesJob
         {
-            audibles = audibles,
+            audiblesArray = audiblesArray,
             hashMap = audiblesHashMap.ToConcurrent(),
         };
         var hashAudibleGridPositionsJobHandle = hashAudibleGridPositionsJob.Schedule(audiblesCount, 64, inputDeps);
@@ -335,18 +368,18 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         {
             gridPositions = movingUnitsGridPositions,
             nextGridPositions = nextGridPositions,
-            moveTowardsTargetComponentDataArray = moveTowardsTargetComponentDataArray,
+            moveTowardsTargetArray = moveTowardsTargetArray,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             targetGridPositionsHashMap = followTargetGridPositionsHashMap,
-            audibles = audibles,
+            audiblesArray = audiblesArray,
             audiblesHashMap = audiblesHashMap,
             viewDistance = Bootstrap.ZombieVisionDistance,
             hearingDistance = Bootstrap.ZombieHearingDistance,
         };
         var moveTowardsTargetJobHandle = moveTowardsTargetJob.Schedule(movingUnitsCount, 64, movementBarrierHandle);
 
-        var hashNextGridPositionsJob = new HashGridPositionsNativeArrayJob
+        var hashNextGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = nextGridPositions,
             hashMap = nextGridPositionsHashMap.ToConcurrent(),
@@ -356,41 +389,42 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var resolveCollidedMovementJob = new ResolveCollidedMovementJob
         {
             nextGridPositions = nextGridPositions,
-            gridPositionComponentData = movingUnitsGridPositions,
-            positionComponentData = movingUnitsPositions,
+            gridPositionArray = movingUnitsGridPositions,
+            translationArray = movingUnitsTranslations,
         };
         var resolveCollidedMovementJobHandle = resolveCollidedMovementJob.Schedule(nextGridPositionsHashMap, 64, hashNextGridPositionsJobHandle);
 
-        var deallocateJob = new DeallocateJob
+        var writeEntityDataJob = new WriteEntityDataJob
         {
-            gridPositionsArray = nextGridPositions,
+            gridPositionArray = movingUnitsGridPositions,
+            translationArray = movingUnitsTranslations,
         };
-        var deallocateJobHandle = deallocateJob.Schedule(resolveCollidedMovementJobHandle);
+        var writeEntityDataJobHandle = writeEntityDataJob.Schedule(m_MoveTowardsTargetGroup, resolveCollidedMovementJobHandle);
 
-        return deallocateJobHandle;
+        return writeEntityDataJobHandle;
     }
 
     protected override void OnCreateManager()
     {
-        m_StaticCollidableGroup = GetComponentGroup(
+        m_StaticCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(StaticCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
-        m_DynamicCollidableGroup = GetComponentGroup(
+        m_DynamicCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(DynamicCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
 
-        m_MoveFollowTargetGroup = GetComponentGroup(
-            typeof(MoveTowardsTarget),
+        m_MoveTowardsTargetGroup = GetEntityQuery(
+            ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             typeof(GridPosition),
-            typeof(Position)
+            typeof(Translation)
         );
-        m_FollowTargetGroup = GetComponentGroup(
+        m_FollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(FollowTarget)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
-        m_AudibleGroup = GetComponentGroup(
+        m_AudibleGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Audible)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
@@ -400,12 +434,26 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         if (m_PrevGridState.staticCollidableHashMap.IsCreated)
             m_PrevGridState.staticCollidableHashMap.Dispose();
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
+        if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
+            m_PrevGridState.movingUnitsGridPositions.Dispose();
+        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
+            m_PrevGridState.movingUnitsTranslations.Dispose();
+        if (m_PrevGridState.nextGridPositions.IsCreated)
+            m_PrevGridState.nextGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
             m_PrevGridState.nextGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.followTargetGridPositions.IsCreated)
+            m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.audiblesArray.IsCreated)
+            m_PrevGridState.audiblesArray.Dispose();
         if (m_PrevGridState.audiblesHashMap.IsCreated)
             m_PrevGridState.audiblesHashMap.Dispose();
     }

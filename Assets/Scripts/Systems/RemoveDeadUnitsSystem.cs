@@ -3,17 +3,13 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 
-public class RemoveDeadUnitsBarrier : BarrierSystem
-{
-}
-
 [UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
 public class RemoveDeadUnitsSystem : JobComponentSystem
 {
-    [Inject] private RemoveDeadUnitsBarrier m_RemoveAndSpawnBarrier;
+    EntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     [BurstCompile]
-    struct RemoveDeadJob : IJobProcessComponentDataWithEntity<Health>
+    struct RemoveDeadJob : IJobForEachWithEntity<Health>
     {
         public EntityCommandBuffer.Concurrent Commands;
 
@@ -26,7 +22,7 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct RemoveAudibleJob : IJobProcessComponentDataWithEntity<Audible>
+    struct RemoveAudibleJob : IJobForEachWithEntity<Audible>
     {
         public EntityCommandBuffer.Concurrent Commands;
 
@@ -41,20 +37,27 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var Commands = m_RemoveAndSpawnBarrier.CreateCommandBuffer().ToConcurrent();
+        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
 
         var removeDeadJob = new RemoveDeadJob
         {
             Commands = Commands,
         };
-        var removeDeadJobHandle = removeDeadJob.Schedule(this, inputDeps);
+        var removeDeadJobHandle = removeDeadJob.ScheduleSingle(this, inputDeps);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(removeDeadJobHandle);
 
         var removeAudibleJob = new RemoveAudibleJob
         {
             Commands = Commands,
         };
-        var removeAudibleJobHandle = removeAudibleJob.Schedule(this, removeDeadJobHandle);
+        var removeAudibleJobHandle = removeAudibleJob.ScheduleSingle(this, removeDeadJobHandle);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(removeAudibleJobHandle);
 
         return removeAudibleJobHandle;
+    }
+
+    protected override void OnCreate()
+    {
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EntityCommandBufferSystem>();
     }
 }
