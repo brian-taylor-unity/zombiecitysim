@@ -7,20 +7,24 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(MoveRandomlySystem))]
 public class DamageSystem : JobComponentSystem
 {
-    private ComponentGroup m_ZombieGroup;
-    private ComponentGroup m_HumanGroup;
+    private EntityQuery m_ZombieGroup;
+    private EntityQuery m_HumanGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
+        public NativeArray<GridPosition> zombieGridPositionsArray;
+        public NativeArray<Damage> zombieDamageArray;
         public NativeMultiHashMap<int, int> zombieGridPositionsHashMap;
+        public NativeArray<GridPosition> humanGridPositionsArray;
+        public NativeArray<Damage> humanDamageArray;
         public NativeMultiHashMap<int, int> humanGridPositionsHashMap;
     }
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.Concurrent hashMap;
 
         public void Execute(int index)
@@ -30,17 +34,16 @@ public class DamageSystem : JobComponentSystem
         }
     }
 
-    struct DamageJob : IJobParallelFor
+    struct DamageJob : IJobForEachWithEntity<Health>
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
-        [ReadOnly] public ComponentDataArray<Damage> damagingUnitsDamageArray;
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
+        [ReadOnly] public NativeArray<Damage> damagingUnitsDamageArray;
         [ReadOnly] public NativeMultiHashMap<int, int> damagingUnitsHashMap;
-        public ComponentDataArray<Health> healthArray;
 
-        public void Execute(int index)
+        public void Execute(Entity entity, int index, ref Health health)
         {
             int3 myGridPosition = gridPositions[index].Value;
-            int myHealth = healthArray[index].Value;
+            int myHealth = health.Value;
 
             // Check all directions for damaging units
             for (int z = -1; z <= 1; z++)
@@ -56,79 +59,89 @@ public class DamageSystem : JobComponentSystem
                 }
             }
 
-            healthArray[index] = new Health { Value = myHealth };
+            health = new Health { Value = myHealth };
         }
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var zombieGridPositionComponents = m_ZombieGroup.GetComponentDataArray<GridPosition>();
-        var zombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieGridPositionComponents.Length, Allocator.TempJob);
-        var zombieHealthComponents = m_ZombieGroup.GetComponentDataArray<Health>();
-        var zombieDamageComponents = m_ZombieGroup.GetComponentDataArray<Damage>();
+        var zombieGridPositionsArray = m_ZombieGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var zombieDamageArray = m_ZombieGroup.ToComponentDataArray<Damage>(Allocator.TempJob);
+        var zombieCount = zombieGridPositionsArray.Length;
+        var zombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieCount, Allocator.TempJob);
 
-        var humanGridPositionComponents = m_HumanGroup.GetComponentDataArray<GridPosition>();
-        var humanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanGridPositionComponents.Length, Allocator.TempJob);
-        var humanHealthComponents = m_HumanGroup.GetComponentDataArray<Health>();
-        var humanDamageComponents = m_HumanGroup.GetComponentDataArray<Damage>();
+        var humanGridPositionsArray = m_HumanGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var humanDamageArray = m_HumanGroup.ToComponentDataArray<Damage>(Allocator.TempJob);
+        var humanCount = humanGridPositionsArray.Length;
+        var humanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
+            zombieGridPositionsArray = zombieGridPositionsArray,
+            zombieDamageArray = zombieDamageArray,
             zombieGridPositionsHashMap = zombieGridPositionsHashMap,
+            humanGridPositionsArray = humanGridPositionsArray,
+            humanDamageArray = humanDamageArray,
             humanGridPositionsHashMap = humanGridPositionsHashMap,
         };
+        if (m_PrevGridState.zombieGridPositionsArray.IsCreated)
+            m_PrevGridState.zombieGridPositionsArray.Dispose();
+        if (m_PrevGridState.zombieDamageArray.IsCreated)
+            m_PrevGridState.zombieDamageArray.Dispose();
         if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.zombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.humanGridPositionsArray.IsCreated)
+            m_PrevGridState.humanGridPositionsArray.Dispose();
+        if (m_PrevGridState.humanDamageArray.IsCreated)
+            m_PrevGridState.humanDamageArray.Dispose();
         if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
             m_PrevGridState.humanGridPositionsHashMap.Dispose();
         m_PrevGridState = nextGridState;
 
         var hashZombieGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = zombieGridPositionComponents,
+            gridPositions = zombieGridPositionsArray,
             hashMap = zombieGridPositionsHashMap.ToConcurrent(),
         };
-        var hashZombieGridPositionsJobHandle = hashZombieGridPositionsJob.Schedule(zombieDamageComponents.Length, 64, inputDeps);
+        var hashZombieGridPositionsJobHandle = hashZombieGridPositionsJob.Schedule(zombieCount, 64, inputDeps);
 
         var hashHumanGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = humanGridPositionComponents,
+            gridPositions = humanGridPositionsArray,
             hashMap = humanGridPositionsHashMap.ToConcurrent(),
         };
-        var hashHumanGridPositionsJobHandle = hashHumanGridPositionsJob.Schedule(humanDamageComponents.Length, 64, inputDeps);
+        var hashHumanGridPositionsJobHandle = hashHumanGridPositionsJob.Schedule(humanCount, 64, inputDeps);
 
         var hashGridPositionsBarrier = JobHandle.CombineDependencies(hashZombieGridPositionsJobHandle, hashHumanGridPositionsJobHandle);
 
         var damageZombiesJob = new DamageJob
         {
-            gridPositions = zombieGridPositionComponents,
-            damagingUnitsDamageArray = humanDamageComponents,
+            gridPositions = zombieGridPositionsArray,
+            damagingUnitsDamageArray = humanDamageArray,
             damagingUnitsHashMap = humanGridPositionsHashMap,
-            healthArray = zombieHealthComponents,
         };
-        var damageZombiesJobHandle = damageZombiesJob.Schedule(zombieDamageComponents.Length, 64, hashGridPositionsBarrier);
+        var damageZombiesJobHandle = damageZombiesJob.Schedule(m_ZombieGroup, hashGridPositionsBarrier);
 
         var damageHumansJob = new DamageJob
         {
-            gridPositions = humanGridPositionComponents,
-            damagingUnitsDamageArray = zombieDamageComponents,
+            gridPositions = humanGridPositionsArray,
+            damagingUnitsDamageArray = zombieDamageArray,
             damagingUnitsHashMap = zombieGridPositionsHashMap,
-            healthArray = humanHealthComponents,
         };
-        var damageHumansJobHandle = damageHumansJob.Schedule(humanDamageComponents.Length, 64, damageZombiesJobHandle);
+        var damageHumansJobHandle = damageHumansJob.Schedule(m_HumanGroup, damageZombiesJobHandle);
 
         return JobHandle.CombineDependencies(damageZombiesJobHandle, damageHumansJobHandle);
     }
 
-    protected override void OnCreateManager()
+    protected override void OnCreate()
     {
-        m_ZombieGroup = GetComponentGroup(
+        m_ZombieGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Zombie)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
             typeof(Health)
         );
-        m_HumanGroup = GetComponentGroup(
+        m_HumanGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
@@ -136,10 +149,18 @@ public class DamageSystem : JobComponentSystem
         );
     }
 
-    protected override void OnDestroyManager()
+    protected override void OnStopRunning()
     {
+        if (m_PrevGridState.zombieGridPositionsArray.IsCreated)
+            m_PrevGridState.zombieGridPositionsArray.Dispose();
+        if (m_PrevGridState.zombieDamageArray.IsCreated)
+            m_PrevGridState.zombieDamageArray.Dispose();
         if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.zombieGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.humanGridPositionsArray.IsCreated)
+            m_PrevGridState.humanGridPositionsArray.Dispose();
+        if (m_PrevGridState.humanDamageArray.IsCreated)
+            m_PrevGridState.humanDamageArray.Dispose();
         if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
             m_PrevGridState.humanGridPositionsHashMap.Dispose();
     }
