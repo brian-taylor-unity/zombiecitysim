@@ -4,4 +4,4 @@ using Unity.Entities;
 [Serializable]
 public struct LineOfSight : IComponentData { }
 
-public class LineOfSightComponent : ComponentDataProxy<LineOfSight> { }
+public class LineOfSightProxy : ComponentDataProxy<LineOfSight> { }

@@ -6,22 +6,24 @@ using UnityEngine;
 
 public class LineOfSightSystem : JobComponentSystem
 {
-    private ComponentGroup m_StaticCollidableGroup;
-    private ComponentGroup m_DynamicCollidableGroup;
-    private ComponentGroup m_LineOfSightGroup;
+    private EntityQuery m_StaticCollidableGroup;
+    private EntityQuery m_DynamicCollidableGroup;
+    private EntityQuery m_LineOfSightGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
         public NativeMultiHashMap<int, int> staticCollidableHashMap;
+        public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
+        public NativeArray<GridPosition> unitsLineOfSight;
         public NativeMultiHashMap<int, int> unitsLineOfSightHashMap;
     }
 
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
     {
-        [ReadOnly] public ComponentDataArray<GridPosition> gridPositions;
+        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.Concurrent hashMap;
 
         public void Execute(int index)
@@ -43,22 +45,33 @@ public class LineOfSightSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
+    struct DisposeJob : IJob
+    {
+        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray;
+        public void Execute()
+        {
+        }
+    }
+
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         NativeMultiHashMap<int, int> staticCollidableHashMap;
 
-        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.GetComponentDataArray<GridPosition>();
+        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
 
-        var unitsLineOfSight = m_LineOfSightGroup.GetComponentDataArray<GridPosition>();
+        var unitsLineOfSight = m_LineOfSightGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var unitsLineOfSightCount = unitsLineOfSight.Length;
         var unitsLineOfSightHashMap = new NativeMultiHashMap<int, int>(unitsLineOfSightCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
             staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap,
+            dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
+            unitsLineOfSight = unitsLineOfSight,
             unitsLineOfSightHashMap = unitsLineOfSightHashMap,
         };
 
@@ -69,7 +82,7 @@ public class LineOfSightSystem : JobComponentSystem
         }
         else
         {
-            ComponentDataArray<GridPosition> staticCollidableGridPositions = m_StaticCollidableGroup.GetComponentDataArray<GridPosition>();
+            var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
             var staticCollidableCount = staticCollidableGridPositions.Length;
             nextGridState.staticCollidableHashMap = staticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
 
@@ -79,10 +92,20 @@ public class LineOfSightSystem : JobComponentSystem
                 hashMap = staticCollidableHashMap.ToConcurrent(),
             };
             hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
+
+            var disposeJob = new DisposeJob
+            {
+                nativeArray = staticCollidableGridPositions
+            };
+            hashStaticCollidablePositionsJobHandle = disposeJob.Schedule(hashStaticCollidablePositionsJobHandle);
         }
 
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.unitsLineOfSight.IsCreated)
+            m_PrevGridState.unitsLineOfSight.Dispose();
         if (m_PrevGridState.unitsLineOfSightHashMap.IsCreated)
             m_PrevGridState.unitsLineOfSightHashMap.Dispose();
         m_PrevGridState = nextGridState;
@@ -109,16 +132,16 @@ public class LineOfSightSystem : JobComponentSystem
 
     protected override void OnCreateManager()
     {
-        m_StaticCollidableGroup = GetComponentGroup(
+        m_StaticCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(StaticCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
-        m_DynamicCollidableGroup = GetComponentGroup(
+        m_DynamicCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(DynamicCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
 
-        m_LineOfSightGroup = GetComponentGroup(
+        m_LineOfSightGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(LineOfSight)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
