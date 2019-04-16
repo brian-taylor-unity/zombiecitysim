@@ -186,7 +186,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
     [BurstCompile]
     struct DisposeJob : IJob
     {
-        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray; 
+        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray;
         public void Execute()
         {
         }
