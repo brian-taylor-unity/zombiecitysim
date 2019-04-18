@@ -34,6 +34,7 @@ public class DamageSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
     struct DamageJob : IJobForEachWithEntity<Health>
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;

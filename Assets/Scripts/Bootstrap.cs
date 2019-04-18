@@ -3,6 +3,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine;
+using Random = Unity.Mathematics.Random;
 
 public sealed class Bootstrap
 {
@@ -19,6 +20,7 @@ public sealed class Bootstrap
     public static int numStreets;
     public static int numHumans;
     public static int numZombies;
+    public static float turnDelayTime;
 
     /// <summary>
     /// Building Tile definitions
@@ -35,6 +37,7 @@ public sealed class Bootstrap
     /// </summary>
     public static int HumanStartingHealth = 100;
     public static int HumanDamage = 0;
+    public static int HumanTurnDelay = 1;
     public static RenderMesh HumanMeshInstanceRenderer;
 
     /// <summary>
@@ -44,16 +47,21 @@ public sealed class Bootstrap
     public static int ZombieHearingDistance;
     public static int ZombieStartingHealth;
     public static int ZombieDamage;
+    public static int ZombieTurnDelay;
     public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
     private static bool[,] _tileExists;
     private static bool[,] _tilePassable;
 
+    private static Random rand;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Initialize()
     {
         _entityManager = World.Active.EntityManager;
+        rand = new Random();
+        rand.InitState();
 
         BuildingTileArchetype = _entityManager.CreateArchetype(
             typeof(LocalToWorld),
@@ -73,21 +81,25 @@ public sealed class Bootstrap
             typeof(LocalToWorld),
             typeof(Translation),
             typeof(GridPosition),
+            typeof(NextGridPosition),
             typeof(DynamicCollidable),
             typeof(FollowTarget),
             typeof(MoveRandomly),
             typeof(Health),
-            typeof(Damage)
+            typeof(Damage),
+            typeof(TurnsUntilMove)
         );
         ZombieArchetype = _entityManager.CreateArchetype(
             typeof(Zombie),
             typeof(LocalToWorld),
             typeof(Translation),
             typeof(GridPosition),
+            typeof(NextGridPosition),
             typeof(DynamicCollidable),
             typeof(MoveTowardsTarget),
             typeof(Health),
-            typeof(Damage)
+            typeof(Damage),
+            typeof(TurnsUntilMove)
         );
 
         AudibleArchetype = _entityManager.CreateArchetype(
@@ -104,11 +116,13 @@ public sealed class Bootstrap
         numStreets = GameController.instance.numStreets;
         numHumans = GameController.instance.numHumans;
         numZombies = GameController.instance.numZombies;
+        turnDelayTime = GameController.instance.turnDelayTime;
 
         ZombieVisionDistance = GameController.instance.zombieVisionDistance;
         ZombieHearingDistance = GameController.instance.zombieHearingDistance;
         ZombieStartingHealth = GameController.instance.zombieStartingHealth;
         ZombieDamage = GameController.instance.zombieDamage;
+        ZombieTurnDelay = GameController.instance.zombieTurnDelay;
 
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
@@ -267,8 +281,10 @@ public sealed class Bootstrap
         Entity entity = _entityManager.CreateEntity(HumanArchetype);
         _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
+        _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = HumanStartingHealth });
         _entityManager.SetComponentData(entity, new Damage { Value = HumanDamage });
+        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(HumanTurnDelay + 1) });
         _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer);
 
         _tilePassable[y, x] = false;
@@ -280,8 +296,10 @@ public sealed class Bootstrap
         _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new MoveTowardsTarget { TurnsSinceMove = 0 });
+        _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = ZombieStartingHealth });
         _entityManager.SetComponentData(entity, new Damage { Value = ZombieDamage });
+        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(ZombieTurnDelay + 1) });
         _entityManager.AddSharedComponentData(entity, ZombieMeshInstanceRenderer);
 
         _tilePassable[y, x] = false;
