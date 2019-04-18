@@ -607,6 +607,7 @@ MonoBehaviour:
   numStreets: 3
   numHumans: 10
   numZombies: 1
+  turnDelayTime: 0.045
 --- !u!4 &944363108
 Transform:
   m_ObjectHideFlags: 0
