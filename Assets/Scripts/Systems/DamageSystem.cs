@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-[UpdateAfter(typeof(MoveRandomlySystem))]
+[UpdateBefore(typeof(MoveRandomlySystem))]
 public class DamageSystem : JobComponentSystem
 {
     private EntityQuery m_ZombieGroup;
@@ -34,6 +34,7 @@ public class DamageSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
     struct DamageJob : IJobForEachWithEntity<Health>
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
