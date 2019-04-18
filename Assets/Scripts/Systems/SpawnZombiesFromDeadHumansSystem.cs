@@ -19,6 +19,8 @@ public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
             {
                 Entity entity = EntityManager.CreateEntity(Bootstrap.ZombieArchetype);
                 EntityManager.SetComponentData(entity, new Translation { Value = new float3(gridPositionArray[i].Value) });
+                EntityManager.SetComponentData(entity, new Scale { Value = 0.15f });
+                EntityManager.SetComponentData(entity, new Rotation { Value = quaternion.EulerXYZ(-math.PI / 2, math.PI / 2, 0f) });
                 EntityManager.SetComponentData(entity, new GridPosition { Value = gridPositionArray[i].Value });
                 EntityManager.SetComponentData(entity, new NextGridPosition { Value = gridPositionArray[i].Value });
                 EntityManager.SetComponentData(entity, new Health { Value = Bootstrap.ZombieStartingHealth });

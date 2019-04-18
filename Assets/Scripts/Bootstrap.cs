@@ -90,6 +90,8 @@ public sealed class Bootstrap
             typeof(Zombie),
             typeof(LocalToWorld),
             typeof(Translation),
+            typeof(Scale),
+            typeof(Rotation),
             typeof(GridPosition),
             typeof(NextGridPosition),
             typeof(DynamicCollidable),
@@ -280,6 +282,8 @@ public sealed class Bootstrap
     {
         Entity entity = _entityManager.CreateEntity(ZombieArchetype);
         _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
+        _entityManager.SetComponentData(entity, new Scale { Value = 0.15f });
+        _entityManager.SetComponentData(entity, new Rotation { Value = quaternion.EulerXYZ(-math.PI / 2, math.PI / 2, 0f) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = ZombieStartingHealth });
