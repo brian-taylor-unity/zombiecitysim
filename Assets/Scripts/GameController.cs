@@ -1,8 +1,4 @@
-﻿using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
-using UnityEngine;
-using System.Collections.Generic;
+﻿using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
@@ -13,6 +9,7 @@ public class GameController : MonoBehaviour
     public int numStreets = 30;
     public int numHumans = 1000;
     public int numZombies = 1;
+    public float turnDelayTime = 1.0f;
 
     void Awake()
     {

@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(DamageSystem))]
+[UpdateAfter(typeof(MoveFollowTargetSystem))]
 public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
 {
     private EntityQuery m_HumansGroup;
@@ -13,17 +13,18 @@ public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
         var gridPositionArray = m_HumansGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var healthArray = m_HumansGroup.ToComponentDataArray<Health>(Allocator.TempJob);
 
-        var manager = PostUpdateCommands;
         for (int i = 0; i < healthArray.Length; i++)
         {
             if (healthArray[i].Value <= 0)
             {
-                Entity entity = manager.CreateEntity(Bootstrap.ZombieArchetype);
-                manager.SetComponent(entity, new GridPosition { Value = gridPositionArray[i].Value });
-                manager.SetComponent(entity, new Translation { Value = new float3(gridPositionArray[i].Value) });
-                manager.SetComponent(entity, new Health { Value = Bootstrap.ZombieStartingHealth });
-                manager.SetComponent(entity, new Damage { Value = Bootstrap.ZombieDamage });
-                manager.AddSharedComponent(entity, Bootstrap.ZombieMeshInstanceRenderer);
+                Entity entity = EntityManager.CreateEntity(Bootstrap.ZombieArchetype);
+                EntityManager.SetComponentData(entity, new Translation { Value = new float3(gridPositionArray[i].Value) });
+                EntityManager.SetComponentData(entity, new GridPosition { Value = gridPositionArray[i].Value });
+                EntityManager.SetComponentData(entity, new NextGridPosition { Value = gridPositionArray[i].Value });
+                EntityManager.SetComponentData(entity, new Health { Value = Bootstrap.ZombieStartingHealth });
+                EntityManager.SetComponentData(entity, new Damage { Value = Bootstrap.ZombieDamage });
+                EntityManager.SetComponentData(entity, new TurnsUntilMove { Value = Bootstrap.ZombieTurnDelay });
+                EntityManager.AddSharedComponentData(entity, Bootstrap.ZombieMeshInstanceRenderer);
             }
         }
 

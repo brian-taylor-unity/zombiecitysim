@@ -21,10 +21,11 @@ public class MoveFollowTargetSystem : JobComponentSystem
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         public NativeArray<GridPosition> movingUnitsGridPositions;
         public NativeArray<Translation> movingUnitsTranslations;
-        public NativeArray<GridPosition> nextGridPositions;
+        public NativeArray<NextGridPosition> nextGridPositions;
         public NativeMultiHashMap<int, int> nextGridPositionsHashMap;
         public NativeArray<GridPosition> followTargetGridPositions;
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
+        public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
     }
 
     [BurstCompile]
@@ -44,7 +45,8 @@ public class MoveFollowTargetSystem : JobComponentSystem
     struct MoveFollowTargetJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeArray<GridPosition> nextGridPositions;
+        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        public NativeArray<NextGridPosition> nextGridPositions;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
@@ -53,6 +55,9 @@ public class MoveFollowTargetSystem : JobComponentSystem
         public void Execute(int index)
         {
             int3 myGridPositionValue = gridPositions[index].Value;
+            if (turnsUntilMoveArray[index].Value != 0)
+                return;
+
             bool moved = false;
 
             // Get nearest target
@@ -145,41 +150,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
                 }
             }
 
-            nextGridPositions[index] = new GridPosition { Value = myGridPositionValue };
-        }
-    }
-
-    [BurstCompile]
-    struct ResolveCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
-    {
-        [ReadOnly] public NativeArray<GridPosition> nextGridPositions;
-        public NativeArray<GridPosition> gridPositionArray;
-        public NativeArray<Translation> translationArray;
-
-        public void ExecuteFirst(int index)
-        {
-            // This was the first unit added
-            int seed = GridHash.Hash(nextGridPositions[index].Value);
-            gridPositionArray[index] = nextGridPositions[index];
-            translationArray[index] = new Translation { Value = new float3(nextGridPositions[index].Value) };
-        }
-
-        public void ExecuteNext(int innerIndex, int index)
-        {
-            // Don't move this unit
-        }
-    }
-
-    [BurstCompile]
-    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, Translation>
-    {
-        [ReadOnly] public NativeArray<GridPosition> gridPositionArray;
-        [ReadOnly] public NativeArray<Translation> translationArray;
-
-        public void Execute(Entity entity, int index, ref GridPosition gridPosition, ref Translation translation)
-        {
-            gridPosition = new GridPosition { Value = gridPositionArray[index].Value };
-            translation = new Translation { Value = translationArray[index].Value };
+            nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
         }
     }
 
@@ -203,8 +174,9 @@ public class MoveFollowTargetSystem : JobComponentSystem
         var movingUnitsGridPositions = m_MoveFollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var movingUnitsTranslations = m_MoveFollowTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
-        var nextGridPositions = new NativeArray<GridPosition>(movingUnitsCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        var nextGridPositions = m_MoveFollowTargetGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
         var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
+        var turnsUntilMoveArray = m_MoveFollowTargetGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
 
         var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var followTargetCount = followTargetGridPositions.Length;
@@ -221,6 +193,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
             nextGridPositionsHashMap = nextGridPositionsHashMap,
             followTargetGridPositions = followTargetGridPositions,
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
+            turnsUntilMoveArray = turnsUntilMoveArray,
         };
 
         JobHandle hashStaticCollidablePositionsJobHandle = inputDeps;
@@ -266,6 +239,8 @@ public class MoveFollowTargetSystem : JobComponentSystem
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
+            m_PrevGridState.turnsUntilMoveArray.Dispose();
         m_PrevGridState = nextGridState;
 
         var hashDynamicCollidableGridPositionsJob = new HashGridPositionsJob
@@ -287,6 +262,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
         var moveFollowTargetJob = new MoveFollowTargetJob
         {
             gridPositions = movingUnitsGridPositions,
+            turnsUntilMoveArray = turnsUntilMoveArray,
             nextGridPositions = nextGridPositions,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
@@ -295,29 +271,10 @@ public class MoveFollowTargetSystem : JobComponentSystem
         };
         var moveFollowTargetJobHandle = moveFollowTargetJob.Schedule(movingUnitsCount, 64, movementBarrierHandle);
 
-        var hashNextGridPositionsJob = new HashGridPositionsJob
-        {
-            gridPositions = nextGridPositions,
-            hashMap = nextGridPositionsHashMap.ToConcurrent(),
-        };
-        var hashNextGridPositionsJobHandle = hashNextGridPositionsJob.Schedule(movingUnitsCount, 64, moveFollowTargetJobHandle);
+        m_MoveFollowTargetGroup.AddDependency(moveFollowTargetJobHandle);
+        m_MoveFollowTargetGroup.CopyFromComponentDataArray(nextGridPositions, out JobHandle copyDataJobHandle);
 
-        var resolveCollidedMovementJob = new ResolveCollidedMovementJob
-        {
-            nextGridPositions = nextGridPositions,
-            gridPositionArray = movingUnitsGridPositions,
-            translationArray = movingUnitsTranslations,
-        };
-        var resolveCollidedMovementJobHandle = resolveCollidedMovementJob.Schedule(nextGridPositionsHashMap, 64, hashNextGridPositionsJobHandle);
-
-        var writeEntityDataJob = new WriteEntityDataJob
-        {
-            gridPositionArray = movingUnitsGridPositions,
-            translationArray = movingUnitsTranslations,
-        };
-        var writeEntityDataJobHandle = writeEntityDataJob.Schedule(m_MoveFollowTargetGroup, resolveCollidedMovementJobHandle);
-
-        return writeEntityDataJobHandle;
+        return copyDataJobHandle;
     }
 
     protected override void OnCreate()
@@ -333,7 +290,9 @@ public class MoveFollowTargetSystem : JobComponentSystem
 
         m_MoveFollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveFollowTarget)),
+            ComponentType.ReadOnly(typeof(TurnsUntilMove)),
             typeof(GridPosition),
+            typeof(NextGridPosition),
             typeof(Translation)
         );
         m_FollowTargetGroup = GetEntityQuery(
@@ -362,5 +321,7 @@ public class MoveFollowTargetSystem : JobComponentSystem
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
+            m_PrevGridState.turnsUntilMoveArray.Dispose();
     }
 }
