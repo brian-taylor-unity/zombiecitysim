@@ -56,10 +56,8 @@ public class MoveFollowTargetSystem : JobComponentSystem
         {
             int3 myGridPositionValue = gridPositions[index].Value;
             if (turnsUntilMoveArray[index].Value != 0)
-            {
-                nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
                 return;
-            }
+
             bool moved = false;
 
             // Get nearest target

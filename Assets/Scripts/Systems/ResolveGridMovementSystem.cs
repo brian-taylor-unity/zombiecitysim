@@ -2,11 +2,9 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateAfter(typeof(MoveFollowTargetSystem))]
-public class ResolveMovementSystem : JobComponentSystem
+public class ResolveGridMovementSystem : JobComponentSystem
 {
     private EntityQuery m_MoveUnits;
     private PrevGridState m_PrevGridState;
@@ -50,15 +48,13 @@ public class ResolveMovementSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, NextGridPosition, Translation>
+    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, NextGridPosition>
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositionArray;
 
-        public void Execute(Entity entity, int index, ref GridPosition gridPosition, ref NextGridPosition nextGridPosition, ref Translation translation)
+        public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition, ref NextGridPosition nextGridPosition)
         {
-            gridPosition = new GridPosition { Value = gridPositionArray[index].Value };
             nextGridPosition = new NextGridPosition { Value = gridPositionArray[index].Value };
-            translation = new Translation { Value = new float3(gridPositionArray[index].Value) };
         }
     }
 
@@ -109,9 +105,8 @@ public class ResolveMovementSystem : JobComponentSystem
     protected override void OnCreate()
     {
         m_MoveUnits = GetEntityQuery(
-            typeof(NextGridPosition),
-            typeof(GridPosition),
-            typeof(Translation)
+            ComponentType.ReadOnly(typeof(GridPosition)),
+            typeof(NextGridPosition)
         );
     }
 

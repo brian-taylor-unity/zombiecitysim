@@ -66,10 +66,7 @@ public class MoveRandomlySystem : JobComponentSystem
         {
             int3 myGridPositionValue = gridPositions[index].Value;
             if (turnsUntilMoveArray[index].Value != 0)
-            {
-                nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
                 return;
-            }
 
             int upDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
             int rightDirKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));

@@ -18,6 +18,7 @@ public sealed class Bootstrap
     public static int numStreets;
     public static int numHumans;
     public static int numZombies;
+    public static float turnDelayTime;
 
     /// <summary>
     /// Building Tile definitions
@@ -34,7 +35,7 @@ public sealed class Bootstrap
     /// </summary>
     public static int HumanStartingHealth = 100;
     public static int HumanDamage = 0;
-    public static int HumanTurnDelay = 2;
+    public static int HumanTurnDelay = 1;
     public static RenderMesh HumanMeshInstanceRenderer;
 
     /// <summary>
@@ -43,7 +44,7 @@ public sealed class Bootstrap
     public static int ZombieVisionDistance = 4;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
-    public static int ZombieTurnDelay = 4;
+    public static int ZombieTurnDelay = 3;
     public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
@@ -107,6 +108,7 @@ public sealed class Bootstrap
         numStreets = GameController.instance.numStreets;
         numHumans = GameController.instance.numHumans;
         numZombies = GameController.instance.numZombies;
+        turnDelayTime = GameController.instance.turnDelayTime;
 
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
