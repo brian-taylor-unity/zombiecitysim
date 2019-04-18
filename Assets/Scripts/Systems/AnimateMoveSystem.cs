@@ -50,7 +50,7 @@ public class AnimateMoveSystem : JobComponentSystem
     protected override void OnCreate()
     {
         m_MovingUnits = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(GridPosition)),
+            typeof(GridPosition),
             ComponentType.ReadOnly(typeof(NextGridPosition)),
             typeof(Translation)
         );
