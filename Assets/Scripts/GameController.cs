@@ -25,6 +25,7 @@ public class GameController : MonoBehaviour
     public InputField humanTurnDelayInputField;
     public InputField zombieTurnDelayInputField;
     public InputField turnDelayTimeInputField;
+    public Slider turnDelayTimeSlider;
 
     void Awake()
     {
@@ -45,6 +46,7 @@ public class GameController : MonoBehaviour
         humanTurnDelayInputField.text = humanTurnDelay.ToString();
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
         turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString();
+        turnDelayTimeSlider.value = turnDelayTime * 1000;
     }
 
     // Update is called once per frame
@@ -101,8 +103,15 @@ public class GameController : MonoBehaviour
         zombieTurnDelay = int.Parse(num);
     }
 
-    public void SetTurnDelayTime(string num)
+    public void SetTurnDelayTimeInputField(string num)
     {
         turnDelayTime = float.Parse(num) / 1000;
+        turnDelayTimeSlider.value = float.Parse(num);
+    }
+
+    public void SetTurnDelayTimeSlider(float num)
+    {
+        turnDelayTime = num / 1000;
+        turnDelayTimeInputField.text = num.ToString();
     }
 }
