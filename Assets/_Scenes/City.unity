@@ -1392,7 +1392,7 @@ GameObject:
   - component: {fileID: 333691482}
   - component: {fileID: 333691481}
   m_Layer: 0
-  m_Name: Generate Panel
+  m_Name: Regenerate Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2718,14 +2718,19 @@ MonoBehaviour:
   numTilesY: 650
   numStreets: 675
   numHumans: 20000
-  numZombies: 1
+  humanStartingHealth: 100
+  humanDamage: 0
   humanTurnDelay: 1
+  numZombies: 1
+  zombieStartingHealth: 70
+  zombieDamage: 20
+  zombieVisionDistance: 6
   zombieTurnDelay: 3
   turnDelayTime: 0.05
-  numHumansSlider: {fileID: 513672571}
   numHumansInputField: {fileID: 2136234495}
-  numZombiesSlider: {fileID: 166200671}
+  numHumansSlider: {fileID: 513672571}
   numZombiesInputField: {fileID: 46154448}
+  numZombiesSlider: {fileID: 166200671}
   numTilesXInputField: {fileID: 1603169377}
   numTilesYInputField: {fileID: 1543486601}
   streetsInputField: {fileID: 1065146119}
@@ -3207,7 +3212,7 @@ MonoBehaviour:
   m_MinValue: 1
   m_MaxValue: 150
   m_WholeNumbers: 1
-  m_Value: 1
+  m_Value: 50
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -5351,7 +5356,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1952896521}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 944363107}
+        m_MethodName: OnRegeneratePressed
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!114 &1952896521
