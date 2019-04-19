@@ -12,11 +12,12 @@ public class MoveRandomlySystem : JobComponentSystem
     private EntityQuery m_StaticCollidableGroup;
     private EntityQuery m_DynamicCollidableGroup;
     private EntityQuery m_MoveRandomlyGroup;
+
+    private NativeMultiHashMap<int, int> m_StaticCollidableHashMap;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
-        public NativeMultiHashMap<int, int> staticCollidableHashMap;
         public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         public NativeArray<GridPosition> moveRandomlyGridPositions;
@@ -149,8 +150,6 @@ public class MoveRandomlySystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        NativeMultiHashMap<int, int> staticCollidableHashMap;
-
         var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
@@ -164,7 +163,6 @@ public class MoveRandomlySystem : JobComponentSystem
 
         var nextGridState = new PrevGridState
         {
-            staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap,
             dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             moveRandomlyGridPositions = moveRandomlyGridPositions,
@@ -175,20 +173,19 @@ public class MoveRandomlySystem : JobComponentSystem
         };
 
         JobHandle hashStaticCollidablePositionsJobHandle = inputDeps;
-        if (m_PrevGridState.staticCollidableHashMap.IsCreated)
+        if (m_StaticCollidableGroup.CalculateLength() != 0)
         {
-            staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap;
-        }
-        else
-        {
+            if (m_StaticCollidableHashMap.IsCreated)
+                m_StaticCollidableHashMap.Dispose();
+
             var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
             var staticCollidableCount = staticCollidableGridPositions.Length;
-            nextGridState.staticCollidableHashMap = staticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            m_StaticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
 
             var hashStaticCollidablePositionsJob = new HashGridPositionsJob
             {
                 gridPositions = staticCollidableGridPositions,
-                hashMap = staticCollidableHashMap.ToConcurrent(),
+                hashMap = m_StaticCollidableHashMap.ToConcurrent(),
             };
             hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
 
@@ -229,7 +226,7 @@ public class MoveRandomlySystem : JobComponentSystem
             gridPositions = moveRandomlyGridPositions,
             turnsUntilMoveArray = turnsUntilMoveArray,
             nextGridPositions = nextGridPositions,
-            staticCollidableHashMap = staticCollidableHashMap,
+            staticCollidableHashMap = m_StaticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             tick = Time.frameCount,
         };
@@ -246,6 +243,8 @@ public class MoveRandomlySystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(StaticCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
+        m_StaticCollidableGroup.SetFilterChanged(typeof(StaticCollidable));
+
         m_DynamicCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(DynamicCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
@@ -262,8 +261,8 @@ public class MoveRandomlySystem : JobComponentSystem
 
     protected override void OnStopRunning()
     {
-        if (m_PrevGridState.staticCollidableHashMap.IsCreated)
-            m_PrevGridState.staticCollidableHashMap.Dispose();
+        if (m_StaticCollidableHashMap.IsCreated)
+            m_StaticCollidableHashMap.Dispose();
         if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
             m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)

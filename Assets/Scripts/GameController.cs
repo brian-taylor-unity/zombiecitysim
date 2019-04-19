@@ -8,16 +8,25 @@ public class GameController : MonoBehaviour
     public int numTilesX = 130;
     public int numTilesY = 130;
     public int numStreets = 30;
+
     public int numHumans = 1000;
-    public int numZombies = 1;
+    public int humanStartingHealth = 100;
+    public int humanDamage = 0;
     public int humanTurnDelay = 1;
+
+    public int numZombies = 1;
+    public int zombieStartingHealth = 70;
+    public int zombieDamage = 20;
+    public int zombieVisionDistance = 6;
     public int zombieTurnDelay = 3;
+
     public float turnDelayTime = 0.025f;
 
-    public Slider numHumansSlider;
     public InputField numHumansInputField;
-    public Slider numZombiesSlider;
+    public Slider numHumansSlider;
     public InputField numZombiesInputField;
+    public Slider numZombiesSlider;
+
     public InputField numTilesXInputField;
     public InputField numTilesYInputField;
     public InputField streetsInputField;
@@ -36,13 +45,15 @@ public class GameController : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        numHumansInputField.text = numHumans.ToString();
+        numHumansSlider.value = numHumans;
+        numZombiesInputField.text = numZombies.ToString();
+        numZombiesSlider.value = numZombies;
+
         numTilesXInputField.text = numTilesX.ToString();
         numTilesYInputField.text = numTilesY.ToString();
         streetsInputField.text = numTilesY.ToString();
-        numHumansSlider.value = numHumans;
-        numHumansInputField.text = numHumans.ToString();
-        numZombiesSlider.value = numZombies;
-        numZombiesInputField.text = numZombies.ToString();
+
         humanTurnDelayInputField.text = humanTurnDelay.ToString();
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
         turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString();
@@ -52,6 +63,30 @@ public class GameController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+    }
+
+    public void SetNumHumansInputField(string num)
+    {
+        numHumans = int.Parse(num);
+        numHumansSlider.value = numHumans;
+    }
+
+    public void SetNumHumansSlider(float num)
+    {
+        numHumans = (int)num;
+        numHumansInputField.text = numHumans.ToString();
+    }
+
+    public void SetNumZombiesInputField(string num)
+    {
+        numZombies = int.Parse(num);
+        numZombiesSlider.value = numZombies;
+    }
+
+    public void SetNumZombiesSlider(float num)
+    {
+        numZombies = (int)num;
+        numZombiesInputField.text = numZombies.ToString();
     }
 
     public void SetNumTilesXInputField(string num)
@@ -69,28 +104,9 @@ public class GameController : MonoBehaviour
         numStreets = int.Parse(num);
     }
 
-    public void SetNumHumansSlider(float num)
+    public void OnRegeneratePressed()
     {
-        numHumans = (int)num;
-        numHumansInputField.text = numHumans.ToString();
-    }
-
-    public void SetNumHumansInputField(string num)
-    {
-        numHumans = int.Parse(num);
-        numHumansSlider.value = numHumans;
-    }
-
-    public void SetNumZombiesSlider(float num)
-    {
-        numZombies = (int)num;
-        numZombiesInputField.text = numZombies.ToString();
-    }
-
-    public void SetNumZombiesInputField(string num)
-    {
-        numZombies = int.Parse(num);
-        numZombiesSlider.value = numZombies;
+        Bootstrap.Regenerate(numTilesX, numTilesY);
     }
 
     public void SetHumanTurnDelay(string num)
