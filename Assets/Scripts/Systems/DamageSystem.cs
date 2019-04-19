@@ -174,12 +174,16 @@ public class DamageSystem : JobComponentSystem
             m_PrevGridState.zombieGridPositionsArray.Dispose();
         if (m_PrevGridState.zombieDamageArray.IsCreated)
             m_PrevGridState.zombieDamageArray.Dispose();
+        if (m_PrevGridState.zombieTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.zombieTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.zombieGridPositionsHashMap.Dispose();
         if (m_PrevGridState.humanGridPositionsArray.IsCreated)
             m_PrevGridState.humanGridPositionsArray.Dispose();
         if (m_PrevGridState.humanDamageArray.IsCreated)
             m_PrevGridState.humanDamageArray.Dispose();
+        if (m_PrevGridState.humanTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.humanTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
             m_PrevGridState.humanGridPositionsHashMap.Dispose();
     }
