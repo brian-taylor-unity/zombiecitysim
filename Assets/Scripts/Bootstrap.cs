@@ -13,12 +13,12 @@ public sealed class Bootstrap
     public static EntityArchetype HumanArchetype;
     public static EntityArchetype ZombieArchetype;
 
+    /// <summary>
+    /// City definitions
+    /// </summary>
     public static int numTilesX;
     public static int numTilesY;
     public static int numStreets;
-    public static int numHumans;
-    public static int numZombies;
-    public static float turnDelayTime;
 
     /// <summary>
     /// Building Tile definitions
@@ -33,19 +33,23 @@ public sealed class Bootstrap
     /// <summary>
     /// Human definitions
     /// </summary>
+    public static int numHumans;
     public static int HumanStartingHealth = 100;
     public static int HumanDamage = 0;
-    public static int HumanTurnDelay = 1;
+    public static int HumanTurnDelay;
     public static RenderMesh HumanMeshInstanceRenderer;
 
     /// <summary>
     /// Zombie definitions
     /// </summary>
+    public static int numZombies;
     public static int ZombieVisionDistance = 4;
     public static int ZombieStartingHealth = 70;
     public static int ZombieDamage = 20;
-    public static int ZombieTurnDelay = 3;
+    public static int ZombieTurnDelay;
     public static RenderMesh ZombieMeshInstanceRenderer;
+
+    public static float turnDelayTime;
 
     private static EntityManager _entityManager;
     private static bool[,] _tileExists;
@@ -106,8 +110,13 @@ public sealed class Bootstrap
         numTilesX = GameController.instance.numTilesX;
         numTilesY = GameController.instance.numTilesY;
         numStreets = GameController.instance.numStreets;
+
         numHumans = GameController.instance.numHumans;
+        HumanTurnDelay = GameController.instance.humanTurnDelay;
+
         numZombies = GameController.instance.numZombies;
+        ZombieTurnDelay = GameController.instance.zombieTurnDelay;
+
         turnDelayTime = GameController.instance.turnDelayTime;
 
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
