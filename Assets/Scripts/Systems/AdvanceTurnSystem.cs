@@ -36,20 +36,20 @@ public class AdvanceTurnSystem : JobComponentSystem
     {
         var resetHumanTurnJob = new ResetTurnJob
         {
-            turnDelay = Bootstrap.HumanTurnDelay,
+            turnDelay = GameController.instance.humanTurnDelay,
         };
         var resetHumanTurnJobHandle = resetHumanTurnJob.Schedule(m_Humans, inputDeps);
 
         var resetZombieTurnJob = new ResetTurnJob
         {
-            turnDelay = Bootstrap.ZombieTurnDelay,
+            turnDelay = GameController.instance.zombieTurnDelay,
         };
         var resetZombieTurnJobHandle = resetZombieTurnJob.Schedule(m_Zombies, resetHumanTurnJobHandle);
 
         var outputDeps = resetZombieTurnJobHandle;
 
         var now = Time.time;
-        if (now - m_LastTime > Bootstrap.turnDelayTime)
+        if (now - m_LastTime > GameController.instance.turnDelayTime)
         {
             m_LastTime = now;
 

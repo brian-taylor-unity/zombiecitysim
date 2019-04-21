@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "ZombieCitySim",
   "references": [
     "Unity.Burst",

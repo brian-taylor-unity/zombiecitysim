@@ -21,16 +21,39 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
+    struct RemoveAudibleJob : IJobForEachWithEntity<Audible>
+    {
+        public EntityCommandBuffer.Concurrent Commands;
+
+        public void Execute(Entity entity, int index, ref Audible audible)
+        {
+            audible.Age++;
+
+            if (audible.Age > 5)
+                Commands.DestroyEntity(index, entity);
+        }
+    }
+
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
+        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+
         var removeDeadJob = new RemoveDeadJob
         {
-            Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            Commands = Commands,
         };
         var removeDeadJobHandle = removeDeadJob.ScheduleSingle(this, inputDeps);
         m_EntityCommandBufferSystem.AddJobHandleForProducer(removeDeadJobHandle);
 
-        return removeDeadJobHandle;
+        var removeAudibleJob = new RemoveAudibleJob
+        {
+            Commands = Commands,
+        };
+        var removeAudibleJobHandle = removeAudibleJob.ScheduleSingle(this, removeDeadJobHandle);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(removeAudibleJobHandle);
+
+        return removeAudibleJobHandle;
     }
 
     protected override void OnCreate()
