@@ -97,7 +97,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         var createAudiblesFromTargetsJob = new CreateAudiblesFromTargetsJob
         {
             targetHashMap = followTargetHashMap,
-            detectDistance = Bootstrap.ZombieVisionDistance,
+            detectDistance = GameController.instance.zombieVisionDistance,
             Commands = Commands,
             archetype = Bootstrap.AudibleArchetype,
         };

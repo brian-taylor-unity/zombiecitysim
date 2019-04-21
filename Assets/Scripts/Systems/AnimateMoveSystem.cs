@@ -31,7 +31,7 @@ public class AnimateMoveSystem : JobComponentSystem
     {
         m_TotalTime += Time.deltaTime;
 
-        var percentAnimate = m_TotalTime / Bootstrap.turnDelayTime;
+        var percentAnimate = m_TotalTime / GameController.instance.turnDelayTime;
         if (percentAnimate >= 1.0f)
         {
             percentAnimate = 1.0f;

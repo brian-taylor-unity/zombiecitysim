@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using System.Collections.Generic;
+using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Rendering;
@@ -15,42 +16,15 @@ public sealed class Bootstrap
 
     public static EntityArchetype AudibleArchetype;
 
-    public static int numTilesX;
-    public static int numTilesY;
-    public static int numStreets;
-    public static int numHumans;
-    public static int numZombies;
-    public static float turnDelayTime;
-
-    /// <summary>
-    /// Building Tile definitions
-    /// </summary>
     public static RenderMesh BuildingTileMeshInstanceRenderer;
-
-    /// <summary>
-    /// Building Tile definitions
-    /// </summary>
     public static RenderMesh RoadTileMeshInstanceRenderer;
-
-    /// <summary>
-    /// Human definitions
-    /// </summary>
-    public static int HumanStartingHealth = 100;
-    public static int HumanDamage = 0;
-    public static int HumanTurnDelay = 1;
     public static RenderMesh HumanMeshInstanceRenderer;
-
-    /// <summary>
-    /// Zombie definitions
-    /// </summary>
-    public static int ZombieVisionDistance;
-    public static int ZombieHearingDistance;
-    public static int ZombieStartingHealth;
-    public static int ZombieDamage;
-    public static int ZombieTurnDelay;
     public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
+    private static List<Entity> _cityEntities;
+    private static List<Entity> _unitEntities;
+
     private static bool[,] _tileExists;
     private static bool[,] _tilePassable;
 
@@ -60,6 +34,9 @@ public sealed class Bootstrap
     public static void Initialize()
     {
         _entityManager = World.Active.EntityManager;
+        _cityEntities = new List<Entity>();
+        _unitEntities = new List<Entity>();
+
         rand = new Random();
         rand.InitState();
 
@@ -111,64 +88,32 @@ public sealed class Bootstrap
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void InitializeWithScene()
     {
-        numTilesX = GameController.instance.numTilesX;
-        numTilesY = GameController.instance.numTilesY;
-        numStreets = GameController.instance.numStreets;
-        numHumans = GameController.instance.numHumans;
-        numZombies = GameController.instance.numZombies;
-        turnDelayTime = GameController.instance.turnDelayTime;
-
-        ZombieVisionDistance = GameController.instance.zombieVisionDistance;
-        ZombieHearingDistance = GameController.instance.zombieHearingDistance;
-        ZombieStartingHealth = GameController.instance.zombieStartingHealth;
-        ZombieDamage = GameController.instance.zombieDamage;
-        ZombieTurnDelay = GameController.instance.zombieTurnDelay;
-
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
         HumanMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype");
         ZombieMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype");
 
+        int numTilesX = GameController.instance.numTilesX;
+        int numTilesY = GameController.instance.numTilesY;
+
         // Instantiate city tiles
-        Generate();
-
-        int randomX, randomY;
-
-        for (int i = 0; i < numHumans; i++)
-        {
-            // Place human in random place
-            do
-            {
-                randomX = UnityEngine.Random.Range(1, numTilesX - 1);
-                randomY = UnityEngine.Random.Range(1, numTilesY - 1);
-            } while (!_tilePassable[randomY, randomX]);
-
-            AddHumanCharacter(randomX, randomY);
-        }
-
-        for (int i = 0; i < numZombies; i++)
-        {
-            // Place zombie in random place
-            do
-            {
-                randomX = UnityEngine.Random.Range(1, numTilesX - 1);
-                randomY = UnityEngine.Random.Range(1, numTilesY - 1);
-            } while (!_tilePassable[randomY, randomX]);
-
-            AddZombieCharacter(randomX, randomY);
-        }
+        Regenerate(numTilesX, numTilesY);
     }
 
-    private static RenderMesh GetMeshInstanceRendererFromPrototype(string protoName)
+    public static void Regenerate(int numTilesX, int numTilesY)
     {
-        var proto = GameObject.Find(protoName);
-        var result = proto.GetComponent<RenderMeshProxy>().Value;
-        Object.Destroy(proto);
-        return result;
-    }
+        _cityEntities.ForEach(delegate(Entity entity)
+        {
+            _entityManager.DestroyEntity(entity);
+        });
+        _cityEntities.Clear();
 
-    private static void Generate()
-    {
+        _unitEntities.ForEach(delegate (Entity entity)
+        {
+            _entityManager.DestroyEntity(entity);
+        });
+        _unitEntities.Clear();
+
         _tileExists = new bool[numTilesY, numTilesX];
         _tilePassable = new bool[numTilesY, numTilesX];
 
@@ -189,7 +134,7 @@ public sealed class Bootstrap
             AddBuildingTile(x, 1, numTilesY - 1, true);
         }
 
-        CreateStreets();
+        CreateStreets(GameController.instance.numStreets, numTilesX, numTilesY);
 
         // Fill in empty space with building tiles
         for (int y = 1; y < numTilesY - 1; y++)
@@ -202,9 +147,33 @@ public sealed class Bootstrap
                 }
             }
         }
+
+        int randomX, randomY;
+        for (int i = 0; i < GameController.instance.numHumans; i++)
+        {
+            // Place human in random place
+            do
+            {
+                randomX = UnityEngine.Random.Range(1, numTilesX - 1);
+                randomY = UnityEngine.Random.Range(1, numTilesY - 1);
+            } while (!_tilePassable[randomY, randomX]);
+
+            AddHumanCharacter(randomX, randomY, GameController.instance.humanStartingHealth, GameController.instance.humanDamage, GameController.instance.humanTurnDelay);
+        }
+        for (int i = 0; i < GameController.instance.numZombies; i++)
+        {
+            // Place zombie in random place
+            do
+            {
+                randomX = UnityEngine.Random.Range(1, numTilesX - 1);
+                randomY = UnityEngine.Random.Range(1, numTilesY - 1);
+            } while (!_tilePassable[randomY, randomX]);
+
+            AddZombieCharacter(randomX, randomY, GameController.instance.zombieStartingHealth, GameController.instance.zombieDamage, GameController.instance.zombieTurnDelay);
+        }
     }
 
-    private static void CreateStreets()
+    private static void CreateStreets(int numStreets, int numTilesX, int numTilesY)
     {
         int roadSize;
         int xPos, yPos;
@@ -215,7 +184,7 @@ public sealed class Bootstrap
         {
             roadSize = UnityEngine.Random.Range(1, 3);
 
-            xPos += UnityEngine.Random.Range(0, 2 * (numTilesX / (numStreets / 2)));
+            xPos = xPos + UnityEngine.Random.Range(0, 2 * (numTilesX / (numStreets / 2)));
             if (xPos >= numTilesX - 1)
                 break;
 
@@ -240,7 +209,7 @@ public sealed class Bootstrap
         {
             roadSize = UnityEngine.Random.Range(1, 3);
 
-            yPos += UnityEngine.Random.Range(0, 2 * (numTilesY / (numStreets / 2)));
+            yPos = yPos + UnityEngine.Random.Range(0, 2 * (numTilesY / (numStreets / 2)));
             if (yPos >= numTilesY - 1)
                 break;
 
@@ -260,9 +229,10 @@ public sealed class Bootstrap
         }
 
         Entity entity = _entityManager.CreateEntity(RoadFloorArchetype);
-        _entityManager.SetComponentData(entity, new Translation { Value = new float3((float)numTilesX / 2 + 0.5f, 0f, (float)numTilesY / 2 + 0.5f) });
+        _entityManager.SetComponentData(entity, new Translation { Value = new float3((float)numTilesX / 2 - 0.5f, 0f, (float)numTilesY / 2 - 0.5f) });
         _entityManager.SetComponentData(entity, new NonUniformScale { Value = new float3(numTilesX - 0.5f, 1f, numTilesY - 0.5f) });
         _entityManager.AddSharedComponentData(entity, RoadTileMeshInstanceRenderer);
+        _cityEntities.Add(entity);
     }
 
     private static void AddBuildingTile(int x, int y, int z, bool gridPosition)
@@ -272,36 +242,46 @@ public sealed class Bootstrap
         if (gridPosition)
             _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, y, z) });
         _entityManager.AddSharedComponentData(entity, BuildingTileMeshInstanceRenderer);
+        _cityEntities.Add(entity);
 
         _tileExists[y, x] = true;
         _tilePassable[y, x] = false;
     }
-    private static void AddHumanCharacter(int x, int y)
+    public static void AddHumanCharacter(int x, int y, int health, int damage, int turnDelay)
     {
         Entity entity = _entityManager.CreateEntity(HumanArchetype);
         _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
-        _entityManager.SetComponentData(entity, new Health { Value = HumanStartingHealth });
-        _entityManager.SetComponentData(entity, new Damage { Value = HumanDamage });
-        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(HumanTurnDelay + 1) });
+        _entityManager.SetComponentData(entity, new Health { Value = health });
+        _entityManager.SetComponentData(entity, new Damage { Value = damage });
+        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
         _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer);
+        _unitEntities.Add(entity);
 
         _tilePassable[y, x] = false;
     }
 
-    private static void AddZombieCharacter(int x, int y)
+    public static void AddZombieCharacter(int x, int y, int health, int damage, int turnDelay)
     {
         Entity entity = _entityManager.CreateEntity(ZombieArchetype);
         _entityManager.SetComponentData(entity, new Translation { Value = new float3(x, 1f, y) });
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
-        _entityManager.SetComponentData(entity, new MoveTowardsTarget { TurnsSinceMove = 0 });
         _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
-        _entityManager.SetComponentData(entity, new Health { Value = ZombieStartingHealth });
-        _entityManager.SetComponentData(entity, new Damage { Value = ZombieDamage });
-        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(ZombieTurnDelay + 1) });
+        _entityManager.SetComponentData(entity, new Health { Value = health });
+        _entityManager.SetComponentData(entity, new Damage { Value = damage });
+        _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
         _entityManager.AddSharedComponentData(entity, ZombieMeshInstanceRenderer);
+        _unitEntities.Add(entity);
 
         _tilePassable[y, x] = false;
+    }
+
+    private static RenderMesh GetMeshInstanceRendererFromPrototype(string protoName)
+    {
+        var proto = GameObject.Find(protoName);
+        var result = proto.GetComponent<RenderMeshProxy>().Value;
+        Object.Destroy(proto);
+        return result;
     }
 }

@@ -15,9 +15,11 @@ public class DamageSystem : JobComponentSystem
     {
         public NativeArray<GridPosition> zombieGridPositionsArray;
         public NativeArray<Damage> zombieDamageArray;
+        public NativeArray<TurnsUntilMove> zombieTurnsUntilMoveArray;
         public NativeMultiHashMap<int, int> zombieGridPositionsHashMap;
         public NativeArray<GridPosition> humanGridPositionsArray;
         public NativeArray<Damage> humanDamageArray;
+        public NativeArray<TurnsUntilMove> humanTurnsUntilMoveArray;
         public NativeMultiHashMap<int, int> humanGridPositionsHashMap;
     }
 
@@ -39,6 +41,7 @@ public class DamageSystem : JobComponentSystem
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
         [ReadOnly] public NativeArray<Damage> damagingUnitsDamageArray;
+        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
         [ReadOnly] public NativeMultiHashMap<int, int> damagingUnitsHashMap;
 
         public void Execute(Entity entity, int index, ref Health health)
@@ -55,7 +58,10 @@ public class DamageSystem : JobComponentSystem
                     {
                         int damageKey = GridHash.Hash(new int3(myGridPosition.x + x, myGridPosition.y, myGridPosition.z + z));
                         if (damagingUnitsHashMap.TryGetFirstValue(damageKey, out int damageIndex, out _))
-                            myHealth -= damagingUnitsDamageArray[damageIndex].Value;
+                        { 
+                            if (turnsUntilMoveArray[damageIndex].Value == 0)
+                                myHealth -= damagingUnitsDamageArray[damageIndex].Value;
+                        }
                     }
                 }
             }
@@ -68,11 +74,13 @@ public class DamageSystem : JobComponentSystem
     {
         var zombieGridPositionsArray = m_ZombieGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var zombieDamageArray = m_ZombieGroup.ToComponentDataArray<Damage>(Allocator.TempJob);
+        var zombieTurnsUntilMoveArray = m_ZombieGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
         var zombieCount = zombieGridPositionsArray.Length;
         var zombieGridPositionsHashMap = new NativeMultiHashMap<int, int>(zombieCount, Allocator.TempJob);
 
         var humanGridPositionsArray = m_HumanGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var humanDamageArray = m_HumanGroup.ToComponentDataArray<Damage>(Allocator.TempJob);
+        var humanTurnsUntilMoveArray = m_HumanGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
         var humanCount = humanGridPositionsArray.Length;
         var humanGridPositionsHashMap = new NativeMultiHashMap<int, int>(humanCount, Allocator.TempJob);
 
@@ -80,21 +88,27 @@ public class DamageSystem : JobComponentSystem
         {
             zombieGridPositionsArray = zombieGridPositionsArray,
             zombieDamageArray = zombieDamageArray,
+            zombieTurnsUntilMoveArray = zombieTurnsUntilMoveArray,
             zombieGridPositionsHashMap = zombieGridPositionsHashMap,
             humanGridPositionsArray = humanGridPositionsArray,
             humanDamageArray = humanDamageArray,
+            humanTurnsUntilMoveArray = humanTurnsUntilMoveArray,
             humanGridPositionsHashMap = humanGridPositionsHashMap,
         };
         if (m_PrevGridState.zombieGridPositionsArray.IsCreated)
             m_PrevGridState.zombieGridPositionsArray.Dispose();
         if (m_PrevGridState.zombieDamageArray.IsCreated)
             m_PrevGridState.zombieDamageArray.Dispose();
+        if (m_PrevGridState.zombieTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.zombieTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.zombieGridPositionsHashMap.Dispose();
         if (m_PrevGridState.humanGridPositionsArray.IsCreated)
             m_PrevGridState.humanGridPositionsArray.Dispose();
         if (m_PrevGridState.humanDamageArray.IsCreated)
             m_PrevGridState.humanDamageArray.Dispose();
+        if (m_PrevGridState.humanTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.humanTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
             m_PrevGridState.humanGridPositionsHashMap.Dispose();
         m_PrevGridState = nextGridState;
@@ -119,6 +133,7 @@ public class DamageSystem : JobComponentSystem
         {
             gridPositions = zombieGridPositionsArray,
             damagingUnitsDamageArray = humanDamageArray,
+            turnsUntilMoveArray = humanTurnsUntilMoveArray,
             damagingUnitsHashMap = humanGridPositionsHashMap,
         };
         var damageZombiesJobHandle = damageZombiesJob.Schedule(m_ZombieGroup, hashGridPositionsBarrier);
@@ -127,6 +142,7 @@ public class DamageSystem : JobComponentSystem
         {
             gridPositions = humanGridPositionsArray,
             damagingUnitsDamageArray = zombieDamageArray,
+            turnsUntilMoveArray = zombieTurnsUntilMoveArray,
             damagingUnitsHashMap = zombieGridPositionsHashMap,
         };
         var damageHumansJobHandle = damageHumansJob.Schedule(m_HumanGroup, damageZombiesJobHandle);
@@ -140,12 +156,14 @@ public class DamageSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(Zombie)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
+            ComponentType.ReadOnly(typeof(TurnsUntilMove)),
             typeof(Health)
         );
         m_HumanGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
+            ComponentType.ReadOnly(typeof(TurnsUntilMove)),
             typeof(Health)
         );
     }
@@ -156,12 +174,16 @@ public class DamageSystem : JobComponentSystem
             m_PrevGridState.zombieGridPositionsArray.Dispose();
         if (m_PrevGridState.zombieDamageArray.IsCreated)
             m_PrevGridState.zombieDamageArray.Dispose();
+        if (m_PrevGridState.zombieTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.zombieTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.zombieGridPositionsHashMap.IsCreated)
             m_PrevGridState.zombieGridPositionsHashMap.Dispose();
         if (m_PrevGridState.humanGridPositionsArray.IsCreated)
             m_PrevGridState.humanGridPositionsArray.Dispose();
         if (m_PrevGridState.humanDamageArray.IsCreated)
             m_PrevGridState.humanDamageArray.Dispose();
+        if (m_PrevGridState.humanTurnsUntilMoveArray.IsCreated)
+            m_PrevGridState.humanTurnsUntilMoveArray.Dispose();
         if (m_PrevGridState.humanGridPositionsHashMap.IsCreated)
             m_PrevGridState.humanGridPositionsHashMap.Dispose();
     }
