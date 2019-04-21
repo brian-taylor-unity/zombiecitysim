@@ -3,7 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
-[UpdateAfter(typeof(MoveFollowTargetSystem))]
+[UpdateAfter(typeof(MoveTowardsTargetSystem))]
 public class ResolveGridMovementSystem : JobComponentSystem
 {
     private EntityQuery m_MoveUnits;
