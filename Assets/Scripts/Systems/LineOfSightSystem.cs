@@ -9,11 +9,12 @@ public class LineOfSightSystem : JobComponentSystem
     private EntityQuery m_StaticCollidableGroup;
     private EntityQuery m_DynamicCollidableGroup;
     private EntityQuery m_LineOfSightGroup;
+
+    private NativeMultiHashMap<int, int> m_StaticCollidableHashMap;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
-        public NativeMultiHashMap<int, int> staticCollidableHashMap;
         public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         public NativeArray<GridPosition> unitsLineOfSight;
@@ -56,8 +57,6 @@ public class LineOfSightSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        NativeMultiHashMap<int, int> staticCollidableHashMap;
-
         var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
@@ -68,7 +67,6 @@ public class LineOfSightSystem : JobComponentSystem
 
         var nextGridState = new PrevGridState
         {
-            staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap,
             dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             unitsLineOfSight = unitsLineOfSight,
@@ -76,20 +74,19 @@ public class LineOfSightSystem : JobComponentSystem
         };
 
         JobHandle hashStaticCollidablePositionsJobHandle = inputDeps;
-        if (m_PrevGridState.staticCollidableHashMap.IsCreated)
+        if (m_StaticCollidableGroup.CalculateLength() != 0)
         {
-            staticCollidableHashMap = m_PrevGridState.staticCollidableHashMap;
-        }
-        else
-        {
+            if (m_StaticCollidableHashMap.IsCreated)
+                m_StaticCollidableHashMap.Dispose();
+
             var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
             var staticCollidableCount = staticCollidableGridPositions.Length;
-            nextGridState.staticCollidableHashMap = staticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            m_StaticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
 
             var hashStaticCollidablePositionsJob = new HashGridPositionsJob
             {
                 gridPositions = staticCollidableGridPositions,
-                hashMap = staticCollidableHashMap.ToConcurrent(),
+                hashMap = m_StaticCollidableHashMap.ToConcurrent(),
             };
             hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
 
@@ -121,7 +118,7 @@ public class LineOfSightSystem : JobComponentSystem
 
         var moveAwayFromUnitsJob = new MoveAwayFromUnitsJob
         {
-            staticCollidableHashMap = staticCollidableHashMap,
+            staticCollidableHashMap = m_StaticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
 
         };
@@ -149,10 +146,14 @@ public class LineOfSightSystem : JobComponentSystem
 
     protected override void OnDestroyManager()
     {
-        if (m_PrevGridState.staticCollidableHashMap.IsCreated)
-            m_PrevGridState.staticCollidableHashMap.Dispose();
+        if (m_StaticCollidableHashMap.IsCreated)
+            m_StaticCollidableHashMap.Dispose();
+        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
+            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.unitsLineOfSight.IsCreated)
+            m_PrevGridState.unitsLineOfSight.Dispose();
         if (m_PrevGridState.unitsLineOfSightHashMap.IsCreated)
             m_PrevGridState.unitsLineOfSightHashMap.Dispose();
     }
