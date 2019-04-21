@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-[UpdateBefore(typeof(MoveRandomlySystem))]
+[UpdateAfter(typeof(MoveTowardsTargetSystem))]
 public class DamageSystem : JobComponentSystem
 {
     private EntityQuery m_ZombieGroup;

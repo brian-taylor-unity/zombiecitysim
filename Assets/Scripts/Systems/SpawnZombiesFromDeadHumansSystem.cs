@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(MoveFollowTargetSystem))]
+[UpdateAfter(typeof(MoveTowardsTargetSystem))]
 public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
 {
     private EntityQuery m_HumansGroup;

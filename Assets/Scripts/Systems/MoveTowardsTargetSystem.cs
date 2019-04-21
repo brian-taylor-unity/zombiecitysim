@@ -6,12 +6,13 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateAfter(typeof(MoveRandomlySystem))]
-public class MoveFollowTargetSystem : JobComponentSystem
+public class MoveTowardsTargetSystem : JobComponentSystem
 {
     private EntityQuery m_StaticCollidableGroup;
     private EntityQuery m_DynamicCollidableGroup;
-    private EntityQuery m_MoveFollowTargetGroup;
+    private EntityQuery m_MoveTowardsTargetGroup;
     private EntityQuery m_FollowTargetGroup;
+    private EntityQuery m_AudibleGroup;
 
     private NativeMultiHashMap<int, int> m_StaticCollidableHashMap;
     private PrevGridState m_PrevGridState;
@@ -20,12 +21,15 @@ public class MoveFollowTargetSystem : JobComponentSystem
     {
         public NativeArray<GridPosition> dynamicCollidableGridPositions;
         public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
+        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
         public NativeArray<GridPosition> movingUnitsGridPositions;
         public NativeArray<Translation> movingUnitsTranslations;
         public NativeArray<NextGridPosition> nextGridPositions;
         public NativeMultiHashMap<int, int> nextGridPositionsHashMap;
         public NativeArray<GridPosition> followTargetGridPositions;
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
+        public NativeArray<Audible> audiblesArray;
+        public NativeMultiHashMap<int, int> audiblesHashMap;
         public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
     }
 
@@ -43,15 +47,32 @@ public class MoveFollowTargetSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct MoveFollowTargetJob : IJobParallelFor
+    struct HashAudiblesJob : IJobParallelFor
+    {
+        [ReadOnly] public NativeArray<Audible> audiblesArray;
+        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+
+        public void Execute(int index)
+        {
+            var hash = GridHash.Hash(audiblesArray[index].GridPositionValue);
+            hashMap.Add(hash, index);
+        }
+    }
+
+    [BurstCompile]
+    struct MoveTowardsTargetJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
         public NativeArray<NextGridPosition> nextGridPositions;
+        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
+        [ReadOnly] public NativeArray<Audible> audiblesArray;
+        [ReadOnly] public NativeMultiHashMap<int, int> audiblesHashMap;
         public int viewDistance;
+        public int hearingDistance;
 
         public void Execute(int index)
         {
@@ -61,11 +82,20 @@ public class MoveFollowTargetSystem : JobComponentSystem
 
             bool moved = false;
 
-            // Get nearest target
+            int myTurnsSinceMove = moveTowardsTargetArray[index].TurnsSinceMove;
+            if (myTurnsSinceMove > 100 || myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
+            {
+                nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
+                moveTowardsTargetArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
+
+                return;
+            }
+
+            // Get nearest visible target
             // Check all grid positions that are checkDist away in the x or y direction
             bool foundTarget = false;
             int3 nearestTarget = myGridPositionValue;
-            for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
+            for (int checkDist = 1; checkDist <= viewDistance && !foundTarget; checkDist++)
             {
                 float nearestDistance = (checkDist + 1) * (checkDist + 1);
                 for (int z = -checkDist; z <= checkDist; z++)
@@ -82,17 +112,43 @@ public class MoveFollowTargetSystem : JobComponentSystem
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                 var nearest = distance < nearestDistance;
 
-                                nearestDistance = math.@select(nearestDistance, distance, nearest);
-                                nearestTarget = math.@select(nearestTarget, targetGridPosition, nearest);
+                                nearestDistance = math.select(nearestDistance, distance, nearest);
+                                nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
 
                                 foundTarget = true;
                             }
                         }
                     }
                 }
+            }
 
-                if (foundTarget)
-                    break;
+            // Check for Audible entities in range
+            for (int checkDist = 1; checkDist <= hearingDistance && !foundTarget; checkDist++)
+            {
+                float nearestDistance = 300;
+                for (int z = -checkDist; z <= checkDist; z++)
+                {
+                    for (int x = -checkDist; x <= checkDist; x++)
+                    {
+                        if (math.abs(x) == checkDist || math.abs(z) == checkDist)
+                        {
+                            int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+
+                            int targetKey = GridHash.Hash(targetGridPosition);
+                            if (audiblesHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
+                            {
+                                var audiblePointingToValue = audiblesArray[audibleIndex].Target;
+                                var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audiblePointingToValue));
+                                var nearest = distance < nearestDistance;
+
+                                nearestDistance = math.select(nearestDistance, distance, nearest);
+                                nearestTarget = math.select(nearestTarget, audiblePointingToValue, nearest);
+
+                                foundTarget = true;
+                            }
+                        }
+                    }
+                }
             }
 
             if (foundTarget)
@@ -170,27 +226,35 @@ public class MoveFollowTargetSystem : JobComponentSystem
         var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
         var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
 
-        var movingUnitsGridPositions = m_MoveFollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var movingUnitsTranslations = m_MoveFollowTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
+        var moveTowardsTargetArray = m_MoveTowardsTargetGroup.ToComponentDataArray<MoveTowardsTarget>(Allocator.TempJob);
+        var movingUnitsGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var movingUnitsTranslations = m_MoveTowardsTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
-        var nextGridPositions = m_MoveFollowTargetGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
+        var nextGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
         var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
-        var turnsUntilMoveArray = m_MoveFollowTargetGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
+        var turnsUntilMoveArray = m_MoveTowardsTargetGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
 
         var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var followTargetCount = followTargetGridPositions.Length;
         var followTargetGridPositionsHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
 
+        var audiblesArray = m_AudibleGroup.ToComponentDataArray<Audible>(Allocator.TempJob);
+        var audiblesCount = audiblesArray.Length;
+        var audiblesHashMap = new NativeMultiHashMap<int, int>(audiblesCount, Allocator.TempJob);
+
         var nextGridState = new PrevGridState
         {
             dynamicCollidableGridPositions = dynamicCollidableGridPositions,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
+            moveTowardsTargetArray = moveTowardsTargetArray,
             movingUnitsGridPositions = movingUnitsGridPositions,
             movingUnitsTranslations = movingUnitsTranslations,
             nextGridPositions = nextGridPositions,
             nextGridPositionsHashMap = nextGridPositionsHashMap,
             followTargetGridPositions = followTargetGridPositions,
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
+            audiblesArray = audiblesArray,
+            audiblesHashMap = audiblesHashMap,
             turnsUntilMoveArray = turnsUntilMoveArray,
         };
 
@@ -220,10 +284,10 @@ public class MoveFollowTargetSystem : JobComponentSystem
 
         if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
             m_PrevGridState.dynamicCollidableGridPositions.Dispose();
-        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
-            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
         if (m_PrevGridState.movingUnitsTranslations.IsCreated)
@@ -236,6 +300,10 @@ public class MoveFollowTargetSystem : JobComponentSystem
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.audiblesArray.IsCreated)
+            m_PrevGridState.audiblesArray.Dispose();
+        if (m_PrevGridState.audiblesHashMap.IsCreated)
+            m_PrevGridState.audiblesHashMap.Dispose();
         if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
             m_PrevGridState.turnsUntilMoveArray.Dispose();
         m_PrevGridState = nextGridState;
@@ -254,22 +322,34 @@ public class MoveFollowTargetSystem : JobComponentSystem
         };
         var hashFollowTargetGridPositionsJobHandle = hashFollowTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
 
-        var movementBarrierHandle = JobHandle.CombineDependencies(hashStaticCollidablePositionsJobHandle, hashDynamicCollidableGridPositionsJobHandle, hashFollowTargetGridPositionsJobHandle);
+        var hashAudibleGridPositionsJob = new HashAudiblesJob
+        {
+            audiblesArray = audiblesArray,
+            hashMap = audiblesHashMap.ToConcurrent(),
+        };
+        var hashAudibleGridPositionsJobHandle = hashAudibleGridPositionsJob.Schedule(audiblesCount, 64, inputDeps);
 
-        var moveFollowTargetJob = new MoveFollowTargetJob
+        var movementBarrierHandle = JobHandle.CombineDependencies(hashStaticCollidablePositionsJobHandle, hashDynamicCollidableGridPositionsJobHandle, hashFollowTargetGridPositionsJobHandle);
+        movementBarrierHandle = JobHandle.CombineDependencies(movementBarrierHandle, hashAudibleGridPositionsJobHandle);
+
+        var moveTowardsTargetJob = new MoveTowardsTargetJob
         {
             gridPositions = movingUnitsGridPositions,
             turnsUntilMoveArray = turnsUntilMoveArray,
             nextGridPositions = nextGridPositions,
+            moveTowardsTargetArray = moveTowardsTargetArray,
             staticCollidableHashMap = m_StaticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             targetGridPositionsHashMap = followTargetGridPositionsHashMap,
+            audiblesArray = audiblesArray,
+            audiblesHashMap = audiblesHashMap,
             viewDistance = GameController.instance.zombieVisionDistance,
+            hearingDistance = GameController.instance.zombieHearingDistance,
         };
-        var moveFollowTargetJobHandle = moveFollowTargetJob.Schedule(movingUnitsCount, 64, movementBarrierHandle);
+        var moveTowardsTargetJobHandle = moveTowardsTargetJob.Schedule(movingUnitsCount, 64, movementBarrierHandle);
 
-        m_MoveFollowTargetGroup.AddDependency(moveFollowTargetJobHandle);
-        m_MoveFollowTargetGroup.CopyFromComponentDataArray(nextGridPositions, out JobHandle copyDataJobHandle);
+        m_MoveTowardsTargetGroup.AddDependency(moveTowardsTargetJobHandle);
+        m_MoveTowardsTargetGroup.CopyFromComponentDataArray(nextGridPositions, out JobHandle copyDataJobHandle);
 
         return copyDataJobHandle;
     }
@@ -287,8 +367,8 @@ public class MoveFollowTargetSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(GridPosition))
         );
 
-        m_MoveFollowTargetGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(MoveFollowTarget)),
+        m_MoveTowardsTargetGroup = GetEntityQuery(
+            ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
             typeof(GridPosition),
             typeof(NextGridPosition),
@@ -296,6 +376,10 @@ public class MoveFollowTargetSystem : JobComponentSystem
         );
         m_FollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(FollowTarget)),
+            ComponentType.ReadOnly(typeof(GridPosition))
+        );
+        m_AudibleGroup = GetEntityQuery(
+            ComponentType.ReadOnly(typeof(Audible)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
     }
@@ -308,6 +392,8 @@ public class MoveFollowTargetSystem : JobComponentSystem
             m_PrevGridState.dynamicCollidableGridPositions.Dispose();
         if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
             m_PrevGridState.dynamicCollidableHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
         if (m_PrevGridState.movingUnitsTranslations.IsCreated)
@@ -320,6 +406,10 @@ public class MoveFollowTargetSystem : JobComponentSystem
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
             m_PrevGridState.followTargetGridPositionsHashMap.Dispose();
+        if (m_PrevGridState.audiblesArray.IsCreated)
+            m_PrevGridState.audiblesArray.Dispose();
+        if (m_PrevGridState.audiblesHashMap.IsCreated)
+            m_PrevGridState.audiblesHashMap.Dispose();
         if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
             m_PrevGridState.turnsUntilMoveArray.Dispose();
     }

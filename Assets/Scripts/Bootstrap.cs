@@ -14,6 +14,8 @@ public sealed class Bootstrap
     public static EntityArchetype HumanArchetype;
     public static EntityArchetype ZombieArchetype;
 
+    public static EntityArchetype AudibleArchetype;
+
     public static RenderMesh BuildingTileMeshInstanceRenderer;
     public static RenderMesh RoadTileMeshInstanceRenderer;
     public static RenderMesh HumanMeshInstanceRenderer;
@@ -71,10 +73,15 @@ public sealed class Bootstrap
             typeof(GridPosition),
             typeof(NextGridPosition),
             typeof(DynamicCollidable),
-            typeof(MoveFollowTarget),
+            typeof(MoveTowardsTarget),
             typeof(Health),
             typeof(Damage),
             typeof(TurnsUntilMove)
+        );
+
+        AudibleArchetype = _entityManager.CreateArchetype(
+            typeof(GridPosition),
+            typeof(Audible)
         );
     }
 

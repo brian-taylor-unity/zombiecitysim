@@ -18,6 +18,7 @@ public class GameController : MonoBehaviour
     public int zombieStartingHealth = 70;
     public int zombieDamage = 20;
     public int zombieVisionDistance = 6;
+    public int zombieHearingDistance = 10;
     public int zombieTurnDelay = 3;
 
     public float turnDelayTime = 0.025f;
