@@ -53,7 +53,7 @@ public class GameController : MonoBehaviour
 
         numTilesXInputField.text = numTilesX.ToString();
         numTilesYInputField.text = numTilesY.ToString();
-        streetsInputField.text = numTilesY.ToString();
+        streetsInputField.text = numStreets.ToString();
 
         humanTurnDelayInputField.text = humanTurnDelay.ToString();
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
