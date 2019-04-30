@@ -4968,13 +4968,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stickMinZoom: -400
-  stickMaxZoom: -30
-  swivelMinZoom: 85
-  swivelMaxZoom: 30
-  rotationSpeed: 180
+  stickMaxZoom: -5
+  zoomSpeed: 4
+  orbitSpeed: 4
   moveSpeedMinZoom: 220
   moveSpeedMaxZoom: 40
   fastMoveSpeedFactor: 2.5
+  mouseLookSpeed: 3
+  mouseLookMaxPitch: 90
+  mouseLookMinPitch: 5
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
