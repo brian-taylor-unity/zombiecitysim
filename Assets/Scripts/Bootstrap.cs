@@ -18,7 +18,12 @@ public sealed class Bootstrap
 
     public static RenderMesh BuildingTileMeshInstanceRenderer;
     public static RenderMesh RoadTileMeshInstanceRenderer;
-    public static RenderMesh HumanMeshInstanceRenderer;
+    
+    public static RenderMesh HumanMeshInstanceRenderer_Health_Full;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_75;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_50;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_25;
+
     public static RenderMesh ZombieMeshInstanceRenderer;
 
     private static EntityManager _entityManager;
@@ -90,7 +95,12 @@ public sealed class Bootstrap
     {
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
-        HumanMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype");
+
+        HumanMeshInstanceRenderer_Health_Full = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_Full");
+        HumanMeshInstanceRenderer_Health_75 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_75");
+        HumanMeshInstanceRenderer_Health_50 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_50");
+        HumanMeshInstanceRenderer_Health_25 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_25");
+
         ZombieMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype");
 
         int numTilesX = GameController.instance.numTilesX;
@@ -256,7 +266,7 @@ public sealed class Bootstrap
         _entityManager.SetComponentData(entity, new Health { Value = health });
         _entityManager.SetComponentData(entity, new Damage { Value = damage });
         _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
-        _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer);
+        _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer_Health_Full);
         _unitEntities.Add(entity);
 
         _tilePassable[y, x] = false;
