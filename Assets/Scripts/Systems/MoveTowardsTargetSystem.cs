@@ -5,7 +5,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(MoveRandomlySystem))]
+[UpdateAfter(typeof(CreateAudiblesSystem))]
 public class MoveTowardsTargetSystem : JobComponentSystem
 {
     private EntityQuery m_StaticCollidableGroup;
