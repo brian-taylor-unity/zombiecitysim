@@ -17,7 +17,7 @@ public class CameraController : MonoBehaviour
     private Transform stick;
     
     private float zoom = 1f;
-    private float zoomTarget = 1f;
+    private float zoomTarget = 0.4f;
     private readonly float zoomAnimLength = 1.5f;
     private float zoomAnimTimer = 0;
     private float orbitAngle = 0;
@@ -28,6 +28,8 @@ public class CameraController : MonoBehaviour
     {
         swivel = transform.GetChild(0);
         stick = swivel.GetChild(0);
+
+        transform.localPosition = new Vector3(GameController.instance.numTilesX * 0.5f, 0f, GameController.instance.numTilesY * 0.2f);
 
         orbitAngle = transform.eulerAngles.y;
         pitchAngle = swivel.eulerAngles.x;
