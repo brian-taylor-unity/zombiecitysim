@@ -18,8 +18,16 @@ public sealed class Bootstrap
 
     public static RenderMesh BuildingTileMeshInstanceRenderer;
     public static RenderMesh RoadTileMeshInstanceRenderer;
-    public static RenderMesh HumanMeshInstanceRenderer;
-    public static RenderMesh ZombieMeshInstanceRenderer;
+    
+    public static RenderMesh HumanMeshInstanceRenderer_Health_Full;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_75;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_50;
+    public static RenderMesh HumanMeshInstanceRenderer_Health_25;
+
+    public static RenderMesh ZombieMeshInstanceRenderer_Health_Full;
+    public static RenderMesh ZombieMeshInstanceRenderer_Health_75;
+    public static RenderMesh ZombieMeshInstanceRenderer_Health_50;
+    public static RenderMesh ZombieMeshInstanceRenderer_Health_25;
 
     private static EntityManager _entityManager;
     private static List<Entity> _cityEntities;
@@ -63,6 +71,7 @@ public sealed class Bootstrap
             typeof(FollowTarget),
             typeof(MoveRandomly),
             typeof(Health),
+            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilMove)
         );
@@ -77,6 +86,7 @@ public sealed class Bootstrap
             typeof(DynamicCollidable),
             typeof(MoveTowardsTarget),
             typeof(Health),
+            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilMove)
         );
@@ -92,8 +102,16 @@ public sealed class Bootstrap
     {
         BuildingTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("BuildingTileRenderPrototype");
         RoadTileMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("RoadTileRenderPrototype");
-        HumanMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype");
-        ZombieMeshInstanceRenderer = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype");
+
+        HumanMeshInstanceRenderer_Health_Full = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_Full");
+        HumanMeshInstanceRenderer_Health_75 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_75");
+        HumanMeshInstanceRenderer_Health_50 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_50");
+        HumanMeshInstanceRenderer_Health_25 = GetMeshInstanceRendererFromPrototype("HumanRenderPrototype_Health_25");
+
+        ZombieMeshInstanceRenderer_Health_Full = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype_Health_Full");
+        ZombieMeshInstanceRenderer_Health_75 = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype_Health_75");
+        ZombieMeshInstanceRenderer_Health_50 = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype_Health_50");
+        ZombieMeshInstanceRenderer_Health_25 = GetMeshInstanceRendererFromPrototype("ZombieRenderPrototype_Health_25");
 
         int numTilesX = GameController.instance.numTilesX;
         int numTilesY = GameController.instance.numTilesY;
@@ -256,9 +274,10 @@ public sealed class Bootstrap
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = health });
+        _entityManager.SetComponentData(entity, new HealthRange { Value = 100 });
         _entityManager.SetComponentData(entity, new Damage { Value = damage });
         _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
-        _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer);
+        _entityManager.AddSharedComponentData(entity, HumanMeshInstanceRenderer_Health_Full);
         _unitEntities.Add(entity);
 
         _tilePassable[y, x] = false;
@@ -273,9 +292,10 @@ public sealed class Bootstrap
         _entityManager.SetComponentData(entity, new GridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new NextGridPosition { Value = new int3(x, 1, y) });
         _entityManager.SetComponentData(entity, new Health { Value = health });
+        _entityManager.SetComponentData(entity, new HealthRange { Value = 100 });
         _entityManager.SetComponentData(entity, new Damage { Value = damage });
         _entityManager.SetComponentData(entity, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
-        _entityManager.AddSharedComponentData(entity, ZombieMeshInstanceRenderer);
+        _entityManager.AddSharedComponentData(entity, ZombieMeshInstanceRenderer_Health_Full);
         _unitEntities.Add(entity);
 
         _tilePassable[y, x] = false;
