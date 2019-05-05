@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-[UpdateAfter(typeof(MoveTowardsTargetSystem))]
+[UpdateAfter(typeof(ResolveGridMovementSystem))]
 public class DamageSystem : JobComponentSystem
 {
     private EntityQuery m_ZombieGroup;
@@ -37,14 +37,17 @@ public class DamageSystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct DamageJob : IJobForEachWithEntity<Health>
+    struct DamageJob : IJobForEachWithEntity<Health, HealthRange>
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
         [ReadOnly] public NativeArray<Damage> damagingUnitsDamageArray;
         [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
         [ReadOnly] public NativeMultiHashMap<int, int> damagingUnitsHashMap;
+        public int health_75;
+        public int health_50;
+        public int health_25;
 
-        public void Execute(Entity entity, int index, ref Health health)
+        public void Execute(Entity entity, int index, ref Health health, ref HealthRange healthRange)
         {
             int3 myGridPosition = gridPositions[index].Value;
             int myHealth = health.Value;
@@ -65,6 +68,13 @@ public class DamageSystem : JobComponentSystem
                     }
                 }
             }
+
+            if (health.Value >= health_75 && myHealth < health_75)
+                healthRange = new HealthRange { Value = 75 };
+            if (health.Value >= health_50 && myHealth < health_50)
+                healthRange = new HealthRange { Value = 50 };
+            if (health.Value >= health_25 && myHealth < health_25)
+                healthRange = new HealthRange { Value = 25 };
 
             health = new Health { Value = myHealth };
         }
@@ -135,6 +145,9 @@ public class DamageSystem : JobComponentSystem
             damagingUnitsDamageArray = humanDamageArray,
             turnsUntilMoveArray = humanTurnsUntilMoveArray,
             damagingUnitsHashMap = humanGridPositionsHashMap,
+            health_75 = (int)(GameController.instance.zombieStartingHealth * 0.75),
+            health_50 = (int)(GameController.instance.zombieStartingHealth * 0.50),
+            health_25 = (int)(GameController.instance.zombieStartingHealth * 0.25),
         };
         var damageZombiesJobHandle = damageZombiesJob.Schedule(m_ZombieGroup, hashGridPositionsBarrier);
 
@@ -144,6 +157,9 @@ public class DamageSystem : JobComponentSystem
             damagingUnitsDamageArray = zombieDamageArray,
             turnsUntilMoveArray = zombieTurnsUntilMoveArray,
             damagingUnitsHashMap = zombieGridPositionsHashMap,
+            health_75 = (int)(GameController.instance.humanStartingHealth * 0.75),
+            health_50 = (int)(GameController.instance.humanStartingHealth * 0.50),
+            health_25 = (int)(GameController.instance.humanStartingHealth * 0.25),
         };
         var damageHumansJobHandle = damageHumansJob.Schedule(m_HumanGroup, damageZombiesJobHandle);
 
@@ -157,14 +173,16 @@ public class DamageSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
-            typeof(Health)
+            typeof(Health),
+            typeof(HealthRange)
         );
         m_HumanGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             ComponentType.ReadOnly(typeof(Damage)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
-            typeof(Health)
+            typeof(Health),
+            typeof(HealthRange)
         );
     }
 
