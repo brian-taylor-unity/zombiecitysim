@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.unity.burst": "1.0.0",
+    "com.unity.burst": "1.0.2",
     "com.unity.collab-proxy": "1.2.16",
     "com.unity.entities": "0.0.12-preview.31",
     "com.unity.jobs": "0.0.7-preview.11",
