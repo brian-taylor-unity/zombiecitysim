@@ -1,6 +1,7 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 
+[UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(DamageSystem))]
 public class SpawnZombiesFromDeadHumansSystem : ComponentSystem
 {
