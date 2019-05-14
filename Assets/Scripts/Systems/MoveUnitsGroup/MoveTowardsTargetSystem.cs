@@ -5,23 +5,17 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(CreateAudiblesSystem))]
+[UpdateInGroup(typeof(MoveUnitsGroup))]
 public class MoveTowardsTargetSystem : JobComponentSystem
 {
-    private EntityQuery m_StaticCollidableGroup;
-    private EntityQuery m_DynamicCollidableGroup;
     private EntityQuery m_MoveTowardsTargetGroup;
     private EntityQuery m_FollowTargetGroup;
     private EntityQuery m_AudibleGroup;
 
-    private NativeMultiHashMap<int, int> m_StaticCollidableHashMap;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
-        public NativeArray<GridPosition> dynamicCollidableGridPositions;
-        public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
-        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
         public NativeArray<GridPosition> movingUnitsGridPositions;
         public NativeArray<Translation> movingUnitsTranslations;
         public NativeArray<NextGridPosition> nextGridPositions;
@@ -63,7 +57,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     struct MoveTowardsTargetJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeArray<MoveTowardsTarget> moveTowardsTargetArray;
         public NativeArray<NextGridPosition> nextGridPositions;
         [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
@@ -81,15 +74,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 return;
 
             bool moved = false;
-
-            int myTurnsSinceMove = moveTowardsTargetArray[index].TurnsSinceMove;
-            if (myTurnsSinceMove > 100 || myTurnsSinceMove % 5 != 0 && myTurnsSinceMove > 5)
-            {
-                nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
-                moveTowardsTargetArray[index] = new MoveTowardsTarget { TurnsSinceMove = myTurnsSinceMove + 1 };
-
-                return;
-            }
 
             // Get nearest visible target
             // Check all grid positions that are checkDist away in the x or y direction
@@ -211,22 +195,11 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         }
     }
 
-    [BurstCompile]
-    struct DisposeJob : IJob
-    {
-        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray;
-        public void Execute()
-        {
-        }
-    }
-
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
-        var dynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.TempJob);
+        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
+        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
-        var moveTowardsTargetArray = m_MoveTowardsTargetGroup.ToComponentDataArray<MoveTowardsTarget>(Allocator.TempJob);
         var movingUnitsGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var movingUnitsTranslations = m_MoveTowardsTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
@@ -244,9 +217,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         var nextGridState = new PrevGridState
         {
-            dynamicCollidableGridPositions = dynamicCollidableGridPositions,
-            dynamicCollidableHashMap = dynamicCollidableHashMap,
-            moveTowardsTargetArray = moveTowardsTargetArray,
             movingUnitsGridPositions = movingUnitsGridPositions,
             movingUnitsTranslations = movingUnitsTranslations,
             nextGridPositions = nextGridPositions,
@@ -258,36 +228,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             turnsUntilMoveArray = turnsUntilMoveArray,
         };
 
-        JobHandle hashStaticCollidablePositionsJobHandle = inputDeps;
-        if (m_StaticCollidableGroup.CalculateLength() != 0)
-        {
-            if (m_StaticCollidableHashMap.IsCreated)
-                m_StaticCollidableHashMap.Dispose();
-
-            var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-            var staticCollidableCount = staticCollidableGridPositions.Length;
-            m_StaticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
-
-            var hashStaticCollidablePositionsJob = new HashGridPositionsJob
-            {
-                gridPositions = staticCollidableGridPositions,
-                hashMap = m_StaticCollidableHashMap.ToConcurrent(),
-            };
-            hashStaticCollidablePositionsJobHandle = hashStaticCollidablePositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
-
-            var disposeJob = new DisposeJob
-            {
-                nativeArray = staticCollidableGridPositions
-            };
-            hashStaticCollidablePositionsJobHandle = disposeJob.Schedule(hashStaticCollidablePositionsJobHandle);
-        }
-
-        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
-            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
-        if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
-            m_PrevGridState.dynamicCollidableHashMap.Dispose();
-        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
-            m_PrevGridState.moveTowardsTargetArray.Dispose();
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
         if (m_PrevGridState.movingUnitsTranslations.IsCreated)
@@ -308,13 +248,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             m_PrevGridState.turnsUntilMoveArray.Dispose();
         m_PrevGridState = nextGridState;
 
-        var hashDynamicCollidableGridPositionsJob = new HashGridPositionsJob
-        {
-            gridPositions = dynamicCollidableGridPositions,
-            hashMap = dynamicCollidableHashMap.ToConcurrent(),
-        };
-        var hashDynamicCollidableGridPositionsJobHandle = hashDynamicCollidableGridPositionsJob.Schedule(dynamicCollidableCount, 64, inputDeps);
-
         var hashFollowTargetGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = followTargetGridPositions,
@@ -329,16 +262,14 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         };
         var hashAudibleGridPositionsJobHandle = hashAudibleGridPositionsJob.Schedule(audiblesCount, 64, inputDeps);
 
-        var movementBarrierHandle = JobHandle.CombineDependencies(hashStaticCollidablePositionsJobHandle, hashDynamicCollidableGridPositionsJobHandle, hashFollowTargetGridPositionsJobHandle);
-        movementBarrierHandle = JobHandle.CombineDependencies(movementBarrierHandle, hashAudibleGridPositionsJobHandle);
+        var movementBarrierHandle = JobHandle.CombineDependencies(hashFollowTargetGridPositionsJobHandle, hashAudibleGridPositionsJobHandle);
 
         var moveTowardsTargetJob = new MoveTowardsTargetJob
         {
             gridPositions = movingUnitsGridPositions,
             turnsUntilMoveArray = turnsUntilMoveArray,
             nextGridPositions = nextGridPositions,
-            moveTowardsTargetArray = moveTowardsTargetArray,
-            staticCollidableHashMap = m_StaticCollidableHashMap,
+            staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             targetGridPositionsHashMap = followTargetGridPositionsHashMap,
             audiblesArray = audiblesArray,
@@ -356,17 +287,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
     protected override void OnCreate()
     {
-        m_StaticCollidableGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(StaticCollidable)),
-            ComponentType.ReadOnly(typeof(GridPosition))
-        );
-        m_StaticCollidableGroup.SetFilterChanged(typeof(StaticCollidable));
-
-        m_DynamicCollidableGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(DynamicCollidable)),
-            ComponentType.ReadOnly(typeof(GridPosition))
-        );
-
         m_MoveTowardsTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
@@ -386,14 +306,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
     protected override void OnStopRunning()
     {
-        if (m_StaticCollidableHashMap.IsCreated)
-            m_StaticCollidableHashMap.Dispose();
-        if (m_PrevGridState.dynamicCollidableGridPositions.IsCreated)
-            m_PrevGridState.dynamicCollidableGridPositions.Dispose();
-        if (m_PrevGridState.dynamicCollidableHashMap.IsCreated)
-            m_PrevGridState.dynamicCollidableHashMap.Dispose();
-        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
-            m_PrevGridState.moveTowardsTargetArray.Dispose();
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
         if (m_PrevGridState.movingUnitsTranslations.IsCreated)
