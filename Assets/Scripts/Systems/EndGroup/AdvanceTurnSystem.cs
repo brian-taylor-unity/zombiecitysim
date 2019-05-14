@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-[UpdateAfter(typeof(RemoveDeadUnitsSystem))]
+[UpdateInGroup(typeof(EndGroup))]
 public class AdvanceTurnSystem : JobComponentSystem
 {
     private EntityQuery m_Humans;
