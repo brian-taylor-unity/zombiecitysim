@@ -3,6 +3,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 
+[UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
 public class RemoveDeadUnitsSystem : JobComponentSystem
 {

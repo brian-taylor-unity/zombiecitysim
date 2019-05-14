@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-[UpdateAfter(typeof(ResolveGridMovementSystem))]
+[UpdateInGroup(typeof(DamageGroup))]
 public class DamageSystem : JobComponentSystem
 {
     private EntityQuery m_ZombieGroup;

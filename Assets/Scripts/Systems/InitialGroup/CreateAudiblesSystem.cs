@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Collections;
 using Unity.Mathematics;
 
-[UpdateBefore(typeof(MoveTowardsTargetSystem))]
+[UpdateInGroup(typeof(InitialGroup))]
 public class CreateAudiblesSystem : JobComponentSystem
 {
     EntityCommandBufferSystem m_EntityCommandBufferSystem;

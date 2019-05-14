@@ -7,7 +7,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;
 
-[UpdateAfter(typeof(ResolveGridMovementSystem))]
+[UpdateInGroup(typeof(EndGroup))]
 public class AnimateMoveSystem : JobComponentSystem
 {
     private EntityQuery m_MovingUnits;
