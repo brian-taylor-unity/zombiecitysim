@@ -2,7 +2,7 @@
 using Unity.Entities;
 using Unity.Rendering;
 
-[UpdateAfter(typeof(DamageSystem))]
+[UpdateInGroup(typeof(EndGroup))]
 public class UpdateRenderMeshSystem : ComponentSystem
 {
     private EntityQuery m_Humans;
