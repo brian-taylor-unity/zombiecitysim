@@ -279,7 +279,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         m_MoveTowardsTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
-            typeof(GridPosition),
+            ComponentType.ReadOnly(typeof(GridPosition)),
             typeof(NextGridPosition)
         );
         m_FollowTargetGroup = GetEntityQuery(
