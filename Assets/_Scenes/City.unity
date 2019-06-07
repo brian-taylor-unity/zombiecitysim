@@ -3047,7 +3047,7 @@ MonoBehaviour:
   numHumans: 15000
   humanStartingHealth: 100
   humanDamage: 0
-  humanVisionDistance: 4
+  humanVisionDistance: 8
   humanTurnDelay: 1
   numZombies: 5
   zombieStartingHealth: 70

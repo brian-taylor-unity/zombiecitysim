@@ -85,10 +85,10 @@ public class MoveEscapeTargetSystem : JobComponentSystem
             bool moved = false;
 
             bool foundTarget = false;
-            int3 nearestTarget = myGridPositionValue;
-            for (int checkDist = 1; checkDist <= viewDistance && !foundTarget; checkDist++)
+            float3 averageTarget = new int3(0, 0, 0);
+            int targetCount = 0;
+            for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
             {
-                float nearestDistance = (checkDist + 1) * (checkDist + 1);
                 for (int z = -checkDist; z <= checkDist; z++)
                 {
                     for (int x = -checkDist; x <= checkDist; x++)
@@ -103,11 +103,9 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                                 // Check if we have line of sight to the target
                                 if (InLineOfSight(myGridPositionValue, targetGridPosition))
                                 {
-                                    var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
-                                    var nearest = distance < nearestDistance;
-
-                                    nearestDistance = math.select(nearestDistance, distance, nearest);
-                                    nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
+                                    averageTarget = averageTarget * targetCount + new float3(x, 0, z);
+                                    targetCount++;
+                                    averageTarget /= targetCount;
 
                                     foundTarget = true;
                                 }
@@ -119,9 +117,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
 
             if (foundTarget)
             {
-                int3 direction = nearestTarget - myGridPositionValue;
-                direction.x *= -1;
-                direction.z *= -1;
+                int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
 
                 // Check if space is already occupied
                 int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
