@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 public class MoveTowardsTargetSystem : JobComponentSystem
@@ -17,9 +16,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     struct PrevGridState
     {
         public NativeArray<GridPosition> movingUnitsGridPositions;
-        public NativeArray<Translation> movingUnitsTranslations;
         public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeMultiHashMap<int, int> nextGridPositionsHashMap;
         public NativeArray<GridPosition> followTargetGridPositions;
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
         public NativeArray<Audible> audiblesArray;
@@ -201,10 +198,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
         var movingUnitsGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var movingUnitsTranslations = m_MoveTowardsTargetGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
         var nextGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-        var nextGridPositionsHashMap = new NativeMultiHashMap<int, int>(movingUnitsCount, Allocator.TempJob);
         var turnsUntilMoveArray = m_MoveTowardsTargetGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
 
         var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
@@ -218,9 +213,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var nextGridState = new PrevGridState
         {
             movingUnitsGridPositions = movingUnitsGridPositions,
-            movingUnitsTranslations = movingUnitsTranslations,
             nextGridPositions = nextGridPositions,
-            nextGridPositionsHashMap = nextGridPositionsHashMap,
             followTargetGridPositions = followTargetGridPositions,
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
             audiblesArray = audiblesArray,
@@ -230,12 +223,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
-        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
-            m_PrevGridState.movingUnitsTranslations.Dispose();
         if (m_PrevGridState.nextGridPositions.IsCreated)
             m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
-            m_PrevGridState.nextGridPositionsHashMap.Dispose();
         if (m_PrevGridState.followTargetGridPositions.IsCreated)
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
@@ -291,8 +280,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             ComponentType.ReadOnly(typeof(TurnsUntilMove)),
             typeof(GridPosition),
-            typeof(NextGridPosition),
-            typeof(Translation)
+            typeof(NextGridPosition)
         );
         m_FollowTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(FollowTarget)),
@@ -308,12 +296,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
             m_PrevGridState.movingUnitsGridPositions.Dispose();
-        if (m_PrevGridState.movingUnitsTranslations.IsCreated)
-            m_PrevGridState.movingUnitsTranslations.Dispose();
         if (m_PrevGridState.nextGridPositions.IsCreated)
             m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.nextGridPositionsHashMap.IsCreated)
-            m_PrevGridState.nextGridPositionsHashMap.Dispose();
         if (m_PrevGridState.followTargetGridPositions.IsCreated)
             m_PrevGridState.followTargetGridPositions.Dispose();
         if (m_PrevGridState.followTargetGridPositionsHashMap.IsCreated)
