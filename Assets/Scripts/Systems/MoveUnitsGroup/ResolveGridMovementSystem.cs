@@ -21,7 +21,7 @@ public class ResolveGridMovementSystem : JobComponentSystem
     struct HashNextGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -83,7 +83,7 @@ public class ResolveGridMovementSystem : JobComponentSystem
         var hashNextGridPositionsJob = new HashNextGridPositionsJob
         {
             nextGridPositions = nextGridPositionArray,
-            hashMap = nextGridPositionHashMap.ToConcurrent(),
+            hashMap = nextGridPositionHashMap.AsParallelWriter(),
         };
         var hashNextGridPositionsJobHandle = hashNextGridPositionsJob.Schedule(nextGridPositionCount, 64, inputDeps);
 

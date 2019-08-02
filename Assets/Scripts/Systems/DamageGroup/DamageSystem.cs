@@ -27,7 +27,7 @@ public class DamageSystem : JobComponentSystem
     struct HashGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -126,14 +126,14 @@ public class DamageSystem : JobComponentSystem
         var hashZombieGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = zombieGridPositionsArray,
-            hashMap = zombieGridPositionsHashMap.ToConcurrent(),
+            hashMap = zombieGridPositionsHashMap.AsParallelWriter(),
         };
         var hashZombieGridPositionsJobHandle = hashZombieGridPositionsJob.Schedule(zombieCount, 64, inputDeps);
 
         var hashHumanGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = humanGridPositionsArray,
-            hashMap = humanGridPositionsHashMap.ToConcurrent(),
+            hashMap = humanGridPositionsHashMap.AsParallelWriter(),
         };
         var hashHumanGridPositionsJobHandle = hashHumanGridPositionsJob.Schedule(humanCount, 64, inputDeps);
 
