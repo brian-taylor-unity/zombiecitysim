@@ -9,13 +9,13 @@ public class CreateAudiblesSystem : JobComponentSystem
 {
     EntityCommandBufferSystem m_EntityCommandBufferSystem;
 
-    private EntityQuery m_FollowTargetGroup;
+    private EntityQuery m_MoveTowardsTargetGroup;
     private PrevGridState m_PrevGridState;
 
     struct PrevGridState
     {
-        public NativeArray<GridPosition> followTargetArray;
-        public NativeMultiHashMap<int, int> followTargetHashMap;
+        public NativeArray<GridPosition> moveTowardsTargetArray;
+        public NativeMultiHashMap<int, int> moveTowardsTargetHashMap;
     }
 
     [BurstCompile]
@@ -31,16 +31,16 @@ public class CreateAudiblesSystem : JobComponentSystem
         }
     }
 
-    struct CreateAudiblesFromTargetsJob : IJobForEachWithEntity<MoveTowardsTarget, GridPosition>
+    struct CreateAudiblesFromTargetsJob : IJobForEachWithEntity<FollowTarget, GridPosition>
     {
-        [ReadOnly] public NativeMultiHashMap<int, int> targetHashMap;
+        [ReadOnly] public NativeMultiHashMap<int, int> audibleGeneratorHashMap;
         public int detectDistance;
         public EntityCommandBuffer.Concurrent Commands;
         public EntityArchetype archetype;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref MoveTowardsTarget moveTowardsTarget, [ReadOnly] ref GridPosition gridPosition)
+        public void Execute(Entity entity, int index, [ReadOnly] ref FollowTarget followTarget, [ReadOnly] ref GridPosition gridPosition)
         {
-            var myGridPositionValue = gridPosition.Value;
+            var targetGridPositionValue = gridPosition.Value;
 
             for (int checkDist = 1; checkDist < detectDistance; checkDist++)
             {
@@ -50,13 +50,14 @@ public class CreateAudiblesSystem : JobComponentSystem
                     {
                         if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                         {
-                            int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                            int3 sourceGridPositionValue = new int3(targetGridPositionValue.x + x, targetGridPositionValue.y, targetGridPositionValue.z + z);
 
-                            int targetKey = GridHash.Hash(targetGridPosition);
-                            if (targetHashMap.TryGetFirstValue(targetKey, out _, out _))
+                            int sourceKey = GridHash.Hash(sourceGridPositionValue);
+                            if (audibleGeneratorHashMap.TryGetFirstValue(sourceKey, out _, out _))
                             {
                                 Entity audibleEntity = Commands.CreateEntity(index, archetype);
-                                Commands.SetComponent(index, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = targetGridPosition, Age = 0 });
+                                Commands.SetComponent(index, audibleEntity, new Audible { GridPositionValue = sourceGridPositionValue, Target = targetGridPositionValue, Age = 0 });
+                                return;
                             }
                         }
                     }
@@ -70,37 +71,38 @@ public class CreateAudiblesSystem : JobComponentSystem
     {
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
 
-        var followTargetArray = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var followTargetCount = followTargetArray.Length;
-        var followTargetHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
+        var moveTowardsTargetArray = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
+        var moveTowardsTargetCount = moveTowardsTargetArray.Length;
+        var moveTowardsTargetHashMap = new NativeMultiHashMap<int, int>(moveTowardsTargetCount, Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
-            followTargetArray = followTargetArray,
-            followTargetHashMap = followTargetHashMap,
+            moveTowardsTargetArray = moveTowardsTargetArray,
+            moveTowardsTargetHashMap = moveTowardsTargetHashMap,
         };
-        if (m_PrevGridState.followTargetArray.IsCreated)
-            m_PrevGridState.followTargetArray.Dispose();
-        if (m_PrevGridState.followTargetHashMap.IsCreated)
-            m_PrevGridState.followTargetHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
+        if (m_PrevGridState.moveTowardsTargetHashMap.IsCreated)
+            m_PrevGridState.moveTowardsTargetHashMap.Dispose();
         
         m_PrevGridState = nextGridState;
 
         var hashTargetGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = followTargetArray,
-            hashMap = followTargetHashMap.AsParallelWriter(),
+            gridPositions = moveTowardsTargetArray,
+            hashMap = moveTowardsTargetHashMap.AsParallelWriter(),
         };
-        var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
+        var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(moveTowardsTargetCount, 64, inputDeps);
 
         var createAudiblesFromTargetsJob = new CreateAudiblesFromTargetsJob
         {
-            targetHashMap = followTargetHashMap,
+            audibleGeneratorHashMap = moveTowardsTargetHashMap,
             detectDistance = GameController.instance.zombieVisionDistance,
             Commands = Commands,
             archetype = Bootstrap.AudibleArchetype,
         };
-        var createAudiblesFromTargetsJobHandle = createAudiblesFromTargetsJob.Schedule(this, hashTargetGridPositionsJobHandle);
+        var createAudiblesFromTargetsJobHandle = createAudiblesFromTargetsJob.ScheduleSingle(this, hashTargetGridPositionsJobHandle);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(createAudiblesFromTargetsJobHandle);
 
         return createAudiblesFromTargetsJobHandle;
     }
@@ -109,17 +111,17 @@ public class CreateAudiblesSystem : JobComponentSystem
     {
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<EntityCommandBufferSystem>();
 
-        m_FollowTargetGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(FollowTarget)),
+        m_MoveTowardsTargetGroup = GetEntityQuery(
+            ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
     }
 
     protected override void OnStopRunning()
     {
-        if (m_PrevGridState.followTargetArray.IsCreated)
-            m_PrevGridState.followTargetArray.Dispose();
-        if (m_PrevGridState.followTargetHashMap.IsCreated)
-            m_PrevGridState.followTargetHashMap.Dispose();
+        if (m_PrevGridState.moveTowardsTargetArray.IsCreated)
+            m_PrevGridState.moveTowardsTargetArray.Dispose();
+        if (m_PrevGridState.moveTowardsTargetHashMap.IsCreated)
+            m_PrevGridState.moveTowardsTargetHashMap.Dispose();
     }
 }
