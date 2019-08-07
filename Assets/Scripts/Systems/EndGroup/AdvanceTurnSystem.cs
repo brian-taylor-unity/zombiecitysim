@@ -69,7 +69,7 @@ public class AdvanceTurnSystem : JobComponentSystem
         return outputDeps;
     }
 
-    protected override void OnCreateManager()
+    protected override void OnCreate()
     {
         m_Humans = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),

@@ -18,7 +18,7 @@ public class HashCollidablesSystem : JobComponentSystem
     struct HashGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -39,7 +39,7 @@ public class HashCollidablesSystem : JobComponentSystem
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         m_StaticCollidableJobHandle = inputDeps;
-        if (m_StaticCollidableGroup.CalculateLength() != 0)
+        if (m_StaticCollidableGroup.CalculateEntityCount() != 0)
         {
             if (m_StaticCollidableHashMap.IsCreated)
                 m_StaticCollidableHashMap.Dispose();
@@ -51,7 +51,7 @@ public class HashCollidablesSystem : JobComponentSystem
             var hashStaticCollidableGridPositionsJob = new HashGridPositionsJob
             {
                 gridPositions = staticCollidableGridPositions,
-                hashMap = m_StaticCollidableHashMap.ToConcurrent(),
+                hashMap = m_StaticCollidableHashMap.AsParallelWriter(),
             };
             m_StaticCollidableJobHandle = hashStaticCollidableGridPositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
 
@@ -63,7 +63,7 @@ public class HashCollidablesSystem : JobComponentSystem
         }
 
         m_DynamicCollidableJobHandle = inputDeps;
-        if (m_DynamicCollidableGroup.CalculateLength() != 0)
+        if (m_DynamicCollidableGroup.CalculateEntityCount() != 0)
         {
             if (m_DynamicCollidableHashMap.IsCreated)
                 m_DynamicCollidableHashMap.Dispose();
@@ -75,7 +75,7 @@ public class HashCollidablesSystem : JobComponentSystem
             var hashDynamicCollidablePositionsJob = new HashGridPositionsJob
             {
                 gridPositions = dynamicCollidableGridPositions,
-                hashMap = m_DynamicCollidableHashMap.ToConcurrent(),
+                hashMap = m_DynamicCollidableHashMap.AsParallelWriter(),
             };
             m_DynamicCollidableJobHandle = hashDynamicCollidablePositionsJob.Schedule(dynamicCollidableCount, 64, inputDeps);
 
