@@ -22,7 +22,7 @@ public class CreateAudiblesSystem : JobComponentSystem
     struct HashGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -56,7 +56,6 @@ public class CreateAudiblesSystem : JobComponentSystem
                             if (targetHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 Entity audibleEntity = Commands.CreateEntity(index, archetype);
-                                Commands.SetComponent(index, audibleEntity, new GridPosition { Value = myGridPositionValue });
                                 Commands.SetComponent(index, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = targetGridPosition, Age = 0 });
                             }
                         }
@@ -90,7 +89,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         var hashTargetGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = followTargetArray,
-            hashMap = followTargetHashMap.ToConcurrent(),
+            hashMap = followTargetHashMap.AsParallelWriter(),
         };
         var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
 

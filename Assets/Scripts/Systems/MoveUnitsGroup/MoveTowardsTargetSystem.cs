@@ -28,7 +28,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     struct HashGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -41,7 +41,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     struct HashAudiblesJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<Audible> audiblesArray;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -240,14 +240,14 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var hashFollowTargetGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = followTargetGridPositions,
-            hashMap = followTargetGridPositionsHashMap.ToConcurrent(),
+            hashMap = followTargetGridPositionsHashMap.AsParallelWriter(),
         };
         var hashFollowTargetGridPositionsJobHandle = hashFollowTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
 
         var hashAudibleGridPositionsJob = new HashAudiblesJob
         {
             audiblesArray = audiblesArray,
-            hashMap = audiblesHashMap.ToConcurrent(),
+            hashMap = audiblesHashMap.AsParallelWriter(),
         };
         var hashAudibleGridPositionsJobHandle = hashAudibleGridPositionsJob.Schedule(audiblesCount, 64, inputDeps);
 

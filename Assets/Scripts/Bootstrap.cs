@@ -92,7 +92,6 @@ public sealed class Bootstrap
         );
 
         AudibleArchetype = _entityManager.CreateArchetype(
-            typeof(GridPosition),
             typeof(Audible)
         );
     }
