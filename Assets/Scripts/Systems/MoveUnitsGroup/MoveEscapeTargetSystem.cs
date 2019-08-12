@@ -25,7 +25,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
     struct HashGridPositionsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.Concurrent hashMap;
+        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
         public void Execute(int index)
         {
@@ -209,7 +209,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
         var hashMoveEscapeTargetGridPositionsJob = new HashGridPositionsJob
         {
             gridPositions = moveEscapeGridPositions,
-            hashMap = moveEscapeTargetHashMap.ToConcurrent(),
+            hashMap = moveEscapeTargetHashMap.AsParallelWriter(),
         };
         var hashMoveEscapeTargetGridPositionsJobHandle = hashMoveEscapeTargetGridPositionsJob.Schedule(moveEscapeCount, 64, inputDeps);
 
