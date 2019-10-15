@@ -1,6 +1,6 @@
-﻿using Unity.Entities;
+﻿//using Unity.Entities;
 
-[UpdateBefore(typeof(MoveUnitsGroup))]
-public class InitialGroup : ComponentSystemGroup
-{
-}
+//[UpdateBefore(typeof(MoveUnitsGroup))]
+//public class InitialGroup : ComponentSystemGroup
+//{
+//}
