@@ -549,6 +549,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BuildingTile_Prefab: {fileID: 7201262117079363913, guid: 901f0780b0cb6594096e968691ec1028,
     type: 3}
+  RoadTile_Prefab: {fileID: 7201262117079363913, guid: 402acb1c56e8185408bcd619ce295e76,
+    type: 3}
 --- !u!114 &108365665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3034,6 +3036,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 944363108}
+  - component: {fileID: 944363107}
   m_Layer: 0
   m_Name: Game Controller
   m_TagString: GameController
@@ -3041,6 +3044,43 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &944363107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 944363106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  numTilesX: 130
+  numTilesY: 130
+  numStreets: 30
+  numHumans: 1000
+  humanStartingHealth: 100
+  humanDamage: 0
+  humanTurnDelay: 1
+  numZombies: 1
+  zombieStartingHealth: 70
+  zombieDamage: 20
+  zombieVisionDistance: 6
+  zombieHearingDistance: 10
+  zombieTurnDelay: 3
+  turnDelayTime: 0.025
+  numHumansInputField: {fileID: 2136234495}
+  numHumansSlider: {fileID: 513672571}
+  numZombiesInputField: {fileID: 46154448}
+  numZombiesSlider: {fileID: 166200671}
+  numTilesXInputField: {fileID: 1603169377}
+  numTilesYInputField: {fileID: 1543486601}
+  streetsInputField: {fileID: 1065146119}
+  humanTurnDelayInputField: {fileID: 1302815571}
+  zombieTurnDelayInputField: {fileID: 302765849}
+  turnDelayTimeInputField: {fileID: 1640573133}
+  turnDelayTimeSlider: {fileID: 1130717147}
 --- !u!4 &944363108
 Transform:
   m_ObjectHideFlags: 0
