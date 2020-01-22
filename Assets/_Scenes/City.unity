@@ -3058,7 +3058,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numTilesX: 130
   numTilesY: 130
-  numStreets: 30
+  numStreets: 50
   numHumans: 1000
   humanStartingHealth: 100
   humanDamage: 0
