@@ -551,6 +551,10 @@ MonoBehaviour:
     type: 3}
   RoadTile_Prefab: {fileID: 7201262117079363913, guid: 402acb1c56e8185408bcd619ce295e76,
     type: 3}
+  HumanUnit_Prefab: {fileID: 7201262117079363913, guid: 51f3b02f63dc2be488ce8cf052ad6a9d,
+    type: 3}
+  ZombieUnit_Prefab: {fileID: 7201262117079363913, guid: 12c75429bd0915d44bb4c41f3b005dae,
+    type: 3}
 --- !u!114 &108365665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3059,7 +3063,7 @@ MonoBehaviour:
   numTilesX: 130
   numTilesY: 130
   numStreets: 50
-  numHumans: 1000
+  numHumans: 100
   humanStartingHealth: 100
   humanDamage: 0
   humanTurnDelay: 1
