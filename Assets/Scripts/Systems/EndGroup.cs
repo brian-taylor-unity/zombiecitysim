@@ -1,5 +1,5 @@
-﻿//using Unity.Entities;
+﻿using Unity.Entities;
 
-//public class EndGroup : ComponentSystemGroup
-//{
-//}
+public class EndGroup : ComponentSystemGroup
+{
+}

@@ -1,6 +1,6 @@
-﻿//using Unity.Entities;
+﻿using Unity.Entities;
 
-//[UpdateBefore(typeof(EndGroup))]
-//public class DamageGroup : ComponentSystemGroup
-//{
-//}
+[UpdateBefore(typeof(EndGroup))]
+public class DamageGroup : ComponentSystemGroup
+{
+}

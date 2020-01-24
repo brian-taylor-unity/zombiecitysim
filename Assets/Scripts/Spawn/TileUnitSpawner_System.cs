@@ -26,6 +26,10 @@ public class TileUnitSpawner_System : JobComponentSystem
     {
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int3> tileUnitPositions;
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<TileUnitKinds> tileUnitKinds;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitHealth;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitDamage;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitTurnsUntilMove;
+
         public EntityCommandBuffer.Concurrent CommandBuffer;
 
         public void Execute(Entity entity, int index, [ReadOnly] ref TileUnitSpawner_Data tileUnitSpawner)
@@ -49,14 +53,20 @@ public class TileUnitSpawner_System : JobComponentSystem
                         CommandBuffer.SetComponent(index, instance, new Translation { Value = tileUnitPositions[i] });
                         CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(tileUnitPositions[i].x, 1, tileUnitPositions[i].y) });
                         CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(tileUnitPositions[i].x, 1, tileUnitPositions[i].y) });
-                        // CommandBuffer.SetComponent(index, instance, new Health { Value = health });
-                        // CommandBuffer.SetComponent(index, instance, new HealthRange { Value = 100 });
-                        // CommandBuffer.SetComponent(index, instance, new Damage { Value = damage });
-                        // CommandBuffer.SetComponent(index, instance, new TurnsUntilMove { Value = rand.NextInt(turnDelay + 1) });
+                        CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
+                        CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
+                        CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilMove { Value = tileUnitTurnsUntilMove[i % 5] });
                         break;
                     case TileUnitKinds.ZombieUnit:
                         instance = CommandBuffer.Instantiate(index, tileUnitSpawner.ZombieUnit_Prefab);
                         CommandBuffer.SetComponent(index, instance, new Translation { Value = tileUnitPositions[i] });
+                        CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(tileUnitPositions[i].x, 1, tileUnitPositions[i].y) });
+                        CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(tileUnitPositions[i].x, 1, tileUnitPositions[i].y) });
+                        CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
+                        CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
+                        CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilMove { Value = tileUnitTurnsUntilMove[i % 5] });
                         break;
                 }
             }
@@ -69,33 +79,54 @@ public class TileUnitSpawner_System : JobComponentSystem
     {
         var tileUnitPositions = new List<int3>();
         var tileUnitKinds = new List<TileUnitKinds>();
+        var tileUnitHealth = new List<int>();
+        var tileUnitDamage = new List<int>();
+        var tileUnitTurnsUntilMove = new List<int>();
+        for (int i = 0; i < 5; i++)
+            tileUnitTurnsUntilMove.Add(i);
 
         // Road border boundary
         for (int y = 0; y < GameController.instance.numTilesY; y++)
         {
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(0, 0, y));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(0, 1, y));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
 
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(GameController.instance.numTilesX - 1, 0, y));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(GameController.instance.numTilesX - 1, 1, y));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
         }
-        
+
         // Road border boundary
         for (int x = 1; x < GameController.instance.numTilesX - 1; x++)
         {
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(x, 0, 0));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(x, 1, 0));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
 
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(x, 0, GameController.instance.numTilesY - 1));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
             tileUnitKinds.Add(TileUnitKinds.BuildingTile);
             tileUnitPositions.Add(new int3(x, 1, GameController.instance.numTilesY - 1));
+            tileUnitHealth.Add(0);
+            tileUnitDamage.Add(0);
         }
 
         // Streets
@@ -150,6 +181,8 @@ public class TileUnitSpawner_System : JobComponentSystem
                 {
                     tileUnitKinds.Add(TileUnitKinds.BuildingTile);
                     tileUnitPositions.Add(new int3(x, 1, y));
+                    tileUnitHealth.Add(0);
+                    tileUnitDamage.Add(0);
                 }
             }
         }
@@ -157,6 +190,8 @@ public class TileUnitSpawner_System : JobComponentSystem
         // Road Floor Plane
         tileUnitKinds.Add(TileUnitKinds.RoadTile);
         tileUnitPositions.Add(new int3(GameController.instance.numTilesX, 0, GameController.instance.numTilesY));
+        tileUnitHealth.Add(0);
+        tileUnitDamage.Add(0);
 
         // Human Units
         for (var i = 0; i < GameController.instance.numHumans; i++)
@@ -171,6 +206,8 @@ public class TileUnitSpawner_System : JobComponentSystem
             tileExists[yPos, xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.HumanUnit);
             tileUnitPositions.Add(new int3(xPos, 1, yPos));
+            tileUnitHealth.Add(GameController.instance.humanStartingHealth);
+            tileUnitDamage.Add(GameController.instance.humanDamage);
         }
 
         // Zombie Units
@@ -187,16 +224,24 @@ public class TileUnitSpawner_System : JobComponentSystem
             tileExists[yPos, xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.ZombieUnit);
             tileUnitPositions.Add(new int3(xPos, 1, yPos));
+            tileUnitHealth.Add(GameController.instance.zombieStartingHealth);
+            tileUnitDamage.Add(GameController.instance.zombieDamage);
         }
 
         // Spawn Tiles and Units
         var tileUnitPositionsNativeArray = new NativeArray<int3>(tileUnitPositions.ToArray(), Allocator.TempJob);
         var tileKindsNativeArray = new NativeArray<TileUnitKinds>(tileUnitKinds.ToArray(), Allocator.TempJob);
+        var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
+        var tileUnitDamagehNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
+        var tileUnitTurnsUntilMoveNativeArray = new NativeArray<int>(tileUnitTurnsUntilMove.ToArray(), Allocator.TempJob);
 
         var job = new SpawnJob
         {
             tileUnitPositions = tileUnitPositionsNativeArray,
             tileUnitKinds = tileKindsNativeArray,
+            tileUnitHealth = tileUnitHealthNativeArray,
+            tileUnitDamage = tileUnitDamagehNativeArray,
+            tileUnitTurnsUntilMove = tileUnitTurnsUntilMoveNativeArray,
             CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
         }.Schedule(this, inputDeps);
 
