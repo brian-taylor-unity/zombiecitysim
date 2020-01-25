@@ -86,6 +86,8 @@ public class TileUnitSpawner_System : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
+        UnityEngine.Debug.Log("update");
+
         var tileUnitPositions = new List<int3>();
         var tileUnitKinds = new List<TileUnitKinds>();
         var tileUnitHealth = new List<int>();

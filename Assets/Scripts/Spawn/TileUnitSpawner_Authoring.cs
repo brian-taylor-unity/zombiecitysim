@@ -2,6 +2,7 @@
 using Unity.Entities;
 using UnityEngine;
 
+[RequiresEntityConversion]
 public class TileUnitSpawner_Authoring : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity
 {
     public GameObject BuildingTile_Prefab;

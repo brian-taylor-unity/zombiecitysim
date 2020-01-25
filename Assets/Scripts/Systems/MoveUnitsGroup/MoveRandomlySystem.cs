@@ -34,6 +34,7 @@ public class MoveRandomlySystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
     struct MoveRandomlyJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
