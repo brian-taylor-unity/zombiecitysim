@@ -1,11 +1,9 @@
-﻿
-using Unity.Burst;
+﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Transforms;
 using Unity.Mathematics;
-using UnityEngine;
 
 [UpdateInGroup(typeof(EndGroup))]
 public class AnimateMoveSystem : JobComponentSystem

@@ -95,7 +95,7 @@ public class HashCollidablesSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(StaticCollidable)),
             ComponentType.ReadOnly(typeof(GridPosition))
         );
-        m_StaticCollidableGroup.SetFilterChanged(typeof(StaticCollidable));
+        m_StaticCollidableGroup.AddChangedVersionFilter(typeof(StaticCollidable));
 
         m_DynamicCollidableGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(DynamicCollidable)),

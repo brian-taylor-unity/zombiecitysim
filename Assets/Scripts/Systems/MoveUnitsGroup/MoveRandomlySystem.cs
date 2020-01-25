@@ -34,7 +34,6 @@ public class MoveRandomlySystem : JobComponentSystem
         }
     }
 
-    [BurstCompile]
     struct MoveRandomlyJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
@@ -152,7 +151,7 @@ public class MoveRandomlySystem : JobComponentSystem
             nextGridPositions = nextGridPositions,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
-            tick = Time.frameCount,
+            tick = UnityEngine.Time.frameCount,
         };
         var moveRandomlyJobHandle = moveRandomlyJob.Schedule(moveRandomlyCount, 64, inputDeps);
 

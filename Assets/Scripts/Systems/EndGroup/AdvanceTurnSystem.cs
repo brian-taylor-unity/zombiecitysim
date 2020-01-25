@@ -2,14 +2,13 @@
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
 [UpdateInGroup(typeof(EndGroup))]
 public class AdvanceTurnSystem : JobComponentSystem
 {
     private EntityQuery m_Humans;
     private EntityQuery m_Zombies;
-    private float m_LastTime;
+    private double m_LastTime;
 
     [BurstCompile]
     struct ResetTurnJob : IJobForEach<TurnsUntilMove>
@@ -48,7 +47,7 @@ public class AdvanceTurnSystem : JobComponentSystem
 
         var outputDeps = resetZombieTurnJobHandle;
 
-        var now = Time.time;
+        var now = Time.ElapsedTime;
         if (now - m_LastTime > GameController.instance.turnDelayTime)
         {
             m_LastTime = now;
@@ -80,6 +79,6 @@ public class AdvanceTurnSystem : JobComponentSystem
             typeof(TurnsUntilMove)
         );
 
-        m_LastTime = Time.time;
+        m_LastTime = Time.ElapsedTime;
     }
 }
