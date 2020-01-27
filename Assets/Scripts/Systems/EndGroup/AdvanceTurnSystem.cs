@@ -11,23 +11,23 @@ public class AdvanceTurnSystem : JobComponentSystem
     private double m_LastTime;
 
     [BurstCompile]
-    struct ResetTurnJob : IJobForEach<TurnsUntilMove>
+    struct ResetTurnJob : IJobForEach<TurnsUntilActive>
     {
         public int turnDelay;
 
-        public void Execute(ref TurnsUntilMove turnsUntilMove)
+        public void Execute(ref TurnsUntilActive TurnsUntilActive)
         {
-            var reset = turnsUntilMove.Value == 0;
-            turnsUntilMove.Value = math.select(turnsUntilMove.Value, turnDelay, reset);
+            var reset = TurnsUntilActive.Value == 0;
+            TurnsUntilActive.Value = math.select(TurnsUntilActive.Value, turnDelay, reset);
         }
     }
 
     [BurstCompile]
-    struct AdvanceTurnJob : IJobForEach<TurnsUntilMove>
+    struct AdvanceTurnJob : IJobForEach<TurnsUntilActive>
     {
-        public void Execute(ref TurnsUntilMove turnsUntilMove)
+        public void Execute(ref TurnsUntilActive TurnsUntilActive)
         {
-            turnsUntilMove.Value -= 1;
+            TurnsUntilActive.Value -= 1;
         }
     }
 
@@ -72,11 +72,11 @@ public class AdvanceTurnSystem : JobComponentSystem
     {
         m_Humans = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Human)),
-            typeof(TurnsUntilMove)
+            typeof(TurnsUntilActive)
         );
         m_Zombies = GetEntityQuery(
             ComponentType.ReadOnly(typeof(Zombie)),
-            typeof(TurnsUntilMove)
+            typeof(TurnsUntilActive)
         );
 
         m_LastTime = Time.ElapsedTime;

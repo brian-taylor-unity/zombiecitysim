@@ -28,7 +28,7 @@ public class TileUnitSpawner_System : JobComponentSystem
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<TileUnitKinds> tileUnitKinds;
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitHealth;
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitDamage;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitTurnsUntilMove;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> tileUnitTurnsUntilActive;
 
         public EntityCommandBuffer.Concurrent CommandBuffer;
 
@@ -58,7 +58,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                         CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
                         CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
                         CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
-                        CommandBuffer.AddComponent(index, instance, new TurnsUntilMove { Value = tileUnitTurnsUntilMove[i % 5] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = tileUnitTurnsUntilActive[i % 5] });
                         CommandBuffer.AddComponent(index, instance, new Human());
                         CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                         CommandBuffer.AddComponent(index, instance, new FollowTarget());
@@ -72,7 +72,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                         CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
                         CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
                         CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
-                        CommandBuffer.AddComponent(index, instance, new TurnsUntilMove { Value = tileUnitTurnsUntilMove[i % 5] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = tileUnitTurnsUntilActive[i % 5] });
                         CommandBuffer.AddComponent(index, instance, new Zombie());
                         CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                         CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
@@ -90,9 +90,9 @@ public class TileUnitSpawner_System : JobComponentSystem
         var tileUnitKinds = new List<TileUnitKinds>();
         var tileUnitHealth = new List<int>();
         var tileUnitDamage = new List<int>();
-        var tileUnitTurnsUntilMove = new List<int>();
+        var tileUnitTurnsUntilActive = new List<int>();
         for (int i = 0; i < 5; i++)
-            tileUnitTurnsUntilMove.Add(i);
+            tileUnitTurnsUntilActive.Add(i);
 
         var tileExists = new bool[GameController.instance.numTilesY, GameController.instance.numTilesX];
 
@@ -253,7 +253,7 @@ public class TileUnitSpawner_System : JobComponentSystem
         var tileKindsNativeArray = new NativeArray<TileUnitKinds>(tileUnitKinds.ToArray(), Allocator.TempJob);
         var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
         var tileUnitDamagehNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
-        var tileUnitTurnsUntilMoveNativeArray = new NativeArray<int>(tileUnitTurnsUntilMove.ToArray(), Allocator.TempJob);
+        var tileUnitTurnsUntilActiveNativeArray = new NativeArray<int>(tileUnitTurnsUntilActive.ToArray(), Allocator.TempJob);
 
         var job = new SpawnJob
         {
@@ -261,7 +261,7 @@ public class TileUnitSpawner_System : JobComponentSystem
             tileUnitKinds = tileKindsNativeArray,
             tileUnitHealth = tileUnitHealthNativeArray,
             tileUnitDamage = tileUnitDamagehNativeArray,
-            tileUnitTurnsUntilMove = tileUnitTurnsUntilMoveNativeArray,
+            tileUnitTurnsUntilActive = tileUnitTurnsUntilActiveNativeArray,
             CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()
         }.Schedule(this, inputDeps);
 

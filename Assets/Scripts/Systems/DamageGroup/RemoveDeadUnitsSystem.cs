@@ -59,6 +59,6 @@ public class RemoveDeadUnitsSystem : JobComponentSystem
 
     protected override void OnCreate()
     {
-        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EntityCommandBufferSystem>();
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 }

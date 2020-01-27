@@ -7,5 +7,3 @@ public struct NextGridPosition : IComponentData
 {
     public int3 Value;
 }
-
-public class NextGridPositionProxy : ComponentDataProxy<NextGridPosition> { }

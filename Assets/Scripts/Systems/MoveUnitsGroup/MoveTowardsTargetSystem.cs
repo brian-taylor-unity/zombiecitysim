@@ -21,7 +21,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         public NativeMultiHashMap<int, int> followTargetGridPositionsHashMap;
         public NativeArray<Audible> audiblesArray;
         public NativeMultiHashMap<int, int> audiblesHashMap;
-        public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
     }
 
     [BurstCompile]
@@ -55,7 +55,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeArray<NextGridPosition> nextGridPositions;
-        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        [ReadOnly] public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
@@ -66,10 +66,10 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            int3 myGridPositionValue = gridPositions[index].Value;
-            if (turnsUntilMoveArray[index].Value != 0)
+            if (turnsUntilActiveArray[index].Value != 0)
                 return;
 
+            int3 myGridPositionValue = gridPositions[index].Value;
             bool moved = false;
 
             // Get nearest visible target
@@ -200,7 +200,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var movingUnitsGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var movingUnitsCount = movingUnitsGridPositions.Length;
         var nextGridPositions = m_MoveTowardsTargetGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-        var turnsUntilMoveArray = m_MoveTowardsTargetGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
+        var turnsUntilActiveArray = m_MoveTowardsTargetGroup.ToComponentDataArray<TurnsUntilActive>(Allocator.TempJob);
 
         var followTargetGridPositions = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var followTargetCount = followTargetGridPositions.Length;
@@ -218,7 +218,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             followTargetGridPositionsHashMap = followTargetGridPositionsHashMap,
             audiblesArray = audiblesArray,
             audiblesHashMap = audiblesHashMap,
-            turnsUntilMoveArray = turnsUntilMoveArray,
+            turnsUntilActiveArray = turnsUntilActiveArray,
         };
 
         if (m_PrevGridState.movingUnitsGridPositions.IsCreated)
@@ -233,8 +233,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             m_PrevGridState.audiblesArray.Dispose();
         if (m_PrevGridState.audiblesHashMap.IsCreated)
             m_PrevGridState.audiblesHashMap.Dispose();
-        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
-            m_PrevGridState.turnsUntilMoveArray.Dispose();
+        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
+            m_PrevGridState.turnsUntilActiveArray.Dispose();
         m_PrevGridState = nextGridState;
 
         var hashFollowTargetGridPositionsJob = new HashGridPositionsJob
@@ -256,7 +256,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var moveTowardsTargetJob = new MoveTowardsTargetJob
         {
             gridPositions = movingUnitsGridPositions,
-            turnsUntilMoveArray = turnsUntilMoveArray,
+            turnsUntilActiveArray = turnsUntilActiveArray,
             nextGridPositions = nextGridPositions,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
@@ -278,7 +278,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     {
         m_MoveTowardsTargetGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveTowardsTarget)),
-            ComponentType.ReadOnly(typeof(TurnsUntilMove)),
+            ComponentType.ReadOnly(typeof(TurnsUntilActive)),
             typeof(GridPosition),
             typeof(NextGridPosition)
         );
@@ -305,7 +305,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             m_PrevGridState.audiblesArray.Dispose();
         if (m_PrevGridState.audiblesHashMap.IsCreated)
             m_PrevGridState.audiblesHashMap.Dispose();
-        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
-            m_PrevGridState.turnsUntilMoveArray.Dispose();
+        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
+            m_PrevGridState.turnsUntilActiveArray.Dispose();
     }
 }

@@ -18,6 +18,24 @@ public class CreateAudiblesSystem : JobComponentSystem
         public NativeMultiHashMap<int, int> followTargetHashMap;
     }
 
+    protected override void OnCreate()
+    {
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
+
+        m_FollowTargetGroup = GetEntityQuery(
+            ComponentType.ReadOnly(typeof(FollowTarget)),
+            ComponentType.ReadOnly(typeof(GridPosition))
+        );
+    }
+
+    protected override void OnStopRunning()
+    {
+        if (m_PrevGridState.followTargetArray.IsCreated)
+            m_PrevGridState.followTargetArray.Dispose();
+        if (m_PrevGridState.followTargetHashMap.IsCreated)
+            m_PrevGridState.followTargetHashMap.Dispose();
+    }
+
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
     {
@@ -31,6 +49,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
     struct CreateAudiblesFromTargetsJob : IJobForEachWithEntity<MoveTowardsTarget, GridPosition>
     {
         [ReadOnly] public NativeMultiHashMap<int, int> targetHashMap;
@@ -105,23 +124,5 @@ public class CreateAudiblesSystem : JobComponentSystem
         var createAudiblesFromTargetsJobHandle = createAudiblesFromTargetsJob.Schedule(this, hashTargetGridPositionsJobHandle);
 
         return createAudiblesFromTargetsJobHandle;
-    }
-
-    protected override void OnCreate()
-    {
-        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EntityCommandBufferSystem>();
-
-        m_FollowTargetGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(FollowTarget)),
-            ComponentType.ReadOnly(typeof(GridPosition))
-        );
-    }
-
-    protected override void OnStopRunning()
-    {
-        if (m_PrevGridState.followTargetArray.IsCreated)
-            m_PrevGridState.followTargetArray.Dispose();
-        if (m_PrevGridState.followTargetHashMap.IsCreated)
-            m_PrevGridState.followTargetHashMap.Dispose();
     }
 }

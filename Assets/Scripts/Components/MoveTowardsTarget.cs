@@ -5,5 +5,3 @@ using Unity.Entities;
 public struct MoveTowardsTarget : IComponentData
 {
 }
-
-public class MoveTowardsTargetProxy : ComponentDataProxy<MoveTowardsTarget> { }

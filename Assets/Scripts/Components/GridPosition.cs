@@ -7,5 +7,3 @@ public struct GridPosition : IComponentData
 {
     public int3 Value;
 }
-
-public class GridPositionProxy : ComponentDataProxy<GridPosition> { }

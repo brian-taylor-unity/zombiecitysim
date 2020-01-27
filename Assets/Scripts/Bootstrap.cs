@@ -24,7 +24,7 @@
 //            typeof(Health),
 //            typeof(HealthRange),
 //            typeof(Damage),
-//            typeof(TurnsUntilMove)
+//            typeof(TurnsUntilActive)
 //        );
 //        ZombieArchetype = _entityManager.CreateArchetype(
 //            typeof(Zombie),
@@ -37,7 +37,7 @@
 //            typeof(Health),
 //            typeof(HealthRange),
 //            typeof(Damage),
-//            typeof(TurnsUntilMove)
+//            typeof(TurnsUntilActive)
 //        );
 
 //        AudibleArchetype = _entityManager.CreateArchetype(

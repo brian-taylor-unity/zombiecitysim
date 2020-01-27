@@ -18,7 +18,7 @@ public class MoveRandomlySystem : JobComponentSystem
     {
         public NativeArray<GridPosition> moveRandomlyGridPositions;
         public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
     }
 
     [BurstCompile]
@@ -38,7 +38,7 @@ public class MoveRandomlySystem : JobComponentSystem
     struct MoveRandomlyJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        [ReadOnly] public NativeArray<TurnsUntilMove> turnsUntilMoveArray;
+        [ReadOnly] public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
         public NativeArray<NextGridPosition> nextGridPositions;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
@@ -46,9 +46,10 @@ public class MoveRandomlySystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            int3 myGridPositionValue = gridPositions[index].Value;
-            if (turnsUntilMoveArray[index].Value != 0)
+            if (turnsUntilActiveArray[index].Value != 0)
                 return;
+
+            int3 myGridPositionValue = gridPositions[index].Value;
 
             int upDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
             int rightDirKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
@@ -128,27 +129,27 @@ public class MoveRandomlySystem : JobComponentSystem
         var moveRandomlyGridPositions = m_MoveRandomlyGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
         var moveRandomlyCount = moveRandomlyGridPositions.Length;
         var nextGridPositions = m_MoveRandomlyGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-        var turnsUntilMoveArray = m_MoveRandomlyGroup.ToComponentDataArray<TurnsUntilMove>(Allocator.TempJob);
+        var turnsUntilActiveArray = m_MoveRandomlyGroup.ToComponentDataArray<TurnsUntilActive>(Allocator.TempJob);
 
         var nextGridState = new PrevGridState
         {
             moveRandomlyGridPositions = moveRandomlyGridPositions,
             nextGridPositions = nextGridPositions,
-            turnsUntilMoveArray = turnsUntilMoveArray,
+            turnsUntilActiveArray = turnsUntilActiveArray,
         };
 
         if (m_PrevGridState.moveRandomlyGridPositions.IsCreated)
             m_PrevGridState.moveRandomlyGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositions.IsCreated)
             m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
-            m_PrevGridState.turnsUntilMoveArray.Dispose();
+        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
+            m_PrevGridState.turnsUntilActiveArray.Dispose();
         m_PrevGridState = nextGridState;
 
         var moveRandomlyJob = new MoveRandomlyJob
         {
             gridPositions = moveRandomlyGridPositions,
-            turnsUntilMoveArray = turnsUntilMoveArray,
+            turnsUntilActiveArray = turnsUntilActiveArray,
             nextGridPositions = nextGridPositions,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
@@ -165,7 +166,7 @@ public class MoveRandomlySystem : JobComponentSystem
     {
         m_MoveRandomlyGroup = GetEntityQuery(
             ComponentType.ReadOnly(typeof(MoveRandomly)),
-            ComponentType.ReadOnly(typeof(TurnsUntilMove)),
+            ComponentType.ReadOnly(typeof(TurnsUntilActive)),
             ComponentType.ReadOnly(typeof(GridPosition)),
             typeof(NextGridPosition)
         );
@@ -177,7 +178,7 @@ public class MoveRandomlySystem : JobComponentSystem
             m_PrevGridState.moveRandomlyGridPositions.Dispose();
         if (m_PrevGridState.nextGridPositions.IsCreated)
             m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.turnsUntilMoveArray.IsCreated)
-            m_PrevGridState.turnsUntilMoveArray.Dispose();
+        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
+            m_PrevGridState.turnsUntilActiveArray.Dispose();
     }
 }

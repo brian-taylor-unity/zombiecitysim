@@ -9,5 +9,3 @@ public struct Audible : IComponentData
     public int3 Target;
     public int Age;
 }
-
-public class AudibleProxy : ComponentDataProxy<Audible> { }

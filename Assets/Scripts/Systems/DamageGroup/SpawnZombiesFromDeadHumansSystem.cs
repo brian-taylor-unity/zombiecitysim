@@ -16,26 +16,26 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
     [BurstCompile]
     struct SpawnJob : IJobForEachWithEntity<UnitSpawner_Data>
     {
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int3> unitPositions;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitHealth;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitDamage;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitTurnsUntilMove;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int3> unitPositionsArray;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitHealthArray;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitDamageArray;
+        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitTurnsUntilMoveArray;
 
         public EntityCommandBuffer.Concurrent CommandBuffer;
 
         public void Execute(Entity entity, int index, [ReadOnly] ref UnitSpawner_Data unitSpawner)
         {
-            for (int i = 0; i < unitPositions.Length; i++)
+            for (int i = 0; i < unitPositionsArray.Length; i++)
             {
                 Entity instance;
                 instance = CommandBuffer.Instantiate(index, unitSpawner.ZombieUnit_Prefab);
-                CommandBuffer.SetComponent(index, instance, new Translation { Value = unitPositions[i] });
-                CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(unitPositions[i]) });
-                CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(unitPositions[i]) });
-                CommandBuffer.AddComponent(index, instance, new Health { Value = unitHealth[i] });
-                CommandBuffer.AddComponent(index, instance, new HealthRange { Value = unitHealth[i] });
-                CommandBuffer.AddComponent(index, instance, new Damage { Value = unitDamage[i] });
-                CommandBuffer.AddComponent(index, instance, new TurnsUntilMove { Value = unitTurnsUntilMove[i] });
+                CommandBuffer.SetComponent(index, instance, new Translation { Value = unitPositionsArray[i] });
+                CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(unitPositionsArray[i]) });
+                CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(unitPositionsArray[i]) });
+                CommandBuffer.AddComponent(index, instance, new Health { Value = unitHealthArray[i] });
+                CommandBuffer.AddComponent(index, instance, new HealthRange { Value = unitHealthArray[i] });
+                CommandBuffer.AddComponent(index, instance, new Damage { Value = unitDamageArray[i] });
+                CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = unitTurnsUntilMoveArray[i] });
                 CommandBuffer.AddComponent(index, instance, new Zombie());
                 CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                 CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
@@ -73,10 +73,10 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
 
             var spawnJob = new SpawnJob
             {
-                unitPositions = new NativeArray<int3>(unitPositions.ToArray(), Allocator.TempJob),
-                unitHealth = new NativeArray<int>(unitHealth.ToArray(), Allocator.TempJob),
-                unitDamage = new NativeArray<int>(unitDamage.ToArray(), Allocator.TempJob),
-                unitTurnsUntilMove = new NativeArray<int>(unitTurnsUntilMove.ToArray(), Allocator.TempJob),
+                unitPositionsArray = new NativeArray<int3>(unitPositions.ToArray(), Allocator.TempJob),
+                unitHealthArray = new NativeArray<int>(unitHealth.ToArray(), Allocator.TempJob),
+                unitDamageArray = new NativeArray<int>(unitDamage.ToArray(), Allocator.TempJob),
+                unitTurnsUntilMoveArray = new NativeArray<int>(unitTurnsUntilMove.ToArray(), Allocator.TempJob),
                 CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
             }.Schedule(this, inputDeps);
 
