@@ -287,8 +287,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(GridPosition))
         );
         m_AudibleGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(Audible)),
-            ComponentType.ReadOnly(typeof(GridPosition))
+            ComponentType.ReadOnly(typeof(Audible))
         );
     }
 
