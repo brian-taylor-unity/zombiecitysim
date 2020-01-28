@@ -12,15 +12,6 @@ public class MoveRandomlySystem : JobComponentSystem
 {
     private EntityQuery m_MoveRandomlyGroup;
 
-    private PrevGridState m_PrevGridState;
-
-    struct PrevGridState
-    {
-        public NativeArray<GridPosition> moveRandomlyGridPositions;
-        public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
-    }
-
     [BurstCompile]
     struct HashGridPositionsJob : IJobParallelFor
     {
@@ -35,21 +26,18 @@ public class MoveRandomlySystem : JobComponentSystem
     }
 
     [BurstCompile]
-    struct MoveRandomlyJob : IJobParallelFor
+    struct MoveRandomlyJob : IJobForEachWithEntity<GridPosition, NextGridPosition, TurnsUntilActive>
     {
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        [ReadOnly] public NativeArray<TurnsUntilActive> turnsUntilActiveArray;
-        public NativeArray<NextGridPosition> nextGridPositions;
         [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
         [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
         [ReadOnly] public int tick;
 
-        public void Execute(int index)
+        public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition, ref NextGridPosition nextGridPosition, [ReadOnly] ref TurnsUntilActive turnsUntilActive)
         {
-            if (turnsUntilActiveArray[index].Value != 0)
+            if (turnsUntilActive.Value != 0)
                 return;
 
-            int3 myGridPositionValue = gridPositions[index].Value;
+            int3 myGridPositionValue = gridPosition.Value;
 
             int upDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
             int rightDirKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
@@ -117,7 +105,7 @@ public class MoveRandomlySystem : JobComponentSystem
                 if (moved)
                     break;
             }
-            nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
+            nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
         }
     }
 
@@ -126,41 +114,15 @@ public class MoveRandomlySystem : JobComponentSystem
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
-        var moveRandomlyGridPositions = m_MoveRandomlyGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var moveRandomlyCount = moveRandomlyGridPositions.Length;
-        var nextGridPositions = m_MoveRandomlyGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-        var turnsUntilActiveArray = m_MoveRandomlyGroup.ToComponentDataArray<TurnsUntilActive>(Allocator.TempJob);
-
-        var nextGridState = new PrevGridState
-        {
-            moveRandomlyGridPositions = moveRandomlyGridPositions,
-            nextGridPositions = nextGridPositions,
-            turnsUntilActiveArray = turnsUntilActiveArray,
-        };
-
-        if (m_PrevGridState.moveRandomlyGridPositions.IsCreated)
-            m_PrevGridState.moveRandomlyGridPositions.Dispose();
-        if (m_PrevGridState.nextGridPositions.IsCreated)
-            m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
-            m_PrevGridState.turnsUntilActiveArray.Dispose();
-        m_PrevGridState = nextGridState;
-
         var moveRandomlyJob = new MoveRandomlyJob
         {
-            gridPositions = moveRandomlyGridPositions,
-            turnsUntilActiveArray = turnsUntilActiveArray,
-            nextGridPositions = nextGridPositions,
             staticCollidableHashMap = staticCollidableHashMap,
             dynamicCollidableHashMap = dynamicCollidableHashMap,
             tick = UnityEngine.Time.frameCount,
         };
-        var moveRandomlyJobHandle = moveRandomlyJob.Schedule(moveRandomlyCount, 64, inputDeps);
+        var moveRandomlyJobHandle = moveRandomlyJob.Schedule(m_MoveRandomlyGroup, inputDeps);
 
-        m_MoveRandomlyGroup.AddDependency(moveRandomlyJobHandle);
-        m_MoveRandomlyGroup.CopyFromComponentDataArray(nextGridPositions, out JobHandle copyDataJobHandle);
-
-        return copyDataJobHandle;
+        return moveRandomlyJobHandle;
     }
     protected override void OnCreate()
     {
@@ -170,15 +132,5 @@ public class MoveRandomlySystem : JobComponentSystem
             ComponentType.ReadOnly(typeof(GridPosition)),
             typeof(NextGridPosition)
         );
-    }
-
-    protected override void OnStopRunning()
-    {
-        if (m_PrevGridState.moveRandomlyGridPositions.IsCreated)
-            m_PrevGridState.moveRandomlyGridPositions.Dispose();
-        if (m_PrevGridState.nextGridPositions.IsCreated)
-            m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.turnsUntilActiveArray.IsCreated)
-            m_PrevGridState.turnsUntilActiveArray.Dispose();
     }
 }
