@@ -107,7 +107,6 @@ public class GameController : MonoBehaviour
 
     public void OnRegeneratePressed()
     {
-        // Bootstrap.Regenerate(numTilesX, numTilesY);
     }
 
     public void SetHumanTurnDelay(string num)

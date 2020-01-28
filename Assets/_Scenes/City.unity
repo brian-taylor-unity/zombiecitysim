@@ -5295,7 +5295,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 944363107}
         m_MethodName: OnRegeneratePressed
         m_Mode: 1
         m_Arguments:

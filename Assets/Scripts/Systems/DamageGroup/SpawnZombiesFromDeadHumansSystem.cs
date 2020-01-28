@@ -40,7 +40,6 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
                 CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                 CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
             }
-            //CommandBuffer.DestroyEntity(index, entity);
         }
 
     }

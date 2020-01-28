@@ -265,7 +265,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         );
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_PrevGridState.followTargetGridPositions.IsCreated)
             m_PrevGridState.followTargetGridPositions.Dispose();

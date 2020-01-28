@@ -99,7 +99,7 @@ public class DamageToZombiesSystem : JobComponentSystem
         );
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_DamageToZombiesHashMap.IsCreated)
             m_DamageToZombiesHashMap.Dispose();

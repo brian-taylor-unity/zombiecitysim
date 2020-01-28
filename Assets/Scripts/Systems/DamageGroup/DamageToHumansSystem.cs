@@ -99,7 +99,7 @@ public class DamageToHumansSystem : JobComponentSystem
         );
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_DamageToHumansHashMap.IsCreated)
             m_DamageToHumansHashMap.Dispose();

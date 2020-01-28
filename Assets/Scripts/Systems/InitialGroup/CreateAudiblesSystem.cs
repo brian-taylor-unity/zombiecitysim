@@ -28,7 +28,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         );
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_PrevGridState.followTargetArray.IsCreated)
             m_PrevGridState.followTargetArray.Dispose();

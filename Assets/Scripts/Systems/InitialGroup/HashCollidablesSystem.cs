@@ -39,6 +39,7 @@ public class HashCollidablesSystem : JobComponentSystem
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         m_StaticCollidableJobHandle = inputDeps;
+
         if (m_StaticCollidableGroup.CalculateEntityCount() != 0)
         {
             if (m_StaticCollidableHashMap.IsCreated)
@@ -103,7 +104,7 @@ public class HashCollidablesSystem : JobComponentSystem
         );
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_StaticCollidableHashMap.IsCreated)
             m_StaticCollidableHashMap.Dispose();
