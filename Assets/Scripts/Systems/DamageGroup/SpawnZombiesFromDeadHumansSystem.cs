@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(RemoveDeadUnitsSystem))]
+[UpdateAfter(typeof(DamageToHumansSystem))]
 public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
 {
     private EntityQuery m_HumansGroup;
@@ -17,9 +17,9 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
     struct SpawnJob : IJobForEachWithEntity<UnitSpawner_Data>
     {
         [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int3> unitPositionsArray;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitHealthArray;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitDamageArray;
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int> unitTurnsUntilMoveArray;
+        [ReadOnly] public int unitHealth;
+        [ReadOnly] public int unitDamage;
+        [ReadOnly] public int unitTurnsUntilActive;
 
         public EntityCommandBuffer.Concurrent CommandBuffer;
 
@@ -32,10 +32,10 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
                 CommandBuffer.SetComponent(index, instance, new Translation { Value = unitPositionsArray[i] });
                 CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(unitPositionsArray[i]) });
                 CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(unitPositionsArray[i]) });
-                CommandBuffer.AddComponent(index, instance, new Health { Value = unitHealthArray[i] });
-                CommandBuffer.AddComponent(index, instance, new HealthRange { Value = unitHealthArray[i] });
-                CommandBuffer.AddComponent(index, instance, new Damage { Value = unitDamageArray[i] });
-                CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = unitTurnsUntilMoveArray[i] });
+                CommandBuffer.AddComponent(index, instance, new Health { Value = unitHealth });
+                CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
+                CommandBuffer.AddComponent(index, instance, new Damage { Value = unitDamage });
+                CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = unitTurnsUntilActive });
                 CommandBuffer.AddComponent(index, instance, new Zombie());
                 CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                 CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
@@ -50,18 +50,12 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
         var healthArray = m_HumansGroup.ToComponentDataArray<Health>(Allocator.TempJob);
 
         var unitPositions = new List<int3>();
-        var unitHealth = new List<int>();
-        var unitDamage = new List<int>();
-        var unitTurnsUntilMove = new List<int>();
 
         for (int i = 0; i < healthArray.Length; i++)
         {
             if (healthArray[i].Value <= 0)
             {
                 unitPositions.Add(gridPositionArray[i].Value);
-                unitHealth.Add(GameController.instance.zombieStartingHealth);
-                unitDamage.Add(GameController.instance.zombieDamage);
-                unitTurnsUntilMove.Add(GameController.instance.zombieTurnDelay);
             }
         }
 
@@ -73,9 +67,9 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
             var spawnJob = new SpawnJob
             {
                 unitPositionsArray = new NativeArray<int3>(unitPositions.ToArray(), Allocator.TempJob),
-                unitHealthArray = new NativeArray<int>(unitHealth.ToArray(), Allocator.TempJob),
-                unitDamageArray = new NativeArray<int>(unitDamage.ToArray(), Allocator.TempJob),
-                unitTurnsUntilMoveArray = new NativeArray<int>(unitTurnsUntilMove.ToArray(), Allocator.TempJob),
+                unitHealth = GameController.instance.zombieStartingHealth,
+                unitDamage = GameController.instance.zombieDamage,
+                unitTurnsUntilActive = GameController.instance.zombieTurnDelay,
                 CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
             }.Schedule(this, inputDeps);
 
