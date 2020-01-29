@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateBefore(typeof(RemoveDeadUnitsSystem))]
+[UpdateAfter(typeof(RemoveDeadUnitsSystem))]
 public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
 {
     private EntityQuery m_HumansGroup;

@@ -14,7 +14,6 @@ public class CreateAudiblesSystem : JobComponentSystem
 
     struct PrevGridState
     {
-        public NativeArray<GridPosition> followTargetArray;
         public NativeMultiHashMap<int, int> followTargetHashMap;
     }
 
@@ -30,21 +29,18 @@ public class CreateAudiblesSystem : JobComponentSystem
 
     protected override void OnDestroy()
     {
-        if (m_PrevGridState.followTargetArray.IsCreated)
-            m_PrevGridState.followTargetArray.Dispose();
         if (m_PrevGridState.followTargetHashMap.IsCreated)
             m_PrevGridState.followTargetHashMap.Dispose();
     }
 
     [BurstCompile]
-    struct HashGridPositionsJob : IJobParallelFor
+    struct HashGridPositionsJob : IJobForEachWithEntity<GridPosition>
     {
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
-        public void Execute(int index)
+        public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition)
         {
-            var hash = GridHash.Hash(gridPositions[index].Value);
+            var hash = GridHash.Hash(gridPosition.Value);
             hashMap.Add(hash, index);
         }
     }
@@ -88,20 +84,13 @@ public class CreateAudiblesSystem : JobComponentSystem
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
-
-        var followTargetArray = m_FollowTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var followTargetCount = followTargetArray.Length;
-        var followTargetHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
-
-        var audibleArchetype = EntityManager.CreateArchetype(typeof(Audible));
+        var followTargetHashMap = new NativeMultiHashMap<int, int>(m_FollowTargetGroup.CalculateEntityCount(), Allocator.TempJob);
+        var audibleArchetype = Archetypes.AudibleArchetype;
 
         var nextGridState = new PrevGridState
         {
-            followTargetArray = followTargetArray,
             followTargetHashMap = followTargetHashMap,
         };
-        if (m_PrevGridState.followTargetArray.IsCreated)
-            m_PrevGridState.followTargetArray.Dispose();
         if (m_PrevGridState.followTargetHashMap.IsCreated)
             m_PrevGridState.followTargetHashMap.Dispose();
 
@@ -109,10 +98,9 @@ public class CreateAudiblesSystem : JobComponentSystem
 
         var hashTargetGridPositionsJob = new HashGridPositionsJob
         {
-            gridPositions = followTargetArray,
             hashMap = followTargetHashMap.AsParallelWriter(),
         };
-        var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(followTargetCount, 64, inputDeps);
+        var hashTargetGridPositionsJobHandle = hashTargetGridPositionsJob.Schedule(m_FollowTargetGroup, inputDeps);
 
         var createAudiblesFromTargetsJob = new CreateAudiblesFromTargetsJob
         {

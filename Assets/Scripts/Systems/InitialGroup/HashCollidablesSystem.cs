@@ -15,24 +15,14 @@ public class HashCollidablesSystem : JobComponentSystem
     public JobHandle m_DynamicCollidableJobHandle;
 
     [BurstCompile]
-    struct HashGridPositionsJob : IJobParallelFor
+    struct HashGridPositionsJob : IJobForEachWithEntity<GridPosition>
     {
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
         public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
 
-        public void Execute(int index)
+        public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition)
         {
-            var hash = GridHash.Hash(gridPositions[index].Value);
+            var hash = GridHash.Hash(gridPosition.Value);
             hashMap.Add(hash, index);
-        }
-    }
-
-    [BurstCompile]
-    struct DisposeJob : IJob
-    {
-        [DeallocateOnJobCompletion] public NativeArray<GridPosition> nativeArray;
-        public void Execute()
-        {
         }
     }
 
@@ -45,22 +35,13 @@ public class HashCollidablesSystem : JobComponentSystem
             if (m_StaticCollidableHashMap.IsCreated)
                 m_StaticCollidableHashMap.Dispose();
 
-            var staticCollidableGridPositions = m_StaticCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-            var staticCollidableCount = staticCollidableGridPositions.Length;
-            m_StaticCollidableHashMap = new NativeMultiHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            m_StaticCollidableHashMap = new NativeMultiHashMap<int, int>(m_StaticCollidableGroup.CalculateEntityCount(), Allocator.Persistent);
 
             var hashStaticCollidableGridPositionsJob = new HashGridPositionsJob
             {
-                gridPositions = staticCollidableGridPositions,
                 hashMap = m_StaticCollidableHashMap.AsParallelWriter(),
             };
-            m_StaticCollidableJobHandle = hashStaticCollidableGridPositionsJob.Schedule(staticCollidableCount, 64, inputDeps);
-
-            var disposeJob = new DisposeJob
-            {
-                nativeArray = staticCollidableGridPositions
-            };
-            m_StaticCollidableJobHandle = disposeJob.Schedule(m_StaticCollidableJobHandle);
+            m_StaticCollidableJobHandle = hashStaticCollidableGridPositionsJob.Schedule(m_StaticCollidableGroup, inputDeps);
         }
 
         m_DynamicCollidableJobHandle = inputDeps;
@@ -69,22 +50,13 @@ public class HashCollidablesSystem : JobComponentSystem
             if (m_DynamicCollidableHashMap.IsCreated)
                 m_DynamicCollidableHashMap.Dispose();
 
-            var dynamicCollidableGridPositions = m_DynamicCollidableGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-            var dynamicCollidableCount = dynamicCollidableGridPositions.Length;
-            m_DynamicCollidableHashMap = new NativeMultiHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            m_DynamicCollidableHashMap = new NativeMultiHashMap<int, int>(m_DynamicCollidableGroup.CalculateEntityCount(), Allocator.Persistent);
 
             var hashDynamicCollidablePositionsJob = new HashGridPositionsJob
             {
-                gridPositions = dynamicCollidableGridPositions,
                 hashMap = m_DynamicCollidableHashMap.AsParallelWriter(),
             };
-            m_DynamicCollidableJobHandle = hashDynamicCollidablePositionsJob.Schedule(dynamicCollidableCount, 64, inputDeps);
-
-            var disposeJob = new DisposeJob
-            {
-                nativeArray = dynamicCollidableGridPositions
-            };
-            m_DynamicCollidableJobHandle = disposeJob.Schedule(m_DynamicCollidableJobHandle);
+            m_DynamicCollidableJobHandle = hashDynamicCollidablePositionsJob.Schedule(m_DynamicCollidableGroup, inputDeps);
         }
 
         return JobHandle.CombineDependencies(m_StaticCollidableJobHandle, m_DynamicCollidableJobHandle);
