@@ -217,7 +217,7 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 944363107}
         m_MethodName: SetNumZombiesInputField
         m_Mode: 0
         m_Arguments:
@@ -517,7 +517,7 @@ GameObject:
   - component: {fileID: 128698485}
   - component: {fileID: 128698484}
   m_Layer: 0
-  m_Name: Num Zombies Text
+  m_Name: Num Zombies Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1239,7 +1239,7 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 944363107}
         m_MethodName: SetZombieTurnDelay
         m_Mode: 0
         m_Arguments:
@@ -1669,7 +1669,7 @@ GameObject:
   - component: {fileID: 556967883}
   - component: {fileID: 556967882}
   m_Layer: 0
-  m_Name: City Configuration Text
+  m_Name: City Configuration Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1904,7 +1904,7 @@ GameObject:
   - component: {fileID: 592170389}
   - component: {fileID: 592170388}
   m_Layer: 0
-  m_Name: Num Humans Text
+  m_Name: Num Humans Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3436,7 +3436,7 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 944363107}
         m_MethodName: SetHumanTurnDelay
         m_Mode: 0
         m_Arguments:
@@ -4546,8 +4546,8 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_MethodName: SetTurnDelayTime
+      - m_Target: {fileID: 944363107}
+        m_MethodName: SetTurnDelayTimeInputField
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4819,7 +4819,7 @@ GameObject:
   - component: {fileID: 1788805376}
   - component: {fileID: 1788805375}
   m_Layer: 0
-  m_Name: Character Configuration
+  m_Name: Character Configuration Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5805,7 +5805,7 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 944363107}
         m_MethodName: SetNumHumansInputField
         m_Mode: 0
         m_Arguments:
