@@ -27,7 +27,7 @@ public class CreateAudiblesSystem : JobComponentSystem
         );
     }
 
-    protected override void OnDestroy()
+    protected override void OnStopRunning()
     {
         if (m_PrevGridState.followTargetHashMap.IsCreated)
             m_PrevGridState.followTargetHashMap.Dispose();

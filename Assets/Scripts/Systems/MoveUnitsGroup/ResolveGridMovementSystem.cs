@@ -111,7 +111,7 @@ public class ResolveGridMovementSystem : JobComponentSystem
         );
     }
 
-    protected override void OnDestroy()
+    protected override void OnStopRunning()
     {
         if (m_PrevGridState.gridPositionArray.IsCreated)
             m_PrevGridState.gridPositionArray.Dispose();

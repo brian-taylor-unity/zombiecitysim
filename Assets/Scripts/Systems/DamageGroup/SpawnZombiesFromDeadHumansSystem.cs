@@ -61,9 +61,6 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
 
         if (unitPositions.Count > 0)
         {
-            var entity = EntityManager.CreateEntity();
-            EntityManager.AddComponent(entity, typeof(UnitSpawner_Authoring));
-
             var spawnJob = new SpawnJob
             {
                 unitPositionsArray = new NativeArray<int3>(unitPositions.ToArray(), Allocator.TempJob),
