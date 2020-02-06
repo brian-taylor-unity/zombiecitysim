@@ -2619,8 +2619,8 @@ MonoBehaviour:
     type: 3}
   numTilesX: 800
   numTilesY: 800
-  numStreets: 900
-  numHumans: 20000
+  numStreets: 1000
+  numHumans: 10000
   humanStartingHealth: 100
   humanDamage: 0
   humanTurnDelay: 1

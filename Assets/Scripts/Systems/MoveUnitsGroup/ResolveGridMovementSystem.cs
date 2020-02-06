@@ -2,6 +2,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateAfter(typeof(MoveTowardsTargetSystem))]
@@ -25,7 +26,7 @@ public class ResolveGridMovementSystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(nextGridPositions[index].Value);
+            var hash = (int)math.hash(nextGridPositions[index].Value);
             hashMap.Add(hash, index);
         }
     }

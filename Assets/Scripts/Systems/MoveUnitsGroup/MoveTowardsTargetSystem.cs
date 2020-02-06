@@ -29,7 +29,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(gridPositions[index].Value);
+            var hash = (int)math.hash(gridPositions[index].Value);
             hashMap.Add(hash, index);
         }
     }
@@ -42,7 +42,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(audiblesArray[index].GridPositionValue);
+            var hash = (int)math.hash(audiblesArray[index].GridPositionValue);
             hashMap.Add(hash, index);
         }
     }
@@ -81,7 +81,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                         {
                             int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
-                            int targetKey = GridHash.Hash(targetGridPosition);
+                            int targetKey = (int)math.hash(targetGridPosition);
                             if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
@@ -109,7 +109,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                         {
                             int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
-                            int targetKey = GridHash.Hash(targetGridPosition);
+                            int targetKey = (int)math.hash(targetGridPosition);
                             if (audiblesHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
                             {
                                 var audiblePointingToValue = audiblesArray[audibleIndex].Target;
@@ -131,10 +131,10 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 int3 direction = nearestTarget - myGridPositionValue;
 
                 // Check if space is already occupied
-                int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-                int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-                int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-                int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+                int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+                int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+                int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
                 if (math.abs(direction.x) >= math.abs(direction.z))
                 {
                     // Move horizontally

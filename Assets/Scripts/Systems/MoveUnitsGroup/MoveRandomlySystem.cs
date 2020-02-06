@@ -20,7 +20,7 @@ public class MoveRandomlySystem : JobComponentSystem
 
         public void Execute(int index)
         {
-            var hash = GridHash.Hash(gridPositions[index].Value);
+            var hash = (int)math.hash(gridPositions[index].Value);
             hashMap.Add(hash, index);
         }
     }
@@ -39,10 +39,10 @@ public class MoveRandomlySystem : JobComponentSystem
 
             int3 myGridPositionValue = gridPosition.Value;
 
-            int upDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-            int rightDirKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-            int downDirKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-            int leftDirKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+            int upDirKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+            int rightDirKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+            int downDirKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+            int leftDirKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
 
             bool upMoveAvail = true;
             bool rightMoveAvail = true;
@@ -59,7 +59,7 @@ public class MoveRandomlySystem : JobComponentSystem
                 leftMoveAvail = false;
 
             // Pick a random direction to move
-            uint seed = (uint)(tick * GridHash.Hash(myGridPositionValue) * index);
+            uint seed = (uint)(tick * (int)math.hash(myGridPositionValue) * index);
             if (seed == 0)
                 seed += (uint)(tick + index);
 

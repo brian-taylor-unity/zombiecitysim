@@ -40,7 +40,7 @@ public class CreateAudiblesSystem : JobComponentSystem
 
         public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition)
         {
-            var hash = GridHash.Hash(gridPosition.Value);
+            var hash = (int)math.hash(gridPosition.Value);
             hashMap.Add(hash, index);
         }
     }
@@ -67,7 +67,7 @@ public class CreateAudiblesSystem : JobComponentSystem
                         {
                             int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
-                            int targetKey = GridHash.Hash(targetGridPosition);
+                            int targetKey = (int)math.hash(targetGridPosition);
                             if (targetHashMap.TryGetFirstValue(targetKey, out _, out _))
                             {
                                 Entity audibleEntity = Commands.CreateEntity(index, archetype);
