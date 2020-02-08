@@ -4,21 +4,32 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateBefore(typeof(RemoveDeadUnitsSystem))]
 public class DamageToHumansSystem : JobComponentSystem
 {
+    private EntityQuery query;
+
     private NativeMultiHashMap<int, int> m_DamageToHumansHashMap;
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        if (!m_DamageToHumansHashMap.IsCreated)
-            m_DamageToHumansHashMap = new NativeMultiHashMap<int, int>(GameController.instance.numTilesX * GameController.instance.numTilesY, Allocator.Persistent);
+        var zombieCount = query.CalculateEntityCount();
 
-        m_DamageToHumansHashMap.Clear();
+        if (zombieCount == 0)
+            return inputDeps;
+
+        if (m_DamageToHumansHashMap.IsCreated)
+            m_DamageToHumansHashMap.Dispose();
+
+        m_DamageToHumansHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+
+        var hashMap = m_DamageToHumansHashMap;
         var parallelWriter = m_DamageToHumansHashMap.AsParallelWriter();
 
         var calculateDamageFromZombiesJobHandle = Entities
+            .WithName("CalculateDamageFromZombies")
+            .WithStoreEntityQueryInField(ref query)
             .WithAll<Zombie>()
+            .WithChangeFilter<TurnsUntilActive>()
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
                 {
@@ -39,11 +50,11 @@ public class DamageToHumansSystem : JobComponentSystem
                 })
             .Schedule(inputDeps);
 
-        var hashMap = m_DamageToHumansHashMap;
         var dealDamageToHumansJobHandle = Entities
+            .WithName("DealDamageToHumans")
             .WithAll<Human>()
-            .WithBurst()
             .WithReadOnly(hashMap)
+            .WithBurst()
             .ForEach((ref Health health, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
@@ -66,7 +77,7 @@ public class DamageToHumansSystem : JobComponentSystem
         return dealDamageToHumansJobHandle;
     }
 
-    protected override void OnDestroy()
+    protected override void OnStopRunning()
     {
         if (m_DamageToHumansHashMap.IsCreated)
             m_DamageToHumansHashMap.Dispose();

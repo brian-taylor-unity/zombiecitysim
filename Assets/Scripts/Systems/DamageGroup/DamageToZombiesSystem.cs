@@ -7,18 +7,29 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
 public class DamageToZombiesSystem : JobComponentSystem
 {
+    private EntityQuery query;
     private NativeMultiHashMap<int, int> m_DamageToZombiesHashMap;
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        if (!m_DamageToZombiesHashMap.IsCreated)
-            m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(GameController.instance.numTilesX * GameController.instance.numTilesY, Allocator.Persistent);
+        var humanCount = query.CalculateEntityCount();
 
-        m_DamageToZombiesHashMap.Clear();
-        var parallelWriter = m_DamageToZombiesHashMap.AsParallelWriter();
+        if (humanCount == 0)
+            return inputDeps;
+
+        if (m_DamageToZombiesHashMap.IsCreated)
+            m_DamageToZombiesHashMap.Dispose();
+
+        m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+
+        var hashMap = m_DamageToZombiesHashMap;
+        var parallelWriter = hashMap.AsParallelWriter();
 
         var calculateDamageFromHumansJobHandle = Entities
-            .WithAll<Zombie>()
+            .WithName("CalculateDamageFromHumans")
+            .WithStoreEntityQueryInField(ref query)
+            .WithAll<Human>()
+            .WithChangeFilter<TurnsUntilActive>()
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
             {
@@ -39,11 +50,11 @@ public class DamageToZombiesSystem : JobComponentSystem
             })
             .Schedule(inputDeps);
 
-        var hashMap = m_DamageToZombiesHashMap;
         var dealDamageToZombiesJobHandle = Entities
-            .WithAll<Human>()
-            .WithBurst()
+            .WithName("DealDamageToZombies")
+            .WithAll<Zombie>()
             .WithReadOnly(hashMap)
+            .WithBurst()
             .ForEach((ref Health health, in GridPosition gridPosition) =>
             {
                 int myHealth = health.Value;

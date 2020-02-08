@@ -58,7 +58,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                         CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
                         CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
                         CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
-                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = tileUnitTurnsUntilActive[i % 5] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = index % tileUnitTurnsUntilActive[0] });
                         CommandBuffer.AddComponent(index, instance, new Human());
                         CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                         CommandBuffer.AddComponent(index, instance, new FollowTarget());
@@ -72,7 +72,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                         CommandBuffer.AddComponent(index, instance, new Health { Value = tileUnitHealth[i] });
                         CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
                         CommandBuffer.AddComponent(index, instance, new Damage { Value = tileUnitDamage[i] });
-                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = tileUnitTurnsUntilActive[i % 5] });
+                        CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = index % tileUnitTurnsUntilActive[1] });
                         CommandBuffer.AddComponent(index, instance, new Zombie());
                         CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
                         CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
@@ -91,8 +91,8 @@ public class TileUnitSpawner_System : JobComponentSystem
         var tileUnitHealth = new List<int>();
         var tileUnitDamage = new List<int>();
         var tileUnitTurnsUntilActive = new List<int>();
-        for (int i = 0; i < 5; i++)
-            tileUnitTurnsUntilActive.Add(i);
+        tileUnitTurnsUntilActive.Add(GameController.instance.humanTurnDelay);
+        tileUnitTurnsUntilActive.Add(GameController.instance.zombieTurnDelay);
 
         var tileExists = new bool[GameController.instance.numTilesY, GameController.instance.numTilesX];
 

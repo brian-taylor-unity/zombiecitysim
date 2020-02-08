@@ -1,97 +1,65 @@
-﻿using System.Collections.Generic;
-using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(DamageToHumansSystem))]
 public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
 {
-    private EntityQuery m_HumansGroup;
     private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystem;
-
-    [BurstCompile]
-    struct SpawnJob : IJobForEachWithEntity<UnitSpawner_Data>
-    {
-        [DeallocateOnJobCompletion] [ReadOnly] public NativeArray<int3> unitPositionsArray;
-        [ReadOnly] public int unitHealth;
-        [ReadOnly] public int unitDamage;
-        [ReadOnly] public int unitTurnsUntilActive;
-
-        public EntityCommandBuffer.Concurrent CommandBuffer;
-
-        public void Execute(Entity entity, int index, [ReadOnly] ref UnitSpawner_Data unitSpawner)
-        {
-            for (int i = 0; i < unitPositionsArray.Length; i++)
-            {
-                Entity instance;
-                instance = CommandBuffer.Instantiate(index, unitSpawner.ZombieUnit_Prefab);
-                CommandBuffer.SetComponent(index, instance, new Translation { Value = unitPositionsArray[i] });
-                CommandBuffer.AddComponent(index, instance, new GridPosition { Value = new int3(unitPositionsArray[i]) });
-                CommandBuffer.AddComponent(index, instance, new NextGridPosition { Value = new int3(unitPositionsArray[i]) });
-                CommandBuffer.AddComponent(index, instance, new Health { Value = unitHealth });
-                CommandBuffer.AddComponent(index, instance, new HealthRange { Value = 100 });
-                CommandBuffer.AddComponent(index, instance, new Damage { Value = unitDamage });
-                CommandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = unitTurnsUntilActive });
-                CommandBuffer.AddComponent(index, instance, new Zombie());
-                CommandBuffer.AddComponent(index, instance, new DynamicCollidable());
-                CommandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
-            }
-        }
-
-    }
-
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
-    {
-        var gridPositionArray = m_HumansGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var healthArray = m_HumansGroup.ToComponentDataArray<Health>(Allocator.TempJob);
-
-        var unitPositions = new List<int3>();
-
-        for (int i = 0; i < healthArray.Length; i++)
-        {
-            if (healthArray[i].Value <= 0)
-            {
-                unitPositions.Add(gridPositionArray[i].Value);
-            }
-        }
-
-        if (unitPositions.Count > 0)
-        {
-            var spawnJob = new SpawnJob
-            {
-                unitPositionsArray = new NativeArray<int3>(unitPositions.ToArray(), Allocator.TempJob),
-                unitHealth = GameController.instance.zombieStartingHealth,
-                unitDamage = GameController.instance.zombieDamage,
-                unitTurnsUntilActive = GameController.instance.zombieTurnDelay,
-                CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
-            }.Schedule(this, inputDeps);
-
-            m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
-
-            gridPositionArray.Dispose();
-            healthArray.Dispose();
-
-            return spawnJob;
-        }
-
-        gridPositionArray.Dispose();
-        healthArray.Dispose();
-
-        return inputDeps;
-    }
+    private NativeArray<UnitSpawner_Data> m_UnitSpawnerArray;
 
     protected override void OnCreate()
     {
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+    }
 
-        m_HumansGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(Human)),
-            ComponentType.ReadOnly(typeof(GridPosition)),
-            ComponentType.ReadOnly(typeof(Health))
-        );
+    protected override void OnStartRunning()
+    {
+        m_UnitSpawnerArray = EntityManager.CreateEntityQuery(typeof(UnitSpawner_Data)).ToComponentDataArray<UnitSpawner_Data>(Allocator.Persistent);
+    }
+
+    protected override void OnStopRunning()
+    {
+        m_UnitSpawnerArray.Dispose();
+    }
+
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    {
+        var commandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+        var unitSpawner = m_UnitSpawnerArray[0];
+        var unitHealth = GameController.instance.zombieStartingHealth;
+        var unitDamage = GameController.instance.zombieDamage;
+        var unitTurnsUntilActive = GameController.instance.zombieTurnDelay;
+
+        var spawnJob = Entities
+            .WithName("SpawnZombies")
+            .WithAll<Human>()
+            .WithBurst()
+            .ForEach((Entity entity, int entityInQueryIndex, in Health health, in GridPosition gridPosition) =>
+                {
+                    if (health.Value <= 0)
+                    {
+                        commandBuffer.DestroyEntity(entityInQueryIndex, entity);
+
+                        var instance = commandBuffer.Instantiate(entityInQueryIndex, unitSpawner.ZombieUnit_Prefab);
+                        commandBuffer.SetComponent(entityInQueryIndex, instance, new Translation { Value = gridPosition.Value });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = gridPosition.Value });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = gridPosition.Value });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = unitHealth });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new HealthRange { Value = 100 });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = unitDamage });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = unitTurnsUntilActive });
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new Zombie());
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
+                        commandBuffer.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
+                    }
+                })
+            .Schedule(inputDeps);
+
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
+
+        return spawnJob;
     }
 }
