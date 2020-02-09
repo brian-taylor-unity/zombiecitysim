@@ -29,9 +29,10 @@ public class HashCollidablesSystem : JobComponentSystem
             var parallelWriter = m_StaticCollidableHashMap.AsParallelWriter();
 
             m_StaticCollidableJobHandle = Entities
-                .WithStoreEntityQueryInField(ref m_StaticCollidableEntityQuery)
+                .WithName("HashStaticCollidables")
                 .WithAll<StaticCollidable>()
                 .WithChangeFilter<StaticCollidable>()
+                .WithStoreEntityQueryInField(ref m_StaticCollidableEntityQuery)
                 .WithBurst()
                 .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                     {
@@ -51,8 +52,9 @@ public class HashCollidablesSystem : JobComponentSystem
             var parallelWriter = m_DynamicCollidableHashMap.AsParallelWriter();
 
             m_DynamicCollidableJobHandle = Entities
-                .WithStoreEntityQueryInField(ref m_DynamicCollidableEntityQuery)
+                .WithName("HashDynamicCollidables")
                 .WithAll<DynamicCollidable>()
+                .WithStoreEntityQueryInField(ref m_DynamicCollidableEntityQuery)
                 .WithBurst()
                 .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                 {

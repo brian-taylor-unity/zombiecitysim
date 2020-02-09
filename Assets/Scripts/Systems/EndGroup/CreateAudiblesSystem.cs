@@ -6,16 +6,16 @@ using Unity.Mathematics;
 [UpdateInGroup(typeof(EndGroup))]
 public class CreateAudiblesSystem : JobComponentSystem
 {
-    private NativeHashMap<int, int> m_FollowTargetHashMap;
     private EntityQuery query;
     private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
+    private NativeHashMap<int, int> m_FollowTargetHashMap;
 
     protected override void OnCreate()
     {
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    protected override void OnStopRunning()
+    protected override void OnDestroy()
     {
         if (m_FollowTargetHashMap.IsCreated)
             m_FollowTargetHashMap.Dispose();
