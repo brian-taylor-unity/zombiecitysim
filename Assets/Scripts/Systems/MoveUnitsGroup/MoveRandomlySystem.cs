@@ -1,5 +1,4 @@
-﻿using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -17,6 +16,7 @@ public class MoveRandomlySystem : JobComponentSystem
         var tick = UnityEngine.Time.frameCount;
         var moveRandomlyJobHandle = Entities
             .WithName("MoveRandomly")
+            .WithAll<MoveRandomly>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithBurst()

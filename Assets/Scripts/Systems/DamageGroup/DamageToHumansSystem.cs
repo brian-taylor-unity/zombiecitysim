@@ -7,7 +7,6 @@ using Unity.Mathematics;
 public class DamageToHumansSystem : JobComponentSystem
 {
     private EntityQuery query;
-
     private NativeMultiHashMap<int, int> m_DamageToHumansHashMap;
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)

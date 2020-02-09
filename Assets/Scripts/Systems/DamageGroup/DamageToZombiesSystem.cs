@@ -32,22 +32,22 @@ public class DamageToZombiesSystem : JobComponentSystem
             .WithChangeFilter<TurnsUntilActive>()
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
-            {
-                if (turnsUntilActive.Value != 0)
-                    return;
-
-                for (int z = -1; z <= 1; z++)
                 {
-                    for (int x = -1; x <= 1; x++)
+                    if (turnsUntilActive.Value != 0)
+                        return;
+
+                    for (int z = -1; z <= 1; z++)
                     {
-                        if (!(x == 0 && z == 0))
+                        for (int x = -1; x <= 1; x++)
                         {
-                            int damageKey = (int)math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
-                            parallelWriter.Add(damageKey, damage.Value);
+                            if (!(x == 0 && z == 0))
+                            {
+                                int damageKey = (int)math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
+                                parallelWriter.Add(damageKey, damage.Value);
+                            }
                         }
                     }
-                }
-            })
+                })
             .Schedule(inputDeps);
 
         var dealDamageToZombiesJobHandle = Entities
@@ -56,22 +56,22 @@ public class DamageToZombiesSystem : JobComponentSystem
             .WithReadOnly(hashMap)
             .WithBurst()
             .ForEach((ref Health health, in GridPosition gridPosition) =>
-            {
-                int myHealth = health.Value;
-
-                int gridPositionHash = (int)math.hash(new int3(gridPosition.Value));
-                if (hashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
                 {
-                    myHealth -= damage;
+                    int myHealth = health.Value;
 
-                    while (hashMap.TryGetNextValue(out damage, ref it))
+                    int gridPositionHash = (int)math.hash(new int3(gridPosition.Value));
+                    if (hashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
                     {
                         myHealth -= damage;
-                    }
-                }
 
-                health = new Health { Value = myHealth };
-            })
+                        while (hashMap.TryGetNextValue(out damage, ref it))
+                        {
+                            myHealth -= damage;
+                        }
+                    }
+
+                    health = new Health { Value = myHealth };
+                })
             .Schedule(calculateDamageFromHumansJobHandle);
 
         return dealDamageToZombiesJobHandle;
