@@ -1,5 +1,4 @@
-﻿using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -7,10 +6,17 @@ using Unity.Mathematics;
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 public class MoveTowardsTargetSystem : JobComponentSystem
 {
+    private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
+
     private EntityQuery m_FollowTargetQuery;
     private NativeMultiHashMap<int, int> m_FollowTargetHashMap;
     private EntityQuery m_AudibleQuery;
     private NativeMultiHashMap<int, int> m_AudibleHashMap;
+
+    protected override void OnCreate()
+    {
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+    }
 
     protected override void OnStopRunning()
     {
@@ -70,6 +76,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var audiblesArray = m_AudibleQuery.ToComponentDataArray<Audible>(Allocator.TempJob);
         var followTargetHashMap = m_FollowTargetHashMap;
         var audibleHashMap = m_AudibleHashMap;
+        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+        var audibleArchetype = Archetypes.AudibleArchetype;
 
         var moveTowardsTargetJobHandle = Entities
             .WithName("MoveTowardsTargets")
@@ -90,6 +98,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     // Get nearest visible target
                     // Check all grid positions that are checkDist away in the x or y direction
                     bool foundTarget = false;
+                    bool foundBySight = false;
                     int3 nearestTarget = myGridPositionValue;
                     for (int checkDist = 1; checkDist <= viewDistance && !foundTarget; checkDist++)
                     {
@@ -100,7 +109,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             {
                                 if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                                 {
-                                    int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                                    var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                                     int targetKey = (int)math.hash(targetGridPosition);
                                     if (followTargetHashMap.TryGetFirstValue(targetKey, out _, out _))
@@ -112,6 +121,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                         nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
 
                                         foundTarget = true;
+                                        foundBySight = true;
                                     }
                                 }
                             }
@@ -128,7 +138,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             {
                                 if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                                 {
-                                    int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                                    var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                                     int targetKey = (int)math.hash(targetGridPosition);
                                     if (audibleHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
@@ -203,10 +213,18 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                         }
                     }
 
+                    if (foundBySight)
+                    {
+                        Entity audibleEntity = Commands.CreateEntity(entityInQueryIndex, audibleArchetype);
+                        Commands.SetComponent(entityInQueryIndex, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = nearestTarget, Age = 0 });
+                    }
+
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })
             .WithDeallocateOnJobCompletion(audiblesArray)
             .Schedule(movementBarrierHandle);
+
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(moveTowardsTargetJobHandle);
 
         return moveTowardsTargetJobHandle;
     }
