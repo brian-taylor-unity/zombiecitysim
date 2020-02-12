@@ -7,29 +7,51 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
 public class DamageToZombiesSystem : JobComponentSystem
 {
-    private EntityQuery query;
+    private EntityQuery zombiesQuery;
+    private EntityQuery humansQuery;
+    private NativeHashMap<int, int> m_ZombiesHashMap;
     private NativeMultiHashMap<int, int> m_DamageToZombiesHashMap;
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var humanCount = query.CalculateEntityCount();
+        var zombieCount = zombiesQuery.CalculateEntityCount();
+        var humanCount = humansQuery.CalculateEntityCount();
 
-        if (humanCount == 0)
+        if (zombieCount == 0 || humanCount == 0)
             return inputDeps;
 
+        if (m_ZombiesHashMap.IsCreated)
+            m_ZombiesHashMap.Dispose();
         if (m_DamageToZombiesHashMap.IsCreated)
             m_DamageToZombiesHashMap.Dispose();
 
+        m_ZombiesHashMap = new NativeHashMap<int, int>(zombieCount, Allocator.TempJob);
         m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
 
-        var hashMap = m_DamageToZombiesHashMap;
-        var parallelWriter = hashMap.AsParallelWriter();
+        var zombieHashMap = m_ZombiesHashMap;
+        var zombieHashMapParallelWriter = m_ZombiesHashMap.AsParallelWriter();
+
+        var hashZombiesJobHandle = Entities
+            .WithName("HashZombies")
+            .WithStoreEntityQueryInField(ref zombiesQuery)
+            .WithAll<Zombie>()
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
+                {
+                    var hash = (int)math.hash(gridPosition.Value);
+                    zombieHashMapParallelWriter.TryAdd(hash, entityInQueryIndex);
+                })
+            .Schedule(inputDeps);
+
+        var damageHashMap = m_DamageToZombiesHashMap;
+        var damageHashMapParallelWriter = damageHashMap.AsParallelWriter();
 
         var calculateDamageFromHumansJobHandle = Entities
             .WithName("CalculateDamageFromHumans")
-            .WithStoreEntityQueryInField(ref query)
+            .WithStoreEntityQueryInField(ref humansQuery)
             .WithAll<Human>()
             .WithChangeFilter<TurnsUntilActive>()
+            .WithReadOnly(zombieHashMap)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
                 {
@@ -43,28 +65,29 @@ public class DamageToZombiesSystem : JobComponentSystem
                             if (!(x == 0 && z == 0))
                             {
                                 int damageKey = (int)math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
-                                parallelWriter.Add(damageKey, damage.Value);
+                                if (zombieHashMap.TryGetValue(damageKey, out _))
+                                    damageHashMapParallelWriter.Add(damageKey, damage.Value);
                             }
                         }
                     }
                 })
-            .Schedule(inputDeps);
+            .Schedule(hashZombiesJobHandle);
 
         var dealDamageToZombiesJobHandle = Entities
             .WithName("DealDamageToZombies")
             .WithAll<Zombie>()
-            .WithReadOnly(hashMap)
+            .WithReadOnly(damageHashMap)
             .WithBurst()
             .ForEach((ref Health health, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
 
                     int gridPositionHash = (int)math.hash(new int3(gridPosition.Value));
-                    if (hashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
+                    if (damageHashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
                     {
                         myHealth -= damage;
 
-                        while (hashMap.TryGetNextValue(out damage, ref it))
+                        while (damageHashMap.TryGetNextValue(out damage, ref it))
                         {
                             myHealth -= damage;
                         }
@@ -79,6 +102,8 @@ public class DamageToZombiesSystem : JobComponentSystem
 
     protected override void OnStopRunning()
     {
+        if (m_ZombiesHashMap.IsCreated)
+            m_ZombiesHashMap.Dispose();
         if (m_DamageToZombiesHashMap.IsCreated)
             m_DamageToZombiesHashMap.Dispose();
     }
