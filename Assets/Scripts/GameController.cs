@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,6 +9,14 @@ public class GameController : MonoBehaviour
 
     public GameObject initialTileUnitSpawner;
     public GameObject zombieUnitSpawner;
+
+    public RenderMesh Zombie_75_RenderMesh;
+    public RenderMesh Zombie_50_RenderMesh;
+    public RenderMesh Zombie_25_RenderMesh;
+
+    public RenderMesh Human_75_RenderMesh;
+    public RenderMesh Human_50_RenderMesh;
+    public RenderMesh Human_25_RenderMesh;
 
     public int numTilesX = 130;
     public int numTilesY = 130;

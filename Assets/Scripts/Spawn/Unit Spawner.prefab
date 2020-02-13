@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7308855596244015268}
   - component: {fileID: 7308855596244015275}
   m_Layer: 0
-  m_Name: Zombie Unit Spawner
+  m_Name: Unit Spawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -58,4 +58,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ZombieUnit_Prefab: {fileID: 7201262117079363913, guid: 12c75429bd0915d44bb4c41f3b005dae,
+    type: 3}
+  HumanUnit_Full_Prefab: {fileID: 7201262117079363913, guid: 51f3b02f63dc2be488ce8cf052ad6a9d,
+    type: 3}
+  HumanUnit_50_Prefab: {fileID: 7201262117079363913, guid: 5941b9c723fe6ff4b8ffc4d3b8ff40fc,
     type: 3}

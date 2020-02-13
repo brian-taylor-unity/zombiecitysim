@@ -16,7 +16,7 @@ public class UnitSpawner_Authoring : MonoBehaviour, IDeclareReferencedPrefabs, I
     {
         var unitSpawnerData = new UnitSpawner_Data
         {
-            ZombieUnit_Prefab = conversionSystem.GetPrimaryEntity(ZombieUnit_Prefab)
+            ZombieUnit_Prefab = conversionSystem.GetPrimaryEntity(ZombieUnit_Prefab),
         };
         dstManager.AddComponentData(entity, unitSpawnerData);
     }

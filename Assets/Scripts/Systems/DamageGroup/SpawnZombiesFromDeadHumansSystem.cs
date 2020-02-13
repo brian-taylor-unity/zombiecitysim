@@ -37,7 +37,7 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
             .WithName("SpawnZombies")
             .WithAll<Human>()
             .WithBurst()
-            .ForEach((Entity entity, int entityInQueryIndex, in Health health, in GridPosition gridPosition) =>
+            .ForEach((int entityInQueryIndex, Entity entity, in Health health, in GridPosition gridPosition) =>
                 {
                     if (health.Value <= 0)
                     {
@@ -57,9 +57,20 @@ public class SpawnZombiesFromDeadHumansSystem : JobComponentSystem
                     }
                 })
             .Schedule(inputDeps);
-
         m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
 
-        return spawnJob;
+        var killJob = Entities
+            .WithName("KillZombies")
+            .WithAll<Zombie>()
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
+                {
+                    if (health.Value <= 0)
+                        commandBuffer.DestroyEntity(entityInQueryIndex, entity);
+                })
+            .Schedule(spawnJob);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(killJob);
+
+        return killJob;
     }
 }

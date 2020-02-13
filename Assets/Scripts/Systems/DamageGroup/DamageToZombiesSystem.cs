@@ -78,7 +78,7 @@ public class DamageToZombiesSystem : JobComponentSystem
             .WithAll<Zombie>()
             .WithReadOnly(damageHashMap)
             .WithBurst()
-            .ForEach((ref Health health, in GridPosition gridPosition) =>
+            .ForEach((ref Health health, ref HealthRange healthRange, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
 
@@ -91,9 +91,17 @@ public class DamageToZombiesSystem : JobComponentSystem
                         {
                             myHealth -= damage;
                         }
+
+                        if (health.Value > 75 && myHealth <= 75)
+                            healthRange.Value = 75;
+                        if (health.Value > 50 && myHealth <= 50)
+                            healthRange.Value = 50;
+                        if (health.Value > 25 && myHealth <= 25)
+                            healthRange.Value = 25;
+
+                        health.Value = myHealth;
                     }
 
-                    health = new Health { Value = myHealth };
                 })
             .Schedule(calculateDamageFromHumansJobHandle);
 
