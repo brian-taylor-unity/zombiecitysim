@@ -39,6 +39,7 @@ public class KillAndSpawnSystem : JobComponentSystem
         var spawnJob = Entities
             .WithName("SpawnZombies")
             .WithAll<Human>()
+            .WithChangeFilter<Health>()
             .WithBurst()
             .ForEach((int entityInQueryIndex, Entity entity, in Health health, in GridPosition gridPosition) =>
                 {
@@ -62,6 +63,7 @@ public class KillAndSpawnSystem : JobComponentSystem
 
         var killJob = Entities
             .WithName("KillUnits")
+            .WithChangeFilter<Health>()
             .WithBurst()
             .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
                 {
