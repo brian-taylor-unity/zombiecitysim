@@ -1,80 +1,73 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
+using Unity.Jobs;
 using Unity.Rendering;
 
 [UpdateInGroup(typeof(EndGroup))]
-public class UpdateRenderMeshSystem : ComponentSystem
+public class UpdateRenderMeshSystem : JobComponentSystem
 {
-    private EntityQuery m_Humans;
-    private EntityQuery m_Zombies;
+    private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     protected override void OnCreate()
     {
-        m_Humans = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(Human)),
-            ComponentType.ReadOnly(typeof(HealthRange)),
-            typeof(RenderMesh)
-        );
-        m_Humans.AddChangedVersionFilter(typeof(HealthRange));
-
-        m_Zombies = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(Zombie)),
-            ComponentType.ReadOnly(typeof(HealthRange)),
-            typeof(RenderMesh)
-        );
-        m_Zombies.AddChangedVersionFilter(typeof(HealthRange));
+        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 
-    protected override void OnUpdate()
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var humanEntityArray = m_Humans.ToEntityArray(Allocator.TempJob);
-        var humanHealthRangeArray = m_Humans.ToComponentDataArray<HealthRange>(Allocator.TempJob);
+        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
 
-        var zombieEntityArray = m_Zombies.ToEntityArray(Allocator.TempJob);
-        var zombieHealthRangeArray = m_Zombies.ToComponentDataArray<HealthRange>(Allocator.TempJob);
+        var updateHumanRenderMeshJobHandle = Entities
+            .WithName("UpdateHumanRenderMesh")
+            .WithAll<Human>()
+            .WithChangeFilter<HealthRange>()
+            .WithoutBurst()
+            .ForEach((int entityInQueryIndex, Entity entity, in HealthRange healthRange) =>
+                {
+                    if (healthRange.Value == 75)
+                    {
+                        Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                        Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Human_75_RenderMesh);
+                    }
+                    if (healthRange.Value == 50)
+                    {
+                        Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                        Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Human_50_RenderMesh);
+                    }
+                    if (healthRange.Value == 25)
+                    {
+                        Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                        Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Human_25_RenderMesh);
+                    }
+                })
+            .Schedule(inputDeps);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(updateHumanRenderMeshJobHandle);
 
-        for (int i = 0; i < humanEntityArray.Length; i++)
-        {
-            if (humanHealthRangeArray[i].Value == 75)
+        var updateZombieRenderMeshJobHandle = Entities
+            .WithName("UpdateZombieRenderMesh")
+            .WithAll<Zombie>()
+            .WithChangeFilter<HealthRange>()
+            .WithoutBurst()
+            .ForEach((int entityInQueryIndex, Entity entity, in HealthRange healthRange) =>
             {
-                PostUpdateCommands.RemoveComponent(humanEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(humanEntityArray[i], GameController.instance.Human_75_RenderMesh);
-            }
-            if (humanHealthRangeArray[i].Value == 50)
-            {
-                PostUpdateCommands.RemoveComponent(humanEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(humanEntityArray[i], GameController.instance.Human_50_RenderMesh);
-            }
-            if (humanHealthRangeArray[i].Value == 25)
-            {
-                PostUpdateCommands.RemoveComponent(humanEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(humanEntityArray[i], GameController.instance.Human_25_RenderMesh);
-            }
-        }
+                if (healthRange.Value == 75)
+                {
+                    Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                    Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Zombie_75_RenderMesh);
+                }
+                if (healthRange.Value == 50)
+                {
+                    Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                    Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Zombie_50_RenderMesh);
+                }
+                if (healthRange.Value == 25)
+                {
+                    Commands.RemoveComponent(entityInQueryIndex, entity, typeof(RenderMesh));
+                    Commands.AddSharedComponent(entityInQueryIndex, entity, GameController.instance.Zombie_25_RenderMesh);
+                }
+            })
+            .Schedule(updateHumanRenderMeshJobHandle);
+        m_EntityCommandBufferSystem.AddJobHandleForProducer(updateZombieRenderMeshJobHandle);
 
-        for (int i = 0; i < zombieEntityArray.Length; i++)
-        {
-            if (zombieHealthRangeArray[i].Value == 75)
-            {
-                PostUpdateCommands.RemoveComponent(zombieEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(zombieEntityArray[i], GameController.instance.Zombie_75_RenderMesh);
-            }
-            if (zombieHealthRangeArray[i].Value == 50)
-            {
-                PostUpdateCommands.RemoveComponent(zombieEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(zombieEntityArray[i], GameController.instance.Zombie_50_RenderMesh);
-            }
-            if (zombieHealthRangeArray[i].Value == 25)
-            {
-                PostUpdateCommands.RemoveComponent(zombieEntityArray[i], typeof(RenderMesh));
-                PostUpdateCommands.AddSharedComponent(zombieEntityArray[i], GameController.instance.Zombie_25_RenderMesh);
-            }
-        }
-
-        humanEntityArray.Dispose();
-        humanHealthRangeArray.Dispose();
-
-        zombieEntityArray.Dispose();
-        zombieHealthRangeArray.Dispose();
+        return updateZombieRenderMeshJobHandle;
     }
 }

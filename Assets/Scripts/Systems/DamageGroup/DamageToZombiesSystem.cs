@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(SpawnZombiesFromDeadHumansSystem))]
+[UpdateAfter(typeof(KillAndSpawnSystem))]
 public class DamageToZombiesSystem : JobComponentSystem
 {
     private EntityQuery zombiesQuery;
