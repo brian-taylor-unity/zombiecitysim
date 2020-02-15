@@ -59,7 +59,7 @@ public class KillAndSpawnSystem : JobComponentSystem
                     }
                 })
             .Schedule(inputDeps);
-        m_EntityCommandBufferSystemBegin.AddJobHandleForProducer(spawnJob);
+        m_EntityCommandBufferSystemEnd.AddJobHandleForProducer(spawnJob);
 
         var killJob = Entities
             .WithName("KillUnits")
