@@ -11,7 +11,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     private EntityQuery m_FollowTargetQuery;
     private NativeMultiHashMap<int, int> m_FollowTargetHashMap;
     private EntityQuery m_AudibleQuery;
-    private NativeMultiHashMap<int, int> m_AudibleHashMap;
+    private NativeMultiHashMap<int, int3> m_AudibleHashMap;
 
     protected override void OnCreate()
     {
@@ -60,7 +60,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             m_AudibleHashMap.Dispose();
 
         var audibleCount = m_AudibleQuery.CalculateEntityCount();
-        m_AudibleHashMap = new NativeMultiHashMap<int, int>(audibleCount, Allocator.TempJob);
+        m_AudibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
 
         var audibleParallelWriter = m_AudibleHashMap.AsParallelWriter();
         var hashAudiblesJobHandle = Entities
@@ -70,7 +70,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             .ForEach((int entityInQueryIndex, in Audible audible) =>
             {
                 var hash = (int)math.hash(audible.GridPositionValue);
-                audibleParallelWriter.Add(hash, entityInQueryIndex);
+                audibleParallelWriter.Add(hash, audible.Target);
             })
             .Schedule(inputDeps);
 
@@ -78,7 +78,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         var viewDistance = GameController.instance.zombieVisionDistance;
         var hearingDistance = GameController.instance.zombieHearingDistance;
-        var audiblesArray = m_AudibleQuery.ToComponentDataArray<Audible>(Allocator.TempJob);
         var followTargetHashMap = m_FollowTargetHashMap;
         var audibleHashMap = m_AudibleHashMap;
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
@@ -146,14 +145,13 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                     var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                                     int targetKey = (int)math.hash(targetGridPosition);
-                                    if (audibleHashMap.TryGetFirstValue(targetKey, out int audibleIndex, out _))
+                                    if (audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
                                     {
-                                        var audiblePointingToValue = audiblesArray[audibleIndex].Target;
-                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audiblePointingToValue));
+                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audibleTarget));
                                         var nearest = distance < nearestDistance;
 
                                         nearestDistance = math.select(nearestDistance, distance, nearest);
-                                        nearestTarget = math.select(nearestTarget, audiblePointingToValue, nearest);
+                                        nearestTarget = math.select(nearestTarget, audibleTarget, nearest);
 
                                         foundTarget = true;
                                     }
@@ -226,7 +224,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })
-            .WithDeallocateOnJobCompletion(audiblesArray)
             .Schedule(movementBarrierHandle);
 
         m_EntityCommandBufferSystem.AddJobHandleForProducer(moveTowardsTargetJobHandle);
