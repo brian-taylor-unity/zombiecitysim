@@ -4,7 +4,6 @@ using Unity.Jobs;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(DamageToHumansSystem))]
 public class KillAndSpawnSystem : JobComponentSystem
 {
     private BeginSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemBegin;

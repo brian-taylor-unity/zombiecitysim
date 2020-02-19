@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(KillAndSpawnSystem))]
+[UpdateAfter(typeof(DamageToHumansSystem))]
 public class DamageToZombiesSystem : JobComponentSystem
 {
     private EntityQuery zombiesQuery;
@@ -26,7 +26,10 @@ public class DamageToZombiesSystem : JobComponentSystem
             m_DamageToZombiesHashMap.Dispose();
 
         m_ZombiesHashMap = new NativeHashMap<int, int>(zombieCount, Allocator.TempJob);
-        m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+        if (humanCount < zombieCount)
+            m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+        else
+            m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
 
         var zombieHashMap = m_ZombiesHashMap;
         var zombieHashMapParallelWriter = m_ZombiesHashMap.AsParallelWriter();
