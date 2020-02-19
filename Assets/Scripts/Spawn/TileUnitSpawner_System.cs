@@ -220,7 +220,6 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new HealthRange { Value = 100 });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamagehNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[0] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Human());
@@ -234,7 +233,6 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new HealthRange { Value = 100 });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamagehNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[1] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Zombie());

@@ -49,7 +49,6 @@ public class KillAndSpawnSystem : JobComponentSystem
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = gridPosition.Value });
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = gridPosition.Value });
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Health { Value = unitHealth });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new HealthRange { Value = 100 });
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Damage { Value = unitDamage });
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = unitTurnsUntilActive });
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Zombie());

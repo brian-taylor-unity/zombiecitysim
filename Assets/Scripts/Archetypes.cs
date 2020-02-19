@@ -19,7 +19,6 @@ public class Archetypes
             typeof(FollowTarget),
             typeof(MoveRandomly),
             typeof(Health),
-            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilActive)
         );
@@ -30,7 +29,6 @@ public class Archetypes
             typeof(DynamicCollidable),
             typeof(MoveTowardsTarget),
             typeof(Health),
-            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilActive)
         );
