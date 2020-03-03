@@ -10,6 +10,11 @@ public class MoveRandomlySystem : JobComponentSystem
 {
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
+        inputDeps = JobHandle.CombineDependencies(inputDeps,
+            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
+        );
+
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 

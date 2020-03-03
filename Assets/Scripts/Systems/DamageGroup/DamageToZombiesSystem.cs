@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(KillAndSpawnSystem))]
+[UpdateAfter(typeof(DamageToHumansSystem))]
 public class DamageToZombiesSystem : JobComponentSystem
 {
     private EntityQuery zombiesQuery;
@@ -26,7 +26,10 @@ public class DamageToZombiesSystem : JobComponentSystem
             m_DamageToZombiesHashMap.Dispose();
 
         m_ZombiesHashMap = new NativeHashMap<int, int>(zombieCount, Allocator.TempJob);
-        m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+        if (humanCount < zombieCount)
+            m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+        else
+            m_DamageToZombiesHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
 
         var zombieHashMap = m_ZombiesHashMap;
         var zombieHashMapParallelWriter = m_ZombiesHashMap.AsParallelWriter();
@@ -78,7 +81,7 @@ public class DamageToZombiesSystem : JobComponentSystem
             .WithAll<Zombie>()
             .WithReadOnly(damageHashMap)
             .WithBurst()
-            .ForEach((ref Health health, ref HealthRange healthRange, in GridPosition gridPosition) =>
+            .ForEach((ref Health health, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
 
@@ -91,13 +94,6 @@ public class DamageToZombiesSystem : JobComponentSystem
                         {
                             myHealth -= damage;
                         }
-
-                        if (health.Value > 75 && myHealth <= 75)
-                            healthRange.Value = 75;
-                        if (health.Value > 50 && myHealth <= 50)
-                            healthRange.Value = 50;
-                        if (health.Value > 25 && myHealth <= 25)
-                            healthRange.Value = 25;
 
                         health.Value = myHealth;
                     }

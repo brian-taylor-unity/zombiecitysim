@@ -19,7 +19,6 @@ public class Archetypes
             typeof(FollowTarget),
             typeof(MoveEscape),
             typeof(Health),
-            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilActive)
         );
@@ -31,7 +30,6 @@ public class Archetypes
             typeof(MoveTowardsTarget),
             typeof(MoveEscapeTarget),
             typeof(Health),
-            typeof(HealthRange),
             typeof(Damage),
             typeof(TurnsUntilActive)
         );
