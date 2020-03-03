@@ -22,6 +22,7 @@ public class MoveRandomlySystem : JobComponentSystem
         var moveRandomlyJobHandle = Entities
             .WithName("MoveRandomly")
             .WithAll<MoveRandomly>()
+            .WithChangeFilter<TurnsUntilActive>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithBurst()
@@ -60,7 +61,7 @@ public class MoveRandomlySystem : JobComponentSystem
                     int randomDirIndex = rand.NextInt(0, 4);
 
                     bool moved = false;
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 4 && !moved; i++)
                     {
                         int direction = (randomDirIndex + i) % 4;
                         switch (direction)
@@ -94,9 +95,6 @@ public class MoveRandomlySystem : JobComponentSystem
                                 }
                                 break;
                         }
-
-                        if (moved)
-                            break;
                     }
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })

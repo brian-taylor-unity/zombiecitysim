@@ -82,10 +82,12 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var audibleHashMap = m_AudibleHashMap;
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
         var audibleArchetype = Archetypes.AudibleArchetype;
+        var tick = UnityEngine.Time.frameCount;
 
         var moveTowardsTargetJobHandle = Entities
             .WithName("MoveTowardsTargets")
             .WithAll<MoveTowardsTarget>()
+            .WithChangeFilter<TurnsUntilActive>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(followTargetHashMap)
@@ -104,7 +106,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     bool foundTarget = false;
                     bool foundBySight = false;
                     int3 nearestTarget = myGridPositionValue;
-                    for (int checkDist = 1; checkDist <= viewDistance && !foundTarget; checkDist++)
+                    for (int checkDist = 1; (checkDist <= viewDistance || checkDist <= hearingDistance) && !foundTarget; checkDist++)
                     {
                         float nearestDistance = (checkDist + 1) * (checkDist + 1);
                         for (int z = -checkDist; z <= checkDist; z++)
@@ -114,9 +116,9 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                 if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                                 {
                                     var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-
                                     int targetKey = (int)math.hash(targetGridPosition);
-                                    if (followTargetHashMap.TryGetFirstValue(targetKey, out _, out _))
+
+                                    if (checkDist <= viewDistance && followTargetHashMap.TryGetFirstValue(targetKey, out _, out _))
                                     {
                                         var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                         var nearest = distance < nearestDistance;
@@ -127,27 +129,10 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                         foundTarget = true;
                                         foundBySight = true;
                                     }
-                                }
-                            }
-                        }
-                    }
 
-                    // Check for Audible entities in range
-                    for (int checkDist = 1; checkDist <= hearingDistance && !foundTarget; checkDist++)
-                    {
-                        float nearestDistance = 300;
-                        for (int z = -checkDist; z <= checkDist; z++)
-                        {
-                            for (int x = -checkDist; x <= checkDist; x++)
-                            {
-                                if (math.abs(x) == checkDist || math.abs(z) == checkDist)
-                                {
-                                    var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-
-                                    int targetKey = (int)math.hash(targetGridPosition);
-                                    if (audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
+                                    if (!foundBySight && checkDist <= hearingDistance && audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
                                     {
-                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(audibleTarget));
+                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                         var nearest = distance < nearestDistance;
 
                                         nearestDistance = math.select(nearestDistance, distance, nearest);
@@ -160,22 +145,34 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                         }
                     }
 
+                    var leftMoveAvail = true;
+                    var rightMoveAvail = true;
+                    var downMoveAvail = true;
+                    var upMoveAvail = true;
+
+                    int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+                    int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+                    int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+                    int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+
+                    if (staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                        leftMoveAvail = false;
+                    if (staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                        rightMoveAvail = false;
+                    if (staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                        downMoveAvail = false;
+                    if (staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                        upMoveAvail = false;
+
                     if (foundTarget)
                     {
                         int3 direction = nearestTarget - myGridPositionValue;
-
-                        // Check if space is already occupied
-                        int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-                        int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-                        int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-                        int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
                         if (math.abs(direction.x) >= math.abs(direction.z))
                         {
                             // Move horizontally
                             if (direction.x < 0)
                             {
-                                if (!staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
-                                    !dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                                if (leftMoveAvail)
                                 {
                                     myGridPositionValue.x--;
                                     moved = true;
@@ -183,8 +180,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             }
                             else if (direction.x > 0)
                             {
-                                if (!staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
-                                    !dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                                if (rightMoveAvail)
                                 {
                                     myGridPositionValue.x++;
                                     moved = true;
@@ -197,8 +193,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             // Move vertically
                             if (direction.z < 0)
                             {
-                                if (!staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
-                                    !dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                                if (downMoveAvail)
                                 {
                                     myGridPositionValue.z--;
                                     moved = true;
@@ -206,12 +201,80 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                             }
                             else if (direction.z > 0)
                             {
-                                if (!staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
-                                    !dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                                if (upMoveAvail)
                                 {
                                     myGridPositionValue.z++;
                                     moved = true;
                                 }
+                            }
+
+                            // Unit  wanted to move vertically but couldn't, so check if it wants to move horizontally
+                            if (!moved)
+                            {
+                                // Move horizontally
+                                if (direction.x < 0)
+                                {
+                                    if (leftMoveAvail)
+                                    {
+                                        myGridPositionValue.x--;
+                                        moved = true;
+                                    }
+                                }
+                                else if (direction.x > 0)
+                                {
+                                    if (rightMoveAvail)
+                                    {
+                                        myGridPositionValue.x++;
+                                        moved = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!moved)
+                    {
+                        // Pick a random direction to move
+                        uint seed = (uint)(tick * (int)math.hash(myGridPositionValue) * entityInQueryIndex);
+                        if (seed == 0)
+                            seed += (uint)(tick + entityInQueryIndex);
+
+                        Random rand = new Random(seed);
+                        int randomDirIndex = rand.NextInt(0, 4);
+
+                        for (int i = 0; i < 4 && !moved; i++)
+                        {
+                            int direction = (randomDirIndex + i) % 4;
+                            switch (direction)
+                            {
+                                case 0:
+                                    if (upMoveAvail)
+                                    {
+                                        myGridPositionValue.z += 1;
+                                        moved = true;
+                                    }
+                                    break;
+                                case 1:
+                                    if (rightMoveAvail)
+                                    {
+                                        myGridPositionValue.x += 1;
+                                        moved = true;
+                                    }
+                                    break;
+                                case 2:
+                                    if (downMoveAvail)
+                                    {
+                                        myGridPositionValue.z -= 1;
+                                        moved = true;
+                                    }
+                                    break;
+                                case 3:
+                                    if (leftMoveAvail)
+                                    {
+                                        myGridPositionValue.x -= 1;
+                                        moved = true;
+                                    }
+                                    break;
                             }
                         }
                     }
