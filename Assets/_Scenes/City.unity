@@ -2664,7 +2664,7 @@ MonoBehaviour:
   numStreets: 1000
   numHumans: 10000
   humanStartingHealth: 100
-  humanDamage: 2
+  humanDamage: 0
   humanTurnDelay: 1
   numZombies: 5
   zombieStartingHealth: 70
