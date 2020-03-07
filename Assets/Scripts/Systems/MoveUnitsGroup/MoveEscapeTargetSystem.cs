@@ -41,10 +41,6 @@ public class MoveEscapeTargetSystem : JobComponentSystem
             {
                 return false;
             }
-            if (dynamicCollidableHashMap.TryGetFirstValue(key, out _, out _))
-            {
-                return false;
-            }
         }
 
         return true;
@@ -88,7 +84,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(moveEscapeTargetHashMap)
-            .WithoutBurst()
+            .WithBurst()
             .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
             {
                 if (turnsUntilActive.Value != 0)
@@ -130,8 +126,6 @@ public class MoveEscapeTargetSystem : JobComponentSystem
 
                 if (foundTarget)
                 {
-                    UnityEngine.Debug.Log("myPos: " + myGridPositionValue + " averageTarget: " + averageTarget);
-
                     int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
 
                     // Check if space is already occupied
@@ -151,7 +145,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                                 moved = true;
                             }
                         }
-                        else if (direction.x > 0)
+                        else
                         {
                             if (!staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
                                 !dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
@@ -174,7 +168,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                                 moved = true;
                             }
                         }
-                        else if (direction.z > 0)
+                        else
                         {
                             if (!staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
                                 !dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
