@@ -54,6 +54,7 @@ public class KillAndSpawnSystem : JobComponentSystem
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Zombie());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
+                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
                     }
                 })
             .Schedule(inputDeps);

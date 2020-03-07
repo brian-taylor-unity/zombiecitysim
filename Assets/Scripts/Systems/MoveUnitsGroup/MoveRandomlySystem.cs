@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using Random = Unity.Mathematics.Random;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-[UpdateAfter(typeof(MoveTowardsTargetSystem))]
+[UpdateBefore(typeof(MoveTowardsTargetSystem))]
 public class MoveRandomlySystem : JobComponentSystem
 {
     protected override JobHandle OnUpdate(JobHandle inputDeps)

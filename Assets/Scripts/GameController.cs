@@ -25,6 +25,7 @@ public class GameController : MonoBehaviour
     public int numHumans = 1000;
     public int humanStartingHealth = 100;
     public int humanDamage = 0;
+    public int humanVisionDistance = 10;
     public int humanTurnDelay = 1;
 
     public int numZombies = 1;

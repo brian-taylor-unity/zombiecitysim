@@ -9,7 +9,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
     private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     private EntityQuery m_FollowTargetQuery;
-    private NativeMultiHashMap<int, int> m_FollowTargetHashMap;
+    private NativeHashMap<int, int> m_FollowTargetHashMap;
     private EntityQuery m_AudibleQuery;
     private NativeMultiHashMap<int, int3> m_AudibleHashMap;
 
@@ -41,7 +41,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             m_FollowTargetHashMap.Dispose();
 
         var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
-        m_FollowTargetHashMap = new NativeMultiHashMap<int, int>(followTargetCount, Allocator.TempJob);
+        m_FollowTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
 
         var followTargetParallelWriter = m_FollowTargetHashMap.AsParallelWriter();
         var hashFollowTargetGridPositionsJobHandle = Entities
@@ -52,7 +52,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                 {
                     var hash = (int)math.hash(gridPosition.Value);
-                    followTargetParallelWriter.Add(hash, entityInQueryIndex);
+                    followTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
                 })
             .Schedule(inputDeps);
 
@@ -116,7 +116,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                     var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
 
                                     int targetKey = (int)math.hash(targetGridPosition);
-                                    if (followTargetHashMap.TryGetFirstValue(targetKey, out _, out _))
+                                    if (followTargetHashMap.TryGetValue(targetKey, out _))
                                     {
                                         var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                         var nearest = distance < nearestDistance;
