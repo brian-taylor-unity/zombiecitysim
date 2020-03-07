@@ -1,123 +1,58 @@
-﻿using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateAfter(typeof(MoveTowardsTargetSystem))]
 public class ResolveGridMovementSystem : JobComponentSystem
 {
-    private EntityQuery m_MoveUnits;
-    private PrevGridState m_PrevGridState;
+    private EntityQuery query;
+    private NativeMultiHashMap<int, int> m_NextGridPositionHashMap;
 
-    struct PrevGridState
+    protected override void OnStopRunning()
     {
-        public NativeArray<GridPosition> gridPositionArray;
-        public NativeArray<NextGridPosition> nextGridPositionArray;
-        public NativeMultiHashMap<int, int> nextGridPositionHashMap;
-    }
-
-    [BurstCompile]
-    struct HashNextGridPositionsJob : IJobParallelFor
-    {
-        [ReadOnly] public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
-
-        public void Execute(int index)
-        {
-            var hash = GridHash.Hash(nextGridPositions[index].Value);
-            hashMap.Add(hash, index);
-        }
-    }
-
-    [BurstCompile]
-    struct ResolveCollidedMovementJob : IJobNativeMultiHashMapMergedSharedKeyIndices
-    {
-        [ReadOnly] public NativeArray<NextGridPosition> nextGridPositionArray;
-        public NativeArray<GridPosition> gridPositionArray;
-
-        public void ExecuteFirst(int index)
-        {
-            // This was the first unit added
-            gridPositionArray[index] = new GridPosition { Value = nextGridPositionArray[index].Value };
-        }
-
-        public void ExecuteNext(int innerIndex, int index)
-        {
-            // Don't move this unit
-        }
-    }
-
-    [BurstCompile]
-    struct WriteEntityDataJob : IJobForEachWithEntity<GridPosition, NextGridPosition>
-    {
-        [ReadOnly] public NativeArray<GridPosition> gridPositionArray;
-
-        public void Execute(Entity entity, int index, [ReadOnly] ref GridPosition gridPosition, ref NextGridPosition nextGridPosition)
-        {
-            nextGridPosition = new NextGridPosition { Value = gridPositionArray[index].Value };
-        }
+        if (m_NextGridPositionHashMap.IsCreated)
+            m_NextGridPositionHashMap.Dispose();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var gridPositionArray = m_MoveUnits.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var nextGridPositionArray = m_MoveUnits.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-        var nextGridPositionCount = nextGridPositionArray.Length;
-        var nextGridPositionHashMap = new NativeMultiHashMap<int, int>(nextGridPositionCount, Allocator.TempJob);
+        if (m_NextGridPositionHashMap.IsCreated)
+            m_NextGridPositionHashMap.Dispose();
 
-        var nextGridState = new PrevGridState
-        {
-            gridPositionArray = gridPositionArray,
-            nextGridPositionArray = nextGridPositionArray,
-            nextGridPositionHashMap = nextGridPositionHashMap,
-        };
-        if (m_PrevGridState.gridPositionArray.IsCreated)
-            m_PrevGridState.gridPositionArray.Dispose();
-        if (m_PrevGridState.nextGridPositionArray.IsCreated)
-            m_PrevGridState.nextGridPositionArray.Dispose();
-        if (m_PrevGridState.nextGridPositionHashMap.IsCreated)
-            m_PrevGridState.nextGridPositionHashMap.Dispose();
-        m_PrevGridState = nextGridState;
+        var unitCount = query.CalculateEntityCount();
+        m_NextGridPositionHashMap = new NativeMultiHashMap<int, int>(unitCount, Allocator.TempJob);
 
-        var hashNextGridPositionsJob = new HashNextGridPositionsJob
-        {
-            nextGridPositions = nextGridPositionArray,
-            hashMap = nextGridPositionHashMap.AsParallelWriter(),
-        };
-        var hashNextGridPositionsJobHandle = hashNextGridPositionsJob.Schedule(nextGridPositionCount, 64, inputDeps);
+        var hashMap = m_NextGridPositionHashMap;
+        var parallelWriter = m_NextGridPositionHashMap.AsParallelWriter();
 
-        var resolveCollidedMovementJob = new ResolveCollidedMovementJob
-        {
-            nextGridPositionArray = nextGridPositionArray,
-            gridPositionArray = gridPositionArray,
-        };
-        var resolveCollidedMovementJobHandle = resolveCollidedMovementJob.Schedule(nextGridPositionHashMap, 64, hashNextGridPositionsJobHandle);
+        var hashNextGridPositionsJobHandle = Entities
+            .WithName("HashNextGridPositions")
+            .WithStoreEntityQueryInField(ref query)
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in NextGridPosition nextGridPosition) =>
+                {
+                    var hash = (int)math.hash(nextGridPosition.Value);
+                    parallelWriter.Add(hash, entityInQueryIndex);
+                })
+            .Schedule(inputDeps);
 
-        var writeEntityDataJob = new WriteEntityDataJob
-        {
-            gridPositionArray = gridPositionArray,
-        };
-        var writeEntityDataJobHandle = writeEntityDataJob.Schedule(m_MoveUnits, resolveCollidedMovementJobHandle);
+        var finalizeMovementJobHandle = Entities
+            .WithName("FinalizeMovement")
+            .WithReadOnly(hashMap)
+            .WithBurst()
+            .ForEach((ref NextGridPosition nextGridPosition, in GridPosition gridPosition) =>
+                {
+                    int hash = (int)math.hash(nextGridPosition.Value);
+                    if (hashMap.TryGetFirstValue(hash, out int index, out var iter))
+                    {
+                        if (hashMap.TryGetNextValue(out _, ref iter))
+                            nextGridPosition.Value = gridPosition.Value;
+                    }
+                })
+            .Schedule(hashNextGridPositionsJobHandle);
 
-        return writeEntityDataJobHandle;
-    }
-
-    protected override void OnCreate()
-    {
-        m_MoveUnits = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(GridPosition)),
-            typeof(NextGridPosition)
-        );
-    }
-
-    protected override void OnStopRunning()
-    {
-        if (m_PrevGridState.gridPositionArray.IsCreated)
-            m_PrevGridState.gridPositionArray.Dispose();
-        if (m_PrevGridState.nextGridPositionArray.IsCreated)
-            m_PrevGridState.nextGridPositionArray.Dispose();
-        if (m_PrevGridState.nextGridPositionHashMap.IsCreated)
-            m_PrevGridState.nextGridPositionHashMap.Dispose();
+        return finalizeMovementJobHandle;
     }
 }

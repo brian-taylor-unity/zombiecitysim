@@ -1,5 +1,4 @@
-﻿using Unity.Burst;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -8,252 +7,189 @@ using Unity.Mathematics;
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
 public class MoveEscapeTargetSystem : JobComponentSystem
 {
-    private EntityQuery m_LineOfSightGroup;
-    private EntityQuery m_MoveEscapeTargetGroup;
+    private EntityQuery m_MoveEscapeTargetQuery;
+    private NativeHashMap<int, int> m_MoveEscapeTargetHashMap;
 
-    private PrevGridState m_PrevGridState;
-
-    struct PrevGridState
+    protected override void OnStopRunning()
     {
-        public NativeArray<GridPosition> unitsLineOfSight;
-        public NativeArray<NextGridPosition> nextGridPositions;
-        public NativeArray<GridPosition> moveEscapeGridPositions;
-        public NativeMultiHashMap<int, int> moveEscapeTargetHashMap;
+        if (m_MoveEscapeTargetHashMap.IsCreated)
+            m_MoveEscapeTargetHashMap.Dispose();
     }
 
-    [BurstCompile]
-    struct HashGridPositionsJob : IJobParallelFor
+    private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeMultiHashMap<int, int> staticCollidableHashMap, NativeMultiHashMap<int, int> dynamicCollidableHashMap)
     {
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeMultiHashMap<int, int>.ParallelWriter hashMap;
+        // Traverse the grid along the ray from initial position to target position
+        int dx = targetGridPosition.x - initialGridPosition.x;
+        int dz = targetGridPosition.z - initialGridPosition.z;
+        int step;
+        if (math.abs(dx) >= math.abs(dz))
+            step = math.abs(dx);
+        else
+            step = math.abs(dz);
+        dx /= step;
+        dz /= step;
 
-        public void Execute(int index)
+        int x = initialGridPosition.x;
+        int z = initialGridPosition.z;
+        for (int i = 1; i <= step; i++)
         {
-            var hash = GridHash.Hash(gridPositions[index].Value);
-            hashMap.Add(hash, index);
-        }
-    }
-
-    [BurstCompile]
-    struct MoveAwayFromUnitsJob : IJobParallelFor
-    {
-        [ReadOnly] public NativeMultiHashMap<int, int> staticCollidableHashMap;
-        [ReadOnly] public NativeMultiHashMap<int, int> dynamicCollidableHashMap;
-        [ReadOnly] public NativeArray<GridPosition> gridPositions;
-        public NativeArray<NextGridPosition> nextGridPositions;
-        [ReadOnly] public NativeMultiHashMap<int, int> targetGridPositionsHashMap;
-        public int viewDistance;
-
-        private bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition)
-        {
-            // Traverse the grid along the ray from initial position to target position
-            int dx = targetGridPosition.x - initialGridPosition.x;
-            int dz = targetGridPosition.z - initialGridPosition.z;
-            int step;
-            if (math.abs(dx) >= math.abs(dz))
-                step = math.abs(dx);
-            else
-                step = math.abs(dz);
-            dx /= step;
-            dz /= step;
-            
-            int x = initialGridPosition.x;
-            int z = initialGridPosition.z;
-            for (int i = 1; i <= step; i++)
+            x += dx;
+            z += dz;
+            int3 gridPosition = new int3(x, initialGridPosition.y, z);
+            int key = (int)math.hash(gridPosition);
+            if (staticCollidableHashMap.TryGetFirstValue(key, out _, out _))
             {
-                x += dx;
-                z += dz;
-                int3 gridPosition = new int3(x, initialGridPosition.y, z);
-                int key = GridHash.Hash(gridPosition);
-                if (staticCollidableHashMap.TryGetFirstValue(key, out _, out _))
-                {
-                    return false;
-                }
-                if (dynamicCollidableHashMap.TryGetFirstValue(key, out _, out _))
-                {
-                    return false;
-                }
+                return false;
             }
-
-            return true;
+            if (dynamicCollidableHashMap.TryGetFirstValue(key, out _, out _))
+            {
+                return false;
+            }
         }
 
-        public void Execute(int index)
-        {
-            int3 myGridPositionValue = gridPositions[index].Value;
+        return true;
+    }
 
-            bool moved = false;
+    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    {
+        inputDeps = JobHandle.CombineDependencies(inputDeps,
+            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
+        );
 
-            bool foundTarget = false;
-            float3 averageTarget = new int3(0, 0, 0);
-            int targetCount = 0;
-            for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
+        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
+        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
+
+        if (m_MoveEscapeTargetHashMap.IsCreated)
+            m_MoveEscapeTargetHashMap.Dispose();
+
+        var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
+        m_MoveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
+
+        var moveEscapeTargetParallelWriter = m_MoveEscapeTargetHashMap.AsParallelWriter();
+        var hashFollowTargetGridPositionsJobHandle = Entities
+            .WithName("HashMoveEscapeTargetGridPositions")
+            .WithAll<MoveEscapeTarget>()
+            .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
-                for (int z = -checkDist; z <= checkDist; z++)
+                var hash = (int)math.hash(gridPosition.Value);
+                moveEscapeTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
+            })
+            .Schedule(inputDeps);
+
+        var viewDistance = GameController.instance.humanVisionDistance;
+        var moveEscapeTargetHashMap = m_MoveEscapeTargetHashMap;
+
+        var lineOfSightEscapeJob = Entities
+            .WithName("LineOfSightEscape")
+            .WithAll<LineOfSight>()
+            .WithReadOnly(staticCollidableHashMap)
+            .WithReadOnly(dynamicCollidableHashMap)
+            .WithReadOnly(moveEscapeTargetHashMap)
+            .WithoutBurst()
+            .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
+            {
+                if (turnsUntilActive.Value != 0)
+                    return;
+
+                int3 myGridPositionValue = gridPosition.Value;
+                bool moved = false;
+
+                bool foundTarget = false;
+                float3 averageTarget = new int3(0, 0, 0);
+                int targetCount = 0;
+                for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
                 {
-                    for (int x = -checkDist; x <= checkDist; x++)
+                    for (int z = -checkDist; z <= checkDist; z++)
                     {
-                        if (math.abs(x) == checkDist || math.abs(z) == checkDist)
+                        for (int x = -checkDist; x <= checkDist; x++)
                         {
-                            int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-                            int targetKey = GridHash.Hash(targetGridPosition);
-
-                            if (targetGridPositionsHashMap.TryGetFirstValue(targetKey, out _, out _))
+                            if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                             {
-                                // Check if we have line of sight to the target
-                                if (InLineOfSight(myGridPositionValue, targetGridPosition))
-                                {
-                                    averageTarget = averageTarget * targetCount + new float3(x, 0, z);
-                                    targetCount++;
-                                    averageTarget /= targetCount;
+                                int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                                int targetKey = (int)math.hash(targetGridPosition);
 
-                                    foundTarget = true;
+                                if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
+                                {
+                                    // Check if we have line of sight to the target
+                                    if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap, dynamicCollidableHashMap))
+                                    {
+                                        averageTarget = averageTarget * targetCount + new float3(x, 0, z);
+                                        targetCount++;
+                                        averageTarget /= targetCount;
+
+                                        foundTarget = true;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (foundTarget)
-            {
-                int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
-
-                // Check if space is already occupied
-                int moveLeftKey = GridHash.Hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-                int moveRightKey = GridHash.Hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-                int moveDownKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-                int moveUpKey = GridHash.Hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-                if (math.abs(direction.x) >= math.abs(direction.z))
+                if (foundTarget)
                 {
-                    // Move horizontally
-                    if (direction.x < 0)
+                    UnityEngine.Debug.Log("myPos: " + myGridPositionValue + " averageTarget: " + averageTarget);
+
+                    int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
+
+                    // Check if space is already occupied
+                    int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+                    int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+                    int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+                    int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+                    if (math.abs(direction.x) >= math.abs(direction.z))
                     {
-                        if (!staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
-                            !dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                        // Move horizontally
+                        if (direction.x < 0)
                         {
-                            myGridPositionValue.x--;
-                            moved = true;
+                            if (!staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
+                                !dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                            {
+                                myGridPositionValue.x--;
+                                moved = true;
+                            }
+                        }
+                        else if (direction.x > 0)
+                        {
+                            if (!staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
+                                !dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                            {
+                                myGridPositionValue.x++;
+                                moved = true;
+                            }
                         }
                     }
-                    else if (direction.x > 0)
+                    // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
+                    if (!moved)
                     {
-                        if (!staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
-                            !dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                        // Move vertically
+                        if (direction.z < 0)
                         {
-                            myGridPositionValue.x++;
-                            moved = true;
+                            if (!staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
+                                !dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                            {
+                                myGridPositionValue.z--;
+                                moved = true;
+                            }
+                        }
+                        else if (direction.z > 0)
+                        {
+                            if (!staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
+                                !dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                            {
+                                myGridPositionValue.z++;
+                                moved = true;
+                            }
                         }
                     }
                 }
-                // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
-                if (!moved)
-                {
-                    // Move vertically
-                    if (direction.z < 0)
-                    {
-                        if (!staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
-                            !dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
-                        {
-                            myGridPositionValue.z--;
-                            moved = true;
-                        }
-                    }
-                    else if (direction.z > 0)
-                    {
-                        if (!staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
-                            !dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
-                        {
-                            myGridPositionValue.z++;
-                            moved = true;
-                        }
-                    }
-                }
-            }
 
-            nextGridPositions[index] = new NextGridPosition { Value = myGridPositionValue };
-        }
-    }
+                nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
+            })
+            .Schedule(hashFollowTargetGridPositionsJobHandle);
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
-    {
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
-
-        var unitsLineOfSight = m_LineOfSightGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var unitsLineOfSightCount = unitsLineOfSight.Length;
-        var nextGridPositions = m_LineOfSightGroup.ToComponentDataArray<NextGridPosition>(Allocator.TempJob);
-
-        var moveEscapeGridPositions = m_MoveEscapeTargetGroup.ToComponentDataArray<GridPosition>(Allocator.TempJob);
-        var moveEscapeCount = moveEscapeGridPositions.Length;
-        var moveEscapeTargetHashMap = new NativeMultiHashMap<int, int>(moveEscapeCount, Allocator.TempJob);
-
-        var nextGridState = new PrevGridState
-        {
-            unitsLineOfSight = unitsLineOfSight,
-            nextGridPositions = nextGridPositions,
-            moveEscapeGridPositions = moveEscapeGridPositions,
-            moveEscapeTargetHashMap = moveEscapeTargetHashMap,
-        };
-
-        if (m_PrevGridState.unitsLineOfSight.IsCreated)
-            m_PrevGridState.unitsLineOfSight.Dispose();
-        if (m_PrevGridState.nextGridPositions.IsCreated)
-            m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.moveEscapeGridPositions.IsCreated)
-            m_PrevGridState.moveEscapeGridPositions.Dispose();
-        if (m_PrevGridState.moveEscapeTargetHashMap.IsCreated)
-            m_PrevGridState.moveEscapeTargetHashMap.Dispose();
-        m_PrevGridState = nextGridState;
-
-        var hashMoveEscapeTargetGridPositionsJob = new HashGridPositionsJob
-        {
-            gridPositions = moveEscapeGridPositions,
-            hashMap = moveEscapeTargetHashMap.AsParallelWriter(),
-        };
-        var hashMoveEscapeTargetGridPositionsJobHandle = hashMoveEscapeTargetGridPositionsJob.Schedule(moveEscapeCount, 64, inputDeps);
-
-        var barrier = JobHandle.CombineDependencies(hashMoveEscapeTargetGridPositionsJobHandle, World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle, World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle);
-
-        var moveAwayFromUnitsJob = new MoveAwayFromUnitsJob
-        {
-            staticCollidableHashMap = staticCollidableHashMap,
-            dynamicCollidableHashMap = dynamicCollidableHashMap,
-            gridPositions = unitsLineOfSight,
-            nextGridPositions = nextGridPositions,
-            targetGridPositionsHashMap = moveEscapeTargetHashMap,
-            viewDistance = GameController.instance.humanVisionDistance,
-        };
-        var moveAwayFromUnitsJobHandle = moveAwayFromUnitsJob.Schedule(unitsLineOfSightCount, 64, barrier);
-
-        m_LineOfSightGroup.AddDependency(moveAwayFromUnitsJobHandle);
-        m_LineOfSightGroup.CopyFromComponentDataArray(nextGridPositions, out JobHandle copyDataJobHandle);
-
-        return copyDataJobHandle;
-    }
-
-    protected override void OnCreate()
-    {
-        m_LineOfSightGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(LineOfSight)),
-            ComponentType.ReadOnly(typeof(GridPosition)),
-            typeof(NextGridPosition)
-        );
-        m_MoveEscapeTargetGroup = GetEntityQuery(
-            ComponentType.ReadOnly(typeof(MoveEscapeTarget)),
-            ComponentType.ReadOnly(typeof(GridPosition))
-        );
-    }
-
-    protected override void OnStopRunning()
-    {
-        if (m_PrevGridState.unitsLineOfSight.IsCreated)
-            m_PrevGridState.unitsLineOfSight.Dispose();
-        if (m_PrevGridState.nextGridPositions.IsCreated)
-            m_PrevGridState.nextGridPositions.Dispose();
-        if (m_PrevGridState.moveEscapeGridPositions.IsCreated)
-            m_PrevGridState.moveEscapeGridPositions.Dispose();
-        if (m_PrevGridState.moveEscapeTargetHashMap.IsCreated)
-            m_PrevGridState.moveEscapeTargetHashMap.Dispose();
+        return lineOfSightEscapeJob;
     }
 }
