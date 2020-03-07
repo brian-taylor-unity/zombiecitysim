@@ -2659,21 +2659,21 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
-  numTilesX: 200
-  numTilesY: 200
-  numStreets: 250
-  numHumans: 2000
+  numTilesX: 800
+  numTilesY: 800
+  numStreets: 1100
+  numHumans: 25000
   humanStartingHealth: 100
   humanDamage: 0
-  humanVisionDistance: 3
+  humanVisionDistance: 5
   humanTurnDelay: 1
   numZombies: 10
   zombieStartingHealth: 70
   zombieDamage: 20
-  zombieVisionDistance: 6
+  zombieVisionDistance: 8
   zombieHearingDistance: 10
   zombieTurnDelay: 3
-  turnDelayTime: 0.1
+  turnDelayTime: 0.05
   numHumansInputField: {fileID: 2136234495}
   numHumansSlider: {fileID: 513672571}
   numZombiesInputField: {fileID: 46154448}
