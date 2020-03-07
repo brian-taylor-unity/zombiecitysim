@@ -33,58 +33,9 @@ public class TileUnitSpawner_System : JobComponentSystem
         tileUnitTurnsUntilActive.Add(GameController.instance.zombieTurnDelay);
 
         var tileExists = new bool[GameController.instance.numTilesY, GameController.instance.numTilesX];
-
-        // Road border boundary
         for (int y = 0; y < GameController.instance.numTilesY; y++)
-        {
-            //tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            //tileUnitPositions.Add(new int3(0, 0, y));
-            //tileUnitHealth.Add(0);
-            //tileUnitDamage.Add(0);
-            tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            tileUnitPositions.Add(new int3(0, 1, y));
-            tileUnitHealth.Add(0);
-            tileUnitDamage.Add(0);
-
-            tileExists[y, 0] = true;
-
-            //tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            //tileUnitPositions.Add(new int3(GameController.instance.numTilesX - 1, 0, y));
-            //tileUnitHealth.Add(0);
-            //tileUnitDamage.Add(0);
-            tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            tileUnitPositions.Add(new int3(GameController.instance.numTilesX - 1, 1, y));
-            tileUnitHealth.Add(0);
-            tileUnitDamage.Add(0);
-
-            tileExists[y, GameController.instance.numTilesX - 1] = true;
-        }
-
-        // Road border boundary
-        for (int x = 1; x < GameController.instance.numTilesX - 1; x++)
-        {
-            //tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            //tileUnitPositions.Add(new int3(x, 0, 0));
-            //tileUnitHealth.Add(0);
-            //tileUnitDamage.Add(0);
-            tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            tileUnitPositions.Add(new int3(x, 1, 0));
-            tileUnitHealth.Add(0);
-            tileUnitDamage.Add(0);
-
-            tileExists[0, x] = true;
-
-            //tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            //tileUnitPositions.Add(new int3(x, 0, GameController.instance.numTilesY - 1));
-            //tileUnitHealth.Add(0);
-            //tileUnitDamage.Add(0);
-            tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-            tileUnitPositions.Add(new int3(x, 1, GameController.instance.numTilesY - 1));
-            tileUnitHealth.Add(0);
-            tileUnitDamage.Add(0);
-
-            tileExists[GameController.instance.numTilesY - 1, 0] = true;
-        }
+            for (int x = 0; x < GameController.instance.numTilesX; x++)
+                tileExists[y, x] = true;
 
         // Streets
         for (int i = 0, xPos = 1; i < GameController.instance.numStreets / 2; i++)
@@ -98,9 +49,9 @@ public class TileUnitSpawner_System : JobComponentSystem
             {
                 for (int yPos = 1; yPos < GameController.instance.numTilesY - 1; yPos++)
                 {
-                    if (!tileExists[yPos, xPos])
+                    if (tileExists[yPos, xPos])
                     {
-                        tileExists[yPos, xPos] = true;
+                        tileExists[yPos, xPos] = false;
                     }
                 }
                 xPos++;
@@ -118,9 +69,9 @@ public class TileUnitSpawner_System : JobComponentSystem
             {
                 for (var xPos = 1; xPos < GameController.instance.numTilesY - 1; xPos++)
                 {
-                    if (!tileExists[yPos, xPos])
+                    if (tileExists[yPos, xPos])
                     {
-                        tileExists[yPos, xPos] = true;
+                        tileExists[yPos, xPos] = false;
                     }
                 }
                 yPos++;
@@ -128,19 +79,31 @@ public class TileUnitSpawner_System : JobComponentSystem
             }
         }
 
+        // Road border boundary
+        for (int y = 0; y < GameController.instance.numTilesY; y++)
+        {
+            tileExists[y, 0] = true;
+            tileExists[y, GameController.instance.numTilesX - 1] = true;
+        }
+
+        // Road border boundary
+        for (int x = 1; x < GameController.instance.numTilesX - 1; x++)
+        {
+            tileExists[0, x] = true;
+            tileExists[GameController.instance.numTilesY - 1, 0] = true;
+        }
+
         // Fill in buildings
         for (var y = 0; y < GameController.instance.numTilesY; y++)
         {
             for (var x = 0; x < GameController.instance.numTilesX; x++)
             {
-                if (!tileExists[y, x])
+                if (tileExists[y, x])
                 {
                     tileUnitKinds.Add(TileUnitKinds.BuildingTile);
                     tileUnitPositions.Add(new int3(x, 1, y));
                     tileUnitHealth.Add(0);
                     tileUnitDamage.Add(0);
-
-                    tileExists[y, x] = true;
                 }
             }
         }
@@ -156,10 +119,11 @@ public class TileUnitSpawner_System : JobComponentSystem
         {
             int xPos, yPos;
 
-            do { 
+            do
+            {
                 xPos = UnityEngine.Random.Range(1, GameController.instance.numTilesX - 1);
                 yPos = UnityEngine.Random.Range(1, GameController.instance.numTilesY - 1);
-            } while (!tileExists[yPos, xPos]);
+            } while (tileExists[yPos, xPos]);
 
             tileExists[yPos, xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.HumanUnit);
@@ -177,7 +141,7 @@ public class TileUnitSpawner_System : JobComponentSystem
             {
                 xPos = UnityEngine.Random.Range(1, GameController.instance.numTilesX - 1);
                 yPos = UnityEngine.Random.Range(1, GameController.instance.numTilesY - 1);
-            } while (!tileExists[yPos, xPos]);
+            } while (tileExists[yPos, xPos]);
 
             tileExists[yPos, xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.ZombieUnit);
@@ -225,7 +189,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Human());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new FollowTarget());
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveRandomly());
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new LineOfSight());
                                 break;
                             case TileUnitKinds.ZombieUnit:
                                 instance = CommandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.ZombieUnit_Prefab);
@@ -238,6 +202,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Zombie());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
                                 break;
                         }
                     }
