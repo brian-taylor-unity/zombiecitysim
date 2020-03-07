@@ -155,13 +155,13 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
                     int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
 
-                    if (staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(moveLeftKey, out _) || dynamicCollidableHashMap.TryGetValue(moveLeftKey, out _))
                         leftMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(moveRightKey, out _) || dynamicCollidableHashMap.TryGetValue(moveRightKey, out _))
                         rightMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(moveDownKey, out _) || dynamicCollidableHashMap.TryGetValue(moveDownKey, out _))
                         downMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(moveUpKey, out _) || dynamicCollidableHashMap.TryGetValue(moveUpKey, out _))
                         upMoveAvail = false;
 
                     if (foundTarget)

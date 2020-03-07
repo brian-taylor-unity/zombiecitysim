@@ -43,13 +43,13 @@ public class MoveRandomlySystem : JobComponentSystem
                     bool downMoveAvail = true;
                     bool leftMoveAvail = true;
 
-                    if (staticCollidableHashMap.TryGetFirstValue(upDirKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(upDirKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(upDirKey, out _) || dynamicCollidableHashMap.TryGetValue(upDirKey, out _))
                         upMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(rightDirKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(rightDirKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(rightDirKey, out _) || dynamicCollidableHashMap.TryGetValue(rightDirKey, out _))
                         rightMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(downDirKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(downDirKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(downDirKey, out _) || dynamicCollidableHashMap.TryGetValue(downDirKey, out _))
                         downMoveAvail = false;
-                    if (staticCollidableHashMap.TryGetFirstValue(leftDirKey, out _, out _) || dynamicCollidableHashMap.TryGetFirstValue(leftDirKey, out _, out _))
+                    if (staticCollidableHashMap.TryGetValue(leftDirKey, out _) || dynamicCollidableHashMap.TryGetValue(leftDirKey, out _))
                         leftMoveAvail = false;
 
                     // Pick a random direction to move

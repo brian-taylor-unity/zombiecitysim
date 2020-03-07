@@ -16,7 +16,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
             m_MoveEscapeTargetHashMap.Dispose();
     }
 
-    private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeMultiHashMap<int, int> staticCollidableHashMap, NativeMultiHashMap<int, int> dynamicCollidableHashMap)
+    private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
     {
         // Traverse the grid along the ray from initial position to target position
         int dx = targetGridPosition.x - initialGridPosition.x;
@@ -37,7 +37,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
             z += dz;
             int3 gridPosition = new int3(x, initialGridPosition.y, z);
             int key = (int)math.hash(gridPosition);
-            if (staticCollidableHashMap.TryGetFirstValue(key, out _, out _))
+            if (staticCollidableHashMap.TryGetValue(key, out _))
             {
                 return false;
             }
@@ -110,7 +110,7 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                                 if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
                                 {
                                     // Check if we have line of sight to the target
-                                    if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap, dynamicCollidableHashMap))
+                                    if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
                                     {
                                         averageTarget = averageTarget * targetCount + new float3(x, 0, z);
                                         targetCount++;
@@ -138,8 +138,8 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                         // Move horizontally
                         if (direction.x < 0)
                         {
-                            if (!staticCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _) &&
-                                !dynamicCollidableHashMap.TryGetFirstValue(moveLeftKey, out _, out _))
+                            if (!staticCollidableHashMap.TryGetValue(moveLeftKey, out _) &&
+                                !dynamicCollidableHashMap.TryGetValue(moveLeftKey, out _))
                             {
                                 myGridPositionValue.x--;
                                 moved = true;
@@ -147,8 +147,8 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                         }
                         else
                         {
-                            if (!staticCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _) &&
-                                !dynamicCollidableHashMap.TryGetFirstValue(moveRightKey, out _, out _))
+                            if (!staticCollidableHashMap.TryGetValue(moveRightKey, out _) &&
+                                !dynamicCollidableHashMap.TryGetValue(moveRightKey, out _))
                             {
                                 myGridPositionValue.x++;
                                 moved = true;
@@ -161,8 +161,8 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                         // Move vertically
                         if (direction.z < 0)
                         {
-                            if (!staticCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _) &&
-                                !dynamicCollidableHashMap.TryGetFirstValue(moveDownKey, out _, out _))
+                            if (!staticCollidableHashMap.TryGetValue(moveDownKey, out _) &&
+                                !dynamicCollidableHashMap.TryGetValue(moveDownKey, out _))
                             {
                                 myGridPositionValue.z--;
                                 moved = true;
@@ -170,8 +170,8 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                         }
                         else
                         {
-                            if (!staticCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _) &&
-                                !dynamicCollidableHashMap.TryGetFirstValue(moveUpKey, out _, out _))
+                            if (!staticCollidableHashMap.TryGetValue(moveUpKey, out _) &&
+                                !dynamicCollidableHashMap.TryGetValue(moveUpKey, out _))
                             {
                                 myGridPositionValue.z++;
                                 moved = true;

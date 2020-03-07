@@ -40,12 +40,12 @@ public class TileUnitSpawner_System : JobComponentSystem
         // Streets
         for (int i = 0, xPos = 1; i < GameController.instance.numStreets / 2; i++)
         {
-            var roadSize = UnityEngine.Random.Range(1, 3);
+            var roadSize = UnityEngine.Random.Range(1, 4);
             xPos += UnityEngine.Random.Range(0, 2 * (GameController.instance.numTilesX / (GameController.instance.numStreets / 2)));
             if (xPos >= GameController.instance.numTilesX - 1)
                 break;
 
-            while (roadSize >= 1 && xPos <= GameController.instance.numTilesX - 1)
+            while (roadSize >= 1 && xPos < GameController.instance.numTilesX - 1)
             {
                 for (int yPos = 1; yPos < GameController.instance.numTilesY - 1; yPos++)
                 {
@@ -60,14 +60,14 @@ public class TileUnitSpawner_System : JobComponentSystem
         }
         for (int i = 0, yPos = 1; i < GameController.instance.numStreets / 2; i++)
         {
-            var roadSize = UnityEngine.Random.Range(1, 3);
+            var roadSize = UnityEngine.Random.Range(1, 4);
             yPos += UnityEngine.Random.Range(0, 2 * (GameController.instance.numTilesX / (GameController.instance.numStreets / 2)));
             if (yPos >= GameController.instance.numTilesX - 1)
                 break;
 
-            while (roadSize >= 1 && yPos <= GameController.instance.numTilesX - 1)
+            while (roadSize >= 1 && yPos < GameController.instance.numTilesY - 1)
             {
-                for (var xPos = 1; xPos < GameController.instance.numTilesY - 1; xPos++)
+                for (var xPos = 1; xPos < GameController.instance.numTilesX - 1; xPos++)
                 {
                     if (tileExists[yPos, xPos])
                     {
