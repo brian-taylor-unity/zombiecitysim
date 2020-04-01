@@ -108,7 +108,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     int3 nearestTarget = myGridPositionValue;
                     for (int checkDist = 1; (checkDist <= viewDistance || checkDist <= hearingDistance) && !foundTarget; checkDist++)
                     {
-                        float nearestDistance = (checkDist + 1) * (checkDist + 1);
+                        float nearestDistance = (checkDist + 2) * (checkDist + 2);
                         for (int z = -checkDist; z <= checkDist; z++)
                         {
                             for (int x = -checkDist; x <= checkDist; x++)
@@ -139,6 +139,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                         nearestTarget = math.select(nearestTarget, audibleTarget, nearest);
 
                                         foundTarget = true;
+                                        foundBySight = false;
                                     }
                                 }
                             }
@@ -230,6 +231,10 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                                 }
                             }
                         }
+
+                        // If a unit is close, set 'moved = true' so we don't move randomly
+                        if ((math.abs(direction.x) == 1 && math.abs(direction.z) == 0) || math.abs(direction.x) == 0 && math.abs(direction.z) == 1)
+                            moved = true;
                     }
 
                     if (!moved)

@@ -2624,6 +2624,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   Zombie_50_RenderMesh:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 80d12e8f9cc047441982e3f0a0a704b0, type: 2}
@@ -2631,6 +2632,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   Zombie_25_RenderMesh:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 513da9dc7d667f649ae040c8622aa940, type: 2}
@@ -2638,6 +2640,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   Human_75_RenderMesh:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: ef03dbaf366b9b64484d4ada4c0193f8, type: 2}
@@ -2645,6 +2648,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   Human_50_RenderMesh:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: e4bf55d90048ce64790139c58067bb76, type: 2}
@@ -2652,6 +2656,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   Human_25_RenderMesh:
     mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     material: {fileID: 2100000, guid: 969434e0ed22b0d47a0b935e13e2b471, type: 2}
@@ -2659,6 +2664,7 @@ MonoBehaviour:
     layer: 0
     castShadows: 1
     receiveShadows: 1
+    needMotionVectorPass: 0
   numTilesX: 800
   numTilesY: 800
   numStreets: 1100
