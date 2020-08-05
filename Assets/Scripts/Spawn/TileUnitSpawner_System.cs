@@ -156,7 +156,7 @@ public class TileUnitSpawner_System : JobComponentSystem
         var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
         var tileUnitDamagehNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
         var tileUnitTurnsUntilActiveNativeArray = new NativeArray<int>(tileUnitTurnsUntilActive.ToArray(), Allocator.TempJob);
-        var CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+        var CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
 
         var spawnJob = Entities
             .WithBurst()

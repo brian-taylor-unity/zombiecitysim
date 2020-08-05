@@ -56,7 +56,7 @@ public class AdvanceTurnSystem : JobComponentSystem
                     })
                 .Schedule(outputDeps);
 
-            var commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+            var commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
             var advanceAudibleAgeJobHandle = Entities
                 .WithName("AdvanceAudibleAge")
                 .WithBurst()

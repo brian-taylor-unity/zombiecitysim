@@ -80,7 +80,7 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var hearingDistance = GameController.instance.zombieHearingDistance;
         var followTargetHashMap = m_FollowTargetHashMap;
         var audibleHashMap = m_AudibleHashMap;
-        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent();
+        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
         var audibleArchetype = Archetypes.AudibleArchetype;
         var tick = UnityEngine.Time.frameCount;
 

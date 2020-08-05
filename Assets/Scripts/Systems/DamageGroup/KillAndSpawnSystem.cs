@@ -28,8 +28,8 @@ public class KillAndSpawnSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var commandBufferBegin = m_EntityCommandBufferSystemBegin.CreateCommandBuffer().ToConcurrent();
-        var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().ToConcurrent();
+        var commandBufferBegin = m_EntityCommandBufferSystemBegin.CreateCommandBuffer().AsParallelWriter();
+        var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().AsParallelWriter();
         var unitSpawner = m_UnitSpawnerArray[0];
         var unitHealth = GameController.instance.zombieStartingHealth;
         var unitDamage = GameController.instance.zombieDamage;
