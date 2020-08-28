@@ -209,11 +209,11 @@ public class TileUnitSpawner_System : JobComponentSystem
 
                     CommandBuffer.DestroyEntity(entityInQueryIndex, entity);
                 })
-            .WithDeallocateOnJobCompletion(tileUnitPositionsNativeArray)
-            .WithDeallocateOnJobCompletion(tileUnitKindsNativeArray)
-            .WithDeallocateOnJobCompletion(tileUnitHealthNativeArray)
-            .WithDeallocateOnJobCompletion(tileUnitDamagehNativeArray)
-            .WithDeallocateOnJobCompletion(tileUnitTurnsUntilActiveNativeArray)
+            .WithDisposeOnCompletion(tileUnitPositionsNativeArray)
+            .WithDisposeOnCompletion(tileUnitKindsNativeArray)
+            .WithDisposeOnCompletion(tileUnitHealthNativeArray)
+            .WithDisposeOnCompletion(tileUnitDamagehNativeArray)
+            .WithDisposeOnCompletion(tileUnitTurnsUntilActiveNativeArray)
             .Schedule(inputDeps);
 
         m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
