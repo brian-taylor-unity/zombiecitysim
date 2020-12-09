@@ -2,18 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f4b401b6-4aef-4abd-80cb-cac147cce19e" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.zombiecitysim/.idea/contentModel.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.zombiecitysim/.idea/contentModel.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.zombiecitysim/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.zombiecitysim/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_Authoring.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_Authoring.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_System.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_System.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Systems/DamageGroup/KillAndSpawnSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Systems/DamageGroup/KillAndSpawnSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Systems/EndGroup/AdvanceTurnSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Systems/EndGroup/AdvanceTurnSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Systems/MoveUnitsGroup/MoveTowardsTargetSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Systems/MoveUnitsGroup/MoveTowardsTargetSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/_Scenes/City.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/_Scenes/City.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/materials/HumanCharacter_Health_Full.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/materials/HumanCharacter_Health_Full.mat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/materials/ZombieCharacter_Health_Full.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/materials/ZombieCharacter_Health_Full.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Spawn/UnitSpawner_Authoring.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Spawn/UnitSpawner_Authoring.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectVersion.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UserSettings/EditorUserSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/UserSettings/EditorUserSettings.asset" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +26,8 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
+        <option value="$PROJECT_DIR$/Assets/Scripts/Spawn/UnitSpawner_Authoring.cs" />
+        <option value="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_Authoring.cs" />
         <option value="$PROJECT_DIR$/Assets/Scripts/Spawn/TileUnitSpawner_System.cs" />
       </list>
     </option>
@@ -98,6 +96,7 @@
       <updated>1595514682501</updated>
       <workItem from="1595514700698" duration="1849000" />
       <workItem from="1602357751103" duration="565000" />
+      <workItem from="1607529441536" duration="764000" />
     </task>
     <servers />
   </component>

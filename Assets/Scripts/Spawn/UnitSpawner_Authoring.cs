@@ -2,7 +2,6 @@
 using Unity.Entities;
 using UnityEngine;
 
-[RequiresEntityConversion]
 public class UnitSpawner_Authoring : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity
 {
     public GameObject ZombieUnit_Prefab;

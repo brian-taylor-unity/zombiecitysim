@@ -154,12 +154,17 @@ public class TileUnitSpawner_System : JobComponentSystem
         var tileUnitPositionsNativeArray = new NativeArray<int3>(tileUnitPositions.ToArray(), Allocator.TempJob);
         var tileUnitKindsNativeArray = new NativeArray<TileUnitKinds>(tileUnitKinds.ToArray(), Allocator.TempJob);
         var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
-        var tileUnitDamagehNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
+        var tileUnitDamageNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
         var tileUnitTurnsUntilActiveNativeArray = new NativeArray<int>(tileUnitTurnsUntilActive.ToArray(), Allocator.TempJob);
         var CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
 
         var spawnJob = Entities
             .WithBurst()
+            .WithReadOnly(tileUnitPositionsNativeArray)
+            .WithReadOnly(tileUnitKindsNativeArray)
+            .WithReadOnly(tileUnitHealthNativeArray)
+            .WithReadOnly(tileUnitDamageNativeArray)
+            .WithReadOnly(tileUnitTurnsUntilActiveNativeArray)
             .ForEach((Entity entity, int entityInQueryIndex, in TileUnitSpawner_Data tileUnitSpawner) =>
                 {
                     for (int i = 0; i < tileUnitPositionsNativeArray.Length; i++)
@@ -184,7 +189,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamagehNativeArray[i] });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamageNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[0] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Human());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
@@ -197,7 +202,7 @@ public class TileUnitSpawner_System : JobComponentSystem
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamagehNativeArray[i] });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamageNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[1] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Zombie());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
@@ -212,7 +217,7 @@ public class TileUnitSpawner_System : JobComponentSystem
             .WithDisposeOnCompletion(tileUnitPositionsNativeArray)
             .WithDisposeOnCompletion(tileUnitKindsNativeArray)
             .WithDisposeOnCompletion(tileUnitHealthNativeArray)
-            .WithDisposeOnCompletion(tileUnitDamagehNativeArray)
+            .WithDisposeOnCompletion(tileUnitDamageNativeArray)
             .WithDisposeOnCompletion(tileUnitTurnsUntilActiveNativeArray)
             .Schedule(inputDeps);
 
