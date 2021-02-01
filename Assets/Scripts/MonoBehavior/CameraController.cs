@@ -45,7 +45,8 @@ public class CameraController : MonoBehaviour
         float keyHorizontalDelta = Input.GetAxis("Horizontal");
         float keyVerticalDelta = Input.GetAxis("Vertical");
         bool shift = Input.GetButton("Fire3");
-        bool middleClick = Input.GetMouseButton(2);
+        bool leftClick = Input.GetMouseButton(0);
+        bool rightClick = Input.GetMouseButton(1);
 
         if (zoomAnimTimer < zoomAnimLength)
         {
@@ -62,10 +63,12 @@ public class CameraController : MonoBehaviour
         if (rotationDelta != 0f)
             AdjustOrbit(rotationDelta);
 
-        if (keyHorizontalDelta != 0f || keyVerticalDelta != 0f)
+        if (leftClick && (mouseHorizontalDelta != 0f || mouseVerticalDelta != 0f))
+            AdjustPosition(mouseHorizontalDelta * -1.8f, mouseVerticalDelta * -1.8f, shift);
+        else if (keyHorizontalDelta != 0f || keyVerticalDelta != 0f)
             AdjustPosition(keyHorizontalDelta, keyVerticalDelta, shift);
 
-        if (middleClick)
+        if (rightClick)
             AdjustMouseLook(-mouseVerticalDelta, mouseHorizontalDelta);
     }
 
