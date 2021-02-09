@@ -13,6 +13,8 @@ public class CameraController : MonoBehaviour
     public float mouseLookMaxPitch;
     public float mouseLookMinPitch;
 
+    public MouseInputUIBlocker[] UIBlockingMouse;
+
     private Transform swivel;
     private Transform stick;
     
@@ -63,7 +65,7 @@ public class CameraController : MonoBehaviour
         if (rotationDelta != 0f)
             AdjustOrbit(rotationDelta);
 
-        if (leftClick && (mouseHorizontalDelta != 0f || mouseVerticalDelta != 0f))
+        if (leftClick && (mouseHorizontalDelta != 0f || mouseVerticalDelta != 0f) && !IsMouseBlockedByUI())
             AdjustPosition(mouseHorizontalDelta * -1.8f, mouseVerticalDelta * -1.8f, shift);
         else if (keyHorizontalDelta != 0f || keyVerticalDelta != 0f)
             AdjustPosition(keyHorizontalDelta, keyVerticalDelta, shift);
@@ -115,5 +117,16 @@ public class CameraController : MonoBehaviour
         orbitAngle += yawDelta * mouseLookSpeed;
         transform.localRotation = Quaternion.Euler(0f, orbitAngle, 0f);
         swivel.localRotation = Quaternion.Euler(pitchAngle, 0f, 0f);
+    }
+
+    private bool IsMouseBlockedByUI()
+    {
+        foreach (var blocker in UIBlockingMouse)
+        {
+            if (blocker.BlockedByUI)
+                return true;
+        }
+
+        return false;
     }
 }

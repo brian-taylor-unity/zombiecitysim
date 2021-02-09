@@ -1272,6 +1272,8 @@ GameObject:
   - component: {fileID: 333691480}
   - component: {fileID: 333691482}
   - component: {fileID: 333691481}
+  - component: {fileID: 333691483}
+  - component: {fileID: 333691484}
   m_Layer: 0
   m_Name: Regenerate Panel
   m_TagString: Untagged
@@ -1339,6 +1341,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 333691479}
   m_CullTransparentMesh: 0
+--- !u!114 &333691483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333691479}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BlockedByUI: 0
+--- !u!114 &333691484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333691479}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Delegates: []
 --- !u!1 &358290599
 GameObject:
   m_ObjectHideFlags: 0
@@ -1720,6 +1748,8 @@ GameObject:
   - component: {fileID: 567194044}
   - component: {fileID: 567194046}
   - component: {fileID: 567194045}
+  - component: {fileID: 567194047}
+  - component: {fileID: 567194048}
   m_Layer: 0
   m_Name: Turn Panel
   m_TagString: Untagged
@@ -1792,6 +1822,32 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 567194043}
   m_CullTransparentMesh: 0
+--- !u!114 &567194047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 567194043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BlockedByUI: 0
+--- !u!114 &567194048
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 567194043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Delegates: []
 --- !u!1 &589424891
 GameObject:
   m_ObjectHideFlags: 0
@@ -4827,6 +4883,9 @@ MonoBehaviour:
   mouseLookSpeed: 3
   mouseLookMaxPitch: 90
   mouseLookMinPitch: 5
+  UIBlockingMouse:
+  - {fileID: 333691483}
+  - {fileID: 567194047}
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
