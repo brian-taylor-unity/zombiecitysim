@@ -18,15 +18,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    protected override void OnStopRunning()
-    {
-        if (m_FollowTargetHashMap.IsCreated)
-            m_FollowTargetHashMap.Dispose();
-
-        if (m_AudibleHashMap.IsCreated)
-            m_AudibleHashMap.Dispose();
-    }
-
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         inputDeps = JobHandle.CombineDependencies(inputDeps,
@@ -36,9 +27,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
-
-        if (m_FollowTargetHashMap.IsCreated)
-            m_FollowTargetHashMap.Dispose();
 
         var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
         m_FollowTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
@@ -55,9 +43,6 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     followTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
                 })
             .Schedule(inputDeps);
-
-        if (m_AudibleHashMap.IsCreated)
-            m_AudibleHashMap.Dispose();
 
         var audibleCount = m_AudibleQuery.CalculateEntityCount();
         m_AudibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
@@ -92,6 +77,8 @@ public class MoveTowardsTargetSystem : JobComponentSystem
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(followTargetHashMap)
             .WithReadOnly(audibleHashMap)
+            .WithDisposeOnCompletion(followTargetHashMap)
+            .WithDisposeOnCompletion(audibleHashMap)
             .WithBurst()
             .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
                 {

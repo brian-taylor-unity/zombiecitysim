@@ -10,12 +10,6 @@ public class MoveEscapeTargetSystem : JobComponentSystem
     private EntityQuery m_MoveEscapeTargetQuery;
     private NativeHashMap<int, int> m_MoveEscapeTargetHashMap;
 
-    protected override void OnStopRunning()
-    {
-        if (m_MoveEscapeTargetHashMap.IsCreated)
-            m_MoveEscapeTargetHashMap.Dispose();
-    }
-
     private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
     {
         // Traverse the grid along the ray from initial position to target position
@@ -56,9 +50,6 @@ public class MoveEscapeTargetSystem : JobComponentSystem
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
-        if (m_MoveEscapeTargetHashMap.IsCreated)
-            m_MoveEscapeTargetHashMap.Dispose();
-
         var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
         m_MoveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
 
@@ -79,11 +70,12 @@ public class MoveEscapeTargetSystem : JobComponentSystem
         var moveEscapeTargetHashMap = m_MoveEscapeTargetHashMap;
 
         var lineOfSightEscapeJob = Entities
-            .WithName("LineOfSightEscape")
+            .WithName("MoveEscapeTargets")
             .WithAll<LineOfSight>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(moveEscapeTargetHashMap)
+            .WithDisposeOnCompletion(moveEscapeTargetHashMap)
             .WithBurst()
             .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
             {

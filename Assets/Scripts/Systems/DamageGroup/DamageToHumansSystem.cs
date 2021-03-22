@@ -20,11 +20,6 @@ public class DamageToHumansSystem : JobComponentSystem
         if (humanCount == 0 || zombieCount == 0)
             return inputDeps;
 
-        if (m_HumansHashMap.IsCreated)
-            m_HumansHashMap.Dispose();
-        if (m_DamageToHumansHashMap.IsCreated)
-            m_DamageToHumansHashMap.Dispose();
-
         m_HumansHashMap = new NativeHashMap<int, int>(humanCount, Allocator.TempJob);
         if (zombieCount < humanCount)
             m_DamageToHumansHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
@@ -55,6 +50,7 @@ public class DamageToHumansSystem : JobComponentSystem
             .WithAll<Zombie>()
             .WithChangeFilter<TurnsUntilActive>()
             .WithReadOnly(humanHashMap)
+            .WithDisposeOnCompletion(humanHashMap)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
                 {
@@ -80,6 +76,7 @@ public class DamageToHumansSystem : JobComponentSystem
             .WithName("DealDamageToHumans")
             .WithAll<Human>()
             .WithReadOnly(damageHashMap)
+            .WithDisposeOnCompletion(damageHashMap)
             .WithBurst()
             .ForEach((ref Health health, in GridPosition gridPosition) =>
                 {
@@ -101,13 +98,5 @@ public class DamageToHumansSystem : JobComponentSystem
             .Schedule(calculateDamageFromZombiesJobHandle);
 
         return dealDamageToHumansJobHandle;
-    }
-
-    protected override void OnStopRunning()
-    {
-        if (m_HumansHashMap.IsCreated)
-            m_HumansHashMap.Dispose();
-        if (m_DamageToHumansHashMap.IsCreated)
-            m_DamageToHumansHashMap.Dispose();
     }
 }

@@ -10,17 +10,8 @@ public class ResolveGridMovementSystem : JobComponentSystem
     private EntityQuery query;
     private NativeMultiHashMap<int, int> m_NextGridPositionHashMap;
 
-    protected override void OnStopRunning()
-    {
-        if (m_NextGridPositionHashMap.IsCreated)
-            m_NextGridPositionHashMap.Dispose();
-    }
-
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        if (m_NextGridPositionHashMap.IsCreated)
-            m_NextGridPositionHashMap.Dispose();
-
         var unitCount = query.CalculateEntityCount();
         m_NextGridPositionHashMap = new NativeMultiHashMap<int, int>(unitCount, Allocator.TempJob);
 
@@ -41,6 +32,7 @@ public class ResolveGridMovementSystem : JobComponentSystem
         var finalizeMovementJobHandle = Entities
             .WithName("FinalizeMovement")
             .WithReadOnly(hashMap)
+            .WithDisposeOnCompletion(hashMap)
             .WithBurst()
             .ForEach((ref NextGridPosition nextGridPosition, in GridPosition gridPosition) =>
                 {
