@@ -1,35 +1,32 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(KillAndSpawnSystem))]
-public class DamageToHumansSystem : JobComponentSystem
+public class DamageToHumansSystem : SystemBase
 {
     private EntityQuery humansQuery;
     private EntityQuery zombiesQuery;
-    private NativeHashMap<int, int> m_HumansHashMap;
-    private NativeMultiHashMap<int, int> m_DamageToHumansHashMap;
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
         var humanCount = humansQuery.CalculateEntityCount();
         var zombieCount = zombiesQuery.CalculateEntityCount();
 
         if (humanCount == 0 || zombieCount == 0)
-            return inputDeps;
+            return;
 
-        m_HumansHashMap = new NativeHashMap<int, int>(humanCount, Allocator.TempJob);
+        var humanHashMap = new NativeHashMap<int, int>(humanCount, Allocator.TempJob);
+        NativeMultiHashMap<int, int> damageHashMap;
         if (zombieCount < humanCount)
-            m_DamageToHumansHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+            damageHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
         else
-            m_DamageToHumansHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+            damageHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
 
-        var humanHashMap = m_HumansHashMap;
-        var humanHashMapParallelWriter = m_HumansHashMap.AsParallelWriter();
+        var humanHashMapParallelWriter = humanHashMap.AsParallelWriter();
 
-        var hashZombiesJobHandle = Entities
+        Entities
             .WithName("HashHumans")
             .WithStoreEntityQueryInField(ref humansQuery)
             .WithAll<Human>()
@@ -39,12 +36,11 @@ public class DamageToHumansSystem : JobComponentSystem
                 var hash = (int)math.hash(gridPosition.Value);
                 humanHashMapParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
-            .Schedule(inputDeps);
+            .ScheduleParallel();
 
-        var damageHashMap = m_DamageToHumansHashMap;
-        var damageHashMapParallelWriter = m_DamageToHumansHashMap.AsParallelWriter();
+        var damageHashMapParallelWriter = damageHashMap.AsParallelWriter();
 
-        var calculateDamageFromZombiesJobHandle = Entities
+        Entities
             .WithName("CalculateDamageFromZombies")
             .WithStoreEntityQueryInField(ref zombiesQuery)
             .WithAll<Zombie>()
@@ -70,9 +66,9 @@ public class DamageToHumansSystem : JobComponentSystem
                         }
                     }
                 })
-            .Schedule(hashZombiesJobHandle);
+            .ScheduleParallel();
 
-        var dealDamageToHumansJobHandle = Entities
+        Entities
             .WithName("DealDamageToHumans")
             .WithAll<Human>()
             .WithReadOnly(damageHashMap)
@@ -95,8 +91,6 @@ public class DamageToHumansSystem : JobComponentSystem
                         health.Value = myHealth;
                     }
                 })
-            .Schedule(calculateDamageFromZombiesJobHandle);
-
-        return dealDamageToHumansJobHandle;
+            .ScheduleParallel();
     }
 }

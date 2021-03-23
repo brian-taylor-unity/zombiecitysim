@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
-public class KillAndSpawnSystem : JobComponentSystem
+public class KillAndSpawnSystem : SystemBase
 {
     private BeginSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemBegin;
     private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemEnd;
@@ -26,7 +26,7 @@ public class KillAndSpawnSystem : JobComponentSystem
         m_UnitSpawnerArray.Dispose();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
         var commandBufferBegin = m_EntityCommandBufferSystemBegin.CreateCommandBuffer().AsParallelWriter();
         var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().AsParallelWriter();
@@ -34,6 +34,18 @@ public class KillAndSpawnSystem : JobComponentSystem
         var unitHealth = GameController.instance.zombieStartingHealth;
         var unitDamage = GameController.instance.zombieDamage;
         var unitTurnsUntilActive = GameController.instance.zombieTurnDelay;
+
+        var killJob = Entities
+            .WithName("KillUnits")
+            .WithChangeFilter<Health>()
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
+            {
+                if (health.Value <= 0)
+                    commandBufferBegin.DestroyEntity(entityInQueryIndex, entity);
+            })
+            .ScheduleParallel(Dependency);
+        m_EntityCommandBufferSystemBegin.AddJobHandleForProducer(killJob);
 
         var spawnJob = Entities
             .WithName("SpawnZombies")
@@ -57,21 +69,9 @@ public class KillAndSpawnSystem : JobComponentSystem
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
                     }
                 })
-            .Schedule(inputDeps);
+            .ScheduleParallel(Dependency);
         m_EntityCommandBufferSystemEnd.AddJobHandleForProducer(spawnJob);
 
-        var killJob = Entities
-            .WithName("KillUnits")
-            .WithChangeFilter<Health>()
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
-                {
-                    if (health.Value <= 0)
-                        commandBufferBegin.DestroyEntity(entityInQueryIndex, entity);
-                })
-            .Schedule(inputDeps);
-        m_EntityCommandBufferSystemBegin.AddJobHandleForProducer(killJob);
-
-        return JobHandle.CombineDependencies(spawnJob, killJob);
+        Dependency = JobHandle.CombineDependencies(spawnJob, killJob);
     }
 }

@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using System.Collections.Generic;
 
-public class TileUnitSpawner_System : JobComponentSystem
+public class TileUnitSpawner_System : SystemBase
 {
     private enum TileUnitKinds
     {
@@ -22,7 +22,7 @@ public class TileUnitSpawner_System : JobComponentSystem
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
         var tileUnitPositions = new List<int3>();
         var tileUnitKinds = new List<TileUnitKinds>();
@@ -219,10 +219,10 @@ public class TileUnitSpawner_System : JobComponentSystem
             .WithDisposeOnCompletion(tileUnitHealthNativeArray)
             .WithDisposeOnCompletion(tileUnitDamageNativeArray)
             .WithDisposeOnCompletion(tileUnitTurnsUntilActiveNativeArray)
-            .Schedule(inputDeps);
+            .ScheduleParallel(Dependency);
 
         m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
 
-        return spawnJob;
+        Dependency = spawnJob;
     }
 }

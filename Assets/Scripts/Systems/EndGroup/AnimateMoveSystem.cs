@@ -1,15 +1,13 @@
-﻿using Unity.Collections;
-using Unity.Entities;
-using Unity.Jobs;
+﻿using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(EndGroup))]
-public class AnimateMoveSystem : JobComponentSystem
+public class AnimateMoveSystem : SystemBase
 {
     private float m_TotalTime;
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
         m_TotalTime += Time.DeltaTime;
 
@@ -20,7 +18,7 @@ public class AnimateMoveSystem : JobComponentSystem
             m_TotalTime = 0.0f;
         }
 
-        var animateMoveJobHandle = Entities
+        Entities
             .WithName("AnimateMove")
             .WithBurst()
             .ForEach((ref Translation translation, ref GridPosition gridPosition, in NextGridPosition nextGridPosition) =>
@@ -30,9 +28,7 @@ public class AnimateMoveSystem : JobComponentSystem
                     var clamp = percentAnimate == 1.0f;
                     gridPosition.Value = math.select(gridPosition.Value, nextGridPosition.Value, clamp);
                 })
-            .Schedule(inputDeps);
-
-        return animateMoveJobHandle;
+            .ScheduleParallel();
     }
 
     protected override void OnCreate()

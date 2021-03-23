@@ -5,10 +5,9 @@ using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
-public class MoveEscapeTargetSystem : JobComponentSystem
+public class MoveEscapeTargetSystem : SystemBase
 {
     private EntityQuery m_MoveEscapeTargetQuery;
-    private NativeHashMap<int, int> m_MoveEscapeTargetHashMap;
 
     private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
     {
@@ -40,9 +39,10 @@ public class MoveEscapeTargetSystem : JobComponentSystem
         return true;
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
-        inputDeps = JobHandle.CombineDependencies(inputDeps,
+        Dependency = JobHandle.CombineDependencies(
+            Dependency,
             World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
             World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
         );
@@ -51,10 +51,10 @@ public class MoveEscapeTargetSystem : JobComponentSystem
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
         var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
-        m_MoveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
+        var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
 
-        var moveEscapeTargetParallelWriter = m_MoveEscapeTargetHashMap.AsParallelWriter();
-        var hashFollowTargetGridPositionsJobHandle = Entities
+        var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
+        Entities
             .WithName("HashMoveEscapeTargetGridPositions")
             .WithAll<MoveEscapeTarget>()
             .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
@@ -64,12 +64,11 @@ public class MoveEscapeTargetSystem : JobComponentSystem
                 var hash = (int)math.hash(gridPosition.Value);
                 moveEscapeTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
-            .Schedule(inputDeps);
+            .ScheduleParallel();
 
         var viewDistance = GameController.instance.humanVisionDistance;
-        var moveEscapeTargetHashMap = m_MoveEscapeTargetHashMap;
 
-        var lineOfSightEscapeJob = Entities
+        Entities
             .WithName("MoveEscapeTargets")
             .WithAll<LineOfSight>()
             .WithReadOnly(staticCollidableHashMap)
@@ -174,8 +173,6 @@ public class MoveEscapeTargetSystem : JobComponentSystem
 
                 nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
             })
-            .Schedule(hashFollowTargetGridPositionsJobHandle);
-
-        return lineOfSightEscapeJob;
+            .ScheduleParallel();
     }
 }

@@ -4,23 +4,22 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-public class MoveTowardsTargetSystem : JobComponentSystem
+public class MoveTowardsTargetSystem : SystemBase
 {
     private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
 
     private EntityQuery m_FollowTargetQuery;
-    private NativeHashMap<int, int> m_FollowTargetHashMap;
     private EntityQuery m_AudibleQuery;
-    private NativeMultiHashMap<int, int3> m_AudibleHashMap;
 
     protected override void OnCreate()
     {
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
-        inputDeps = JobHandle.CombineDependencies(inputDeps,
+        Dependency = JobHandle.CombineDependencies(
+            Dependency,
             World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
             World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
         );
@@ -29,9 +28,9 @@ public class MoveTowardsTargetSystem : JobComponentSystem
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
         var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
-        m_FollowTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
+        var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
 
-        var followTargetParallelWriter = m_FollowTargetHashMap.AsParallelWriter();
+        var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
         var hashFollowTargetGridPositionsJobHandle = Entities
             .WithName("HashFollowTargetGridPositions")
             .WithAll<FollowTarget>()
@@ -42,12 +41,12 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                     var hash = (int)math.hash(gridPosition.Value);
                     followTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
                 })
-            .Schedule(inputDeps);
+            .ScheduleParallel(Dependency);
 
         var audibleCount = m_AudibleQuery.CalculateEntityCount();
-        m_AudibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
+        var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
 
-        var audibleParallelWriter = m_AudibleHashMap.AsParallelWriter();
+        var audibleParallelWriter = audibleHashMap.AsParallelWriter();
         var hashAudiblesJobHandle = Entities
             .WithName("HashAudibles")
             .WithStoreEntityQueryInField(ref m_AudibleQuery)
@@ -57,14 +56,16 @@ public class MoveTowardsTargetSystem : JobComponentSystem
                 var hash = (int)math.hash(audible.GridPositionValue);
                 audibleParallelWriter.Add(hash, audible.Target);
             })
-            .Schedule(inputDeps);
+            .ScheduleParallel(Dependency);
 
-        var movementBarrierHandle = JobHandle.CombineDependencies(hashFollowTargetGridPositionsJobHandle, hashAudiblesJobHandle);
+        var movementBarrierHandle = JobHandle.CombineDependencies(
+            Dependency,
+            hashFollowTargetGridPositionsJobHandle,
+            hashAudiblesJobHandle
+        );
 
         var viewDistance = GameController.instance.zombieVisionDistance;
         var hearingDistance = GameController.instance.zombieHearingDistance;
-        var followTargetHashMap = m_FollowTargetHashMap;
-        var audibleHashMap = m_AudibleHashMap;
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
         var audibleArchetype = Archetypes.AudibleArchetype;
         var tick = UnityEngine.Time.frameCount;
@@ -279,10 +280,10 @@ public class MoveTowardsTargetSystem : JobComponentSystem
 
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })
-            .Schedule(movementBarrierHandle);
+            .ScheduleParallel(movementBarrierHandle);
 
         m_EntityCommandBufferSystem.AddJobHandleForProducer(moveTowardsTargetJobHandle);
 
-        return moveTowardsTargetJobHandle;
+        Dependency = JobHandle.CombineDependencies(Dependency, movementBarrierHandle, moveTowardsTargetJobHandle);
     }
 }

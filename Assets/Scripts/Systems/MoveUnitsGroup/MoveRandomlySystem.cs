@@ -1,16 +1,16 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Random = Unity.Mathematics.Random;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
-public class MoveRandomlySystem : JobComponentSystem
+public class MoveRandomlySystem : SystemBase
 {
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
-        inputDeps = JobHandle.CombineDependencies(inputDeps,
+        Dependency = JobHandle.CombineDependencies(
+            Dependency,
             World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
             World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
         );
@@ -19,7 +19,7 @@ public class MoveRandomlySystem : JobComponentSystem
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
         var tick = UnityEngine.Time.frameCount;
-        var moveRandomlyJobHandle = Entities
+        Entities
             .WithName("MoveRandomly")
             .WithAll<MoveRandomly>()
             .WithChangeFilter<TurnsUntilActive>()
@@ -98,8 +98,6 @@ public class MoveRandomlySystem : JobComponentSystem
                     }
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })
-            .Schedule(inputDeps);
-
-        return moveRandomlyJobHandle;
+            .ScheduleParallel();
     }
 }

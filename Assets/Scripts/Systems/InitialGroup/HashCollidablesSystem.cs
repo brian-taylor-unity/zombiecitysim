@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(InitialGroup))]
-public class HashCollidablesSystem : JobComponentSystem
+public class HashCollidablesSystem : SystemBase
 {
     private EntityQuery m_StaticCollidableEntityQuery;
     private EntityQuery m_DynamicCollidableEntityQuery;
@@ -14,10 +14,10 @@ public class HashCollidablesSystem : JobComponentSystem
     public NativeHashMap<int, int> m_DynamicCollidableHashMap;
     public JobHandle m_DynamicCollidableJobHandle;
 
-    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    protected override void OnUpdate()
     {
-        m_StaticCollidableJobHandle = inputDeps;
-        m_DynamicCollidableJobHandle = inputDeps;
+        m_StaticCollidableJobHandle = Dependency;
+        m_DynamicCollidableJobHandle = Dependency;
 
         int staticCollidableCount = m_StaticCollidableEntityQuery.CalculateEntityCount();
         if (staticCollidableCount != 0)
@@ -39,7 +39,7 @@ public class HashCollidablesSystem : JobComponentSystem
                         var hash = (int)math.hash(gridPosition.Value);
                         parallelWriter.TryAdd(hash, entityInQueryIndex);
                     })
-                .Schedule(inputDeps);
+                .ScheduleParallel(Dependency);
         }
 
         int dynamicCollidableCount = m_DynamicCollidableEntityQuery.CalculateEntityCount();
@@ -61,10 +61,10 @@ public class HashCollidablesSystem : JobComponentSystem
                     var hash = (int)math.hash(gridPosition.Value);
                     parallelWriter.TryAdd(hash, entityInQueryIndex);
                 })
-                .Schedule(inputDeps);
+                .ScheduleParallel(Dependency);
         }
 
-        return JobHandle.CombineDependencies(m_StaticCollidableJobHandle, m_DynamicCollidableJobHandle);
+        Dependency = JobHandle.CombineDependencies(m_StaticCollidableJobHandle, m_DynamicCollidableJobHandle);
     }
 
     protected override void OnDestroy()
