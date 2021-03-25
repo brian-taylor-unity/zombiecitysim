@@ -43,8 +43,8 @@ public class MoveEscapeTargetSystem : SystemBase
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
         );
 
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
@@ -52,9 +52,14 @@ public class MoveEscapeTargetSystem : SystemBase
 
         var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
         var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
-
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
-        Entities
+        var worldWidth = GameController.instance.numTilesX;
+        var worldHeight = GameController.instance.numTilesY;
+        var viewDistance = GameController.instance.humanVisionDistance;
+        var humanVisionHashMap = new NativeHashMap<int, int>((worldWidth / viewDistance) * (worldHeight / viewDistance), Allocator.TempJob);
+        var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();
+
+        var hashMoveEscapeTargetGridPositionsJobHandle = Entities
             .WithName("HashMoveEscapeTargetGridPositions")
             .WithAll<MoveEscapeTarget>()
             .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
@@ -64,17 +69,35 @@ public class MoveEscapeTargetSystem : SystemBase
                 var hash = (int)math.hash(gridPosition.Value);
                 moveEscapeTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
-            .ScheduleParallel();
+            .ScheduleParallel(Dependency);
 
-        var viewDistance = GameController.instance.humanVisionDistance;
+        var hashMoveEscapeTargetVisionJobHandle = Entities
+            .WithName("HashMoveEscapeTargetVision")
+            .WithAll<MoveEscapeTarget>()
+            .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
+            {
+                var hash = (int)math.hash(gridPosition.Value / viewDistance);
+                humanVisionParallelWriter.TryAdd(hash, entityInQueryIndex);
+            })
+            .ScheduleParallel(Dependency);
 
-        Entities
+        var movementBarrierHandle = JobHandle.CombineDependencies(
+            Dependency,
+            hashMoveEscapeTargetGridPositionsJobHandle,
+            hashMoveEscapeTargetVisionJobHandle
+        );
+
+        var moveEscapeTargetsJobHandle = Entities
             .WithName("MoveEscapeTargets")
             .WithAll<LineOfSight>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(moveEscapeTargetHashMap)
+            .WithReadOnly(humanVisionHashMap)
             .WithDisposeOnCompletion(moveEscapeTargetHashMap)
+            .WithDisposeOnCompletion(humanVisionHashMap)
             .WithBurst()
             .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
             {
@@ -82,32 +105,41 @@ public class MoveEscapeTargetSystem : SystemBase
                     return;
 
                 int3 myGridPositionValue = gridPosition.Value;
-                bool moved = false;
-
-                bool foundTarget = false;
                 float3 averageTarget = new int3(0, 0, 0);
-                int targetCount = 0;
-                for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
+                bool moved = false;
+                bool foundTarget = humanVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / viewDistance), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _);
+
+                if (foundTarget)
                 {
-                    for (int z = -checkDist; z <= checkDist; z++)
+                    foundTarget = false;
+
+                    int targetCount = 0;
+                    for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
                     {
-                        for (int x = -checkDist; x <= checkDist; x++)
+                        for (int z = -checkDist; z <= checkDist; z++)
                         {
-                            if (math.abs(x) == checkDist || math.abs(z) == checkDist)
+                            for (int x = -checkDist; x <= checkDist; x++)
                             {
-                                int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-                                int targetKey = (int)math.hash(targetGridPosition);
-
-                                if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
+                                if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                                 {
-                                    // Check if we have line of sight to the target
-                                    if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
-                                    {
-                                        averageTarget = averageTarget * targetCount + new float3(x, 0, z);
-                                        targetCount++;
-                                        averageTarget /= targetCount;
+                                    int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                                    int targetKey = (int)math.hash(targetGridPosition);
 
-                                        foundTarget = true;
+                                    if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
+                                    {
+                                        // Check if we have line of sight to the target
+                                        if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
+                                        {
+                                            averageTarget = averageTarget * targetCount + new float3(x, 0, z);
+                                            targetCount++;
+                                            averageTarget /= targetCount;
+
+                                            foundTarget = true;
+                                        }
                                     }
                                 }
                             }
@@ -173,6 +205,8 @@ public class MoveEscapeTargetSystem : SystemBase
 
                 nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
             })
-            .ScheduleParallel();
+            .ScheduleParallel(movementBarrierHandle);
+
+        Dependency = moveEscapeTargetsJobHandle;
     }
 }

@@ -2787,13 +2787,13 @@ MonoBehaviour:
   numHumans: 30000
   humanStartingHealth: 100
   humanDamage: 0
-  humanVisionDistance: 5
+  humanVisionDistance: 10
   humanTurnDelay: 1
   numZombies: 10
   zombieStartingHealth: 70
   zombieDamage: 20
   zombieVisionDistance: 8
-  zombieHearingDistance: 10
+  zombieHearingDistance: 20
   zombieTurnDelay: 3
   turnDelayTime: 0
   numHumansInputField: {fileID: 2136234495}

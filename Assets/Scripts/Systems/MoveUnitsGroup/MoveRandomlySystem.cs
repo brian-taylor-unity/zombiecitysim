@@ -11,8 +11,8 @@ public class MoveRandomlySystem : SystemBase
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
         );
 
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;

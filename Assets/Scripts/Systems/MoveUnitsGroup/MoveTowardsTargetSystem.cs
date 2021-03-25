@@ -20,17 +20,22 @@ public class MoveTowardsTargetSystem : SystemBase
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
         );
 
         var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
+        var viewDistance = GameController.instance.zombieVisionDistance;
+        var worldWidth = GameController.instance.numTilesX;
+        var worldHeight = GameController.instance.numTilesY;
         var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
         var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
-
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
+        var zombieVisionHashMap = new NativeHashMap<int, int>((worldWidth / viewDistance) * (worldHeight / viewDistance), Allocator.TempJob);
+        var zombieVisionParallelWriter = zombieVisionHashMap.AsParallelWriter();
+
         var hashFollowTargetGridPositionsJobHandle = Entities
             .WithName("HashFollowTargetGridPositions")
             .WithAll<FollowTarget>()
@@ -43,10 +48,25 @@ public class MoveTowardsTargetSystem : SystemBase
                 })
             .ScheduleParallel(Dependency);
 
+        var hashFollowTargetVisionJobHandle = Entities
+            .WithName("HashFollowTargetVision")
+            .WithAll<FollowTarget>()
+            .WithStoreEntityQueryInField(ref m_FollowTargetQuery)
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
+            {
+                var hash = (int)math.hash(gridPosition.Value / viewDistance);
+                zombieVisionParallelWriter.TryAdd(hash, entityInQueryIndex);
+            })
+            .ScheduleParallel(Dependency);
+
+        var hearingDistance = GameController.instance.zombieHearingDistance;
         var audibleCount = m_AudibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
-
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();
+        var zombieHearingHashMap = new NativeHashMap<int, int>((worldWidth / hearingDistance) * (worldHeight / hearingDistance), Allocator.TempJob);
+        var zombieHearingParallelWriter = zombieHearingHashMap.AsParallelWriter();
+
         var hashAudiblesJobHandle = Entities
             .WithName("HashAudibles")
             .WithStoreEntityQueryInField(ref m_AudibleQuery)
@@ -58,14 +78,28 @@ public class MoveTowardsTargetSystem : SystemBase
             })
             .ScheduleParallel(Dependency);
 
+        var hashHearingJobHandle = Entities
+            .WithName("HashHearing")
+            .WithStoreEntityQueryInField(ref m_AudibleQuery)
+            .WithBurst()
+            .ForEach((int entityInQueryIndex, in Audible audible) =>
+            {
+                var hash = (int)math.hash(audible.GridPositionValue / hearingDistance);
+                zombieHearingParallelWriter.TryAdd(hash, entityInQueryIndex);
+            })
+            .ScheduleParallel(Dependency);
+
         var movementBarrierHandle = JobHandle.CombineDependencies(
             Dependency,
             hashFollowTargetGridPositionsJobHandle,
-            hashAudiblesJobHandle
+            hashFollowTargetVisionJobHandle
+        );
+        movementBarrierHandle = JobHandle.CombineDependencies(
+            movementBarrierHandle,
+            hashAudiblesJobHandle,
+            hashHearingJobHandle
         );
 
-        var viewDistance = GameController.instance.zombieVisionDistance;
-        var hearingDistance = GameController.instance.zombieHearingDistance;
         var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
         var audibleArchetype = Archetypes.AudibleArchetype;
         var tick = UnityEngine.Time.frameCount;
@@ -78,6 +112,8 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithReadOnly(dynamicCollidableHashMap)
             .WithReadOnly(followTargetHashMap)
             .WithReadOnly(audibleHashMap)
+            .WithReadOnly(zombieVisionHashMap)
+            .WithReadOnly(zombieHearingHashMap)
             .WithDisposeOnCompletion(followTargetHashMap)
             .WithDisposeOnCompletion(audibleHashMap)
             .WithBurst()
@@ -87,48 +123,64 @@ public class MoveTowardsTargetSystem : SystemBase
                         return;
 
                     int3 myGridPositionValue = gridPosition.Value;
-                    bool moved = false;
-
-                    // Get nearest visible target
-                    // Check all grid positions that are checkDist away in the x or y direction
-                    bool foundTarget = false;
-                    bool foundBySight = false;
                     int3 nearestTarget = myGridPositionValue;
-                    for (int checkDist = 1; (checkDist <= viewDistance || checkDist <= hearingDistance) && !foundTarget; checkDist++)
+                    bool moved = false;
+                    bool foundByHearing = zombieHearingHashMap.TryGetValue((int)math.hash(myGridPositionValue / hearingDistance), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / hearingDistance), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / hearingDistance), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / hearingDistance), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / hearingDistance), out _);
+                    bool foundBySight = zombieVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / viewDistance), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _);
+                    bool foundTarget = foundByHearing || foundBySight;
+
+                    if (foundTarget)
                     {
-                        float nearestDistance = (checkDist + 2) * (checkDist + 2);
-                        for (int z = -checkDist; z <= checkDist; z++)
+                        foundByHearing = false;
+                        foundBySight = false;
+                        foundTarget = false;
+
+                        // Get nearest target
+                        // Check all grid positions that are checkDist away in the x or y direction
+                        for (int checkDist = 1; (checkDist <= viewDistance || checkDist <= hearingDistance) && !foundTarget; checkDist++)
                         {
-                            for (int x = -checkDist; x <= checkDist; x++)
+                            float nearestDistance = (checkDist + 2) * (checkDist + 2);
+                            for (int z = -checkDist; z <= checkDist; z++)
                             {
-                                if (math.abs(x) == checkDist || math.abs(z) == checkDist)
+                                for (int x = -checkDist; x <= checkDist; x++)
                                 {
-                                    var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-                                    int targetKey = (int)math.hash(targetGridPosition);
-
-                                    if (checkDist <= viewDistance && followTargetHashMap.TryGetValue(targetKey, out _))
+                                    if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                                     {
-                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
-                                        var nearest = distance < nearestDistance;
+                                        var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                                        int targetKey = (int)math.hash(targetGridPosition);
 
-                                        nearestDistance = math.select(nearestDistance, distance, nearest);
-                                        nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
+                                        if (checkDist <= viewDistance && followTargetHashMap.TryGetValue(targetKey, out _))
+                                        {
+                                            var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                                            var nearest = distance < nearestDistance;
 
-                                        foundTarget = true;
-                                        foundBySight = true;
+                                            nearestDistance = math.select(nearestDistance, distance, nearest);
+                                            nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
+
+                                            foundBySight = true;
+                                        }
+
+                                        if (!foundBySight && checkDist <= hearingDistance && audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
+                                        {
+                                            var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                                            var nearest = distance < nearestDistance;
+
+                                            nearestDistance = math.select(nearestDistance, distance, nearest);
+                                            nearestTarget = math.select(nearestTarget, audibleTarget, nearest);
+
+                                            foundByHearing = true;
+                                        }
                                     }
 
-                                    if (!foundBySight && checkDist <= hearingDistance && audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
-                                    {
-                                        var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
-                                        var nearest = distance < nearestDistance;
-
-                                        nearestDistance = math.select(nearestDistance, distance, nearest);
-                                        nearestTarget = math.select(nearestTarget, audibleTarget, nearest);
-
-                                        foundTarget = true;
-                                        foundBySight = false;
-                                    }
+                                    foundTarget = foundByHearing || foundBySight;
                                 }
                             }
                         }
