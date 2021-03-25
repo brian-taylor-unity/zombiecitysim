@@ -28,12 +28,11 @@ public class MoveTowardsTargetSystem : SystemBase
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
 
         var viewDistance = GameController.instance.zombieVisionDistance;
-        var worldWidth = GameController.instance.numTilesX;
-        var worldHeight = GameController.instance.numTilesY;
         var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
         var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
-        var zombieVisionHashMap = new NativeHashMap<int, int>((worldWidth / viewDistance) * (worldHeight / viewDistance), Allocator.TempJob);
+        // We need either "(X * Y) / visionDistance" or "numUnitsToFollow" hash buckets, whichever is smaller
+        var zombieVisionHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var zombieVisionParallelWriter = zombieVisionHashMap.AsParallelWriter();
 
         var hashFollowTargetGridPositionsJobHandle = Entities
@@ -64,7 +63,8 @@ public class MoveTowardsTargetSystem : SystemBase
         var audibleCount = m_AudibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();
-        var zombieHearingHashMap = new NativeHashMap<int, int>((worldWidth / hearingDistance) * (worldHeight / hearingDistance), Allocator.TempJob);
+        // We need either "(X * Y) / visionDistance" or "numAudiblesToFollow" hash buckets, whichever is smaller
+        var zombieHearingHashMap = new NativeHashMap<int, int>(audibleCount, Allocator.TempJob);
         var zombieHearingParallelWriter = zombieHearingHashMap.AsParallelWriter();
 
         var hashAudiblesJobHandle = Entities
@@ -116,6 +116,8 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithReadOnly(zombieHearingHashMap)
             .WithDisposeOnCompletion(followTargetHashMap)
             .WithDisposeOnCompletion(audibleHashMap)
+            .WithDisposeOnCompletion(zombieVisionHashMap)
+            .WithDisposeOnCompletion(zombieHearingHashMap)
             .WithBurst()
             .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
                 {

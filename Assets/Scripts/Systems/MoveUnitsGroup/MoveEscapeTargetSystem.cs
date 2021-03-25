@@ -53,10 +53,9 @@ public class MoveEscapeTargetSystem : SystemBase
         var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
         var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
-        var worldWidth = GameController.instance.numTilesX;
-        var worldHeight = GameController.instance.numTilesY;
         var viewDistance = GameController.instance.humanVisionDistance;
-        var humanVisionHashMap = new NativeHashMap<int, int>((worldWidth / viewDistance) * (worldHeight / viewDistance), Allocator.TempJob);
+        // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
+        var humanVisionHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();
 
         var hashMoveEscapeTargetGridPositionsJobHandle = Entities
