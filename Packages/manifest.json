@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.unity.burst": "1.4.6",
+    "com.unity.burst": "1.4.7",
     "com.unity.collections": "0.15.0-preview.21",
     "com.unity.dots.editor": "0.12.0-preview.6",
     "com.unity.entities": "0.11.1-preview.4",
@@ -9,7 +9,7 @@
     "com.unity.ide.vscode": "1.2.3",
     "com.unity.jobs": "0.2.10-preview.12",
     "com.unity.rendering.hybrid": "0.11.0-preview.42",
-    "com.unity.scriptablebuildpipeline": "1.14.1",
+    "com.unity.scriptablebuildpipeline": "1.15.2",
     "com.unity.test-framework": "1.1.24",
     "com.unity.test-framework.performance": "2.7.0-preview",
     "com.unity.ugui": "1.0.0",
