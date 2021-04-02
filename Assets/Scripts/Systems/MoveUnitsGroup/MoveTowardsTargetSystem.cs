@@ -32,6 +32,7 @@ public class MoveTowardsTargetSystem : SystemBase
         var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToFollow" hash buckets, whichever is smaller
+        var zombieVisionHashMapCellSize = viewDistance * 2 + 1;
         var zombieVisionHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var zombieVisionParallelWriter = zombieVisionHashMap.AsParallelWriter();
 
@@ -54,7 +55,7 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
-                var hash = (int)math.hash(gridPosition.Value / viewDistance);
+                var hash = (int)math.hash(gridPosition.Value / zombieVisionHashMapCellSize);
                 zombieVisionParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
             .ScheduleParallel(Dependency);
@@ -64,6 +65,7 @@ public class MoveTowardsTargetSystem : SystemBase
         var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numAudiblesToFollow" hash buckets, whichever is smaller
+        var zombieHearingHashMapCellSize = viewDistance * 2 + 1;
         var zombieHearingHashMap = new NativeHashMap<int, int>(audibleCount, Allocator.TempJob);
         var zombieHearingParallelWriter = zombieHearingHashMap.AsParallelWriter();
 
@@ -84,7 +86,7 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithBurst()
             .ForEach((int entityInQueryIndex, in Audible audible) =>
             {
-                var hash = (int)math.hash(audible.GridPositionValue / hearingDistance);
+                var hash = (int)math.hash(audible.GridPositionValue / zombieHearingHashMapCellSize);
                 zombieHearingParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
             .ScheduleParallel(Dependency);
@@ -127,16 +129,16 @@ public class MoveTowardsTargetSystem : SystemBase
                     int3 myGridPositionValue = gridPosition.Value;
                     int3 nearestTarget = myGridPositionValue;
                     bool moved = false;
-                    bool foundByHearing = zombieHearingHashMap.TryGetValue((int)math.hash(myGridPositionValue / hearingDistance), out _) ||
-                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / hearingDistance), out _) ||
-                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / hearingDistance), out _) ||
-                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / hearingDistance), out _) ||
-                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / hearingDistance), out _);
-                    bool foundBySight = zombieVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / viewDistance), out _) ||
-                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
-                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
-                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _) ||
-                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _);
+                    bool foundByHearing = zombieHearingHashMap.TryGetValue((int)math.hash(myGridPositionValue / zombieHearingHashMapCellSize), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                                          zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / zombieHearingHashMapCellSize), out _);
+                    bool foundBySight = zombieVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / zombieVisionHashMapCellSize), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / zombieVisionHashMapCellSize), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / zombieVisionHashMapCellSize), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / zombieVisionHashMapCellSize), out _) ||
+                                        zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / zombieVisionHashMapCellSize), out _);
                     bool foundTarget = foundByHearing || foundBySight;
 
                     if (foundTarget)

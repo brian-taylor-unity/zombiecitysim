@@ -53,8 +53,9 @@ public class MoveEscapeTargetSystem : SystemBase
         var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
         var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
-        var viewDistance = GameController.instance.humanVisionDistance;
         // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
+        var viewDistance = GameController.instance.humanVisionDistance;
+        var humanVisionHashMapCellSize = viewDistance * 2 + 1;
         var humanVisionHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();
 
@@ -77,7 +78,7 @@ public class MoveEscapeTargetSystem : SystemBase
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
-                var hash = (int)math.hash(gridPosition.Value / viewDistance);
+                var hash = (int)math.hash(gridPosition.Value / humanVisionHashMapCellSize);
                 humanVisionParallelWriter.TryAdd(hash, entityInQueryIndex);
             })
             .ScheduleParallel(Dependency);
@@ -106,11 +107,12 @@ public class MoveEscapeTargetSystem : SystemBase
                 int3 myGridPositionValue = gridPosition.Value;
                 float3 averageTarget = new int3(0, 0, 0);
                 bool moved = false;
-                bool foundTarget = humanVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / viewDistance), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / viewDistance), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / viewDistance), out _);
+
+                bool foundTarget = humanVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / humanVisionHashMapCellSize), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / humanVisionHashMapCellSize), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / humanVisionHashMapCellSize), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / humanVisionHashMapCellSize), out _) ||
+                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / humanVisionHashMapCellSize), out _);
 
                 if (foundTarget)
                 {
