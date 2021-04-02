@@ -56,6 +56,7 @@ public class AdvanceTurnSystem : SystemBase
                     })
                 .ScheduleParallel(outputDeps);
 
+            var audibleDecayTime = GameController.instance.audibleDecayTime;
             var commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
             var advanceAudibleAgeJobHandle = Entities
                 .WithName("AdvanceAudibleAge")
@@ -63,7 +64,7 @@ public class AdvanceTurnSystem : SystemBase
                 .ForEach((Entity entity, int entityInQueryIndex, ref Audible audible) =>
                     {
                         audible.Age += 1;
-                        if (audible.Age > 5)
+                        if (audible.Age > audibleDecayTime)
                             commands.DestroyEntity(entityInQueryIndex, entity);
                     })
                 .ScheduleParallel(outputDeps);

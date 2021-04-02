@@ -35,6 +35,8 @@ public class GameController : MonoBehaviour
     public int zombieHearingDistance = 10;
     public int zombieTurnDelay = 3;
 
+    public int audibleDecayTime = 20;
+
     public float turnDelayTime = 0.025f;
 
     public InputField numHumansInputField;

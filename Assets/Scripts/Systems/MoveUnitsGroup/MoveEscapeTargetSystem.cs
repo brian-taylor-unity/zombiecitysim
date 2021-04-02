@@ -11,30 +11,25 @@ public class MoveEscapeTargetSystem : SystemBase
 
     private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
     {
-        // Traverse the grid along the ray from initial position to target position
-        int dx = targetGridPosition.x - initialGridPosition.x;
-        int dz = targetGridPosition.z - initialGridPosition.z;
-        int step;
-        if (math.abs(dx) >= math.abs(dz))
-            step = math.abs(dx);
-        else
-            step = math.abs(dz);
-        dx /= step;
-        dz /= step;
-
-        int x = initialGridPosition.x;
-        int z = initialGridPosition.z;
-        for (int i = 1; i <= step; i++)
+        float vx, vz, ox, oz, l;
+        int i;
+        vx = targetGridPosition.x - initialGridPosition.x;
+        vz = targetGridPosition.z - initialGridPosition.z;
+        ox = targetGridPosition.x + 0.5f;
+        oz = targetGridPosition.z + 0.5f;
+        l = math.sqrt((vx * vx) + (vz * vz));
+        vx /= l;
+        vz /= l;
+        for (i = 0; i < (int)l; i++)
         {
-            x += dx;
-            z += dz;
-            int3 gridPosition = new int3(x, initialGridPosition.y, z);
+            int3 gridPosition = new int3((int)math.floor(ox), initialGridPosition.y, (int)math.floor(oz));
             int key = (int)math.hash(gridPosition);
             if (staticCollidableHashMap.TryGetValue(key, out _))
-            {
                 return false;
-            }
-        }
+
+            ox += vx;
+            oz += vz;
+        };
 
         return true;
     }
