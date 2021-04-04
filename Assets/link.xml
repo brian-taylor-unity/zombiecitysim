@@ -1,0 +1,3 @@
+<linker>
+  <assembly fullname="Unity.RenderPipelines.HighDefinition.Runtime.dll" preserve="all" />
+</linker>
