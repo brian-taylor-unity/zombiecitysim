@@ -69,13 +69,15 @@ public class DamageToZombiesSystem : SystemBase
                 })
             .ScheduleParallel();
 
+        var zombieMaxHealth = GameController.instance.zombieStartingHealth;
+
         Entities
             .WithName("DealDamageToZombies")
             .WithAll<Zombie>()
             .WithReadOnly(damageHashMap)
             .WithDisposeOnCompletion(damageHashMap)
             .WithBurst()
-            .ForEach((ref Health health, in GridPosition gridPosition) =>
+            .ForEach((ref Health health, ref CharacterColor materialColor, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
 
@@ -89,9 +91,10 @@ public class DamageToZombiesSystem : SystemBase
                             myHealth -= damage;
                         }
 
+                        var lerp = math.lerp(0.0f, 1.0f, (float)myHealth / zombieMaxHealth);
+                        materialColor.Value = new float4(lerp, 1.0f - lerp, 0.0f, 1.0f);
                         health.Value = myHealth;
                     }
-
                 })
             .ScheduleParallel();
     }

@@ -20,7 +20,8 @@ public class Archetypes
             typeof(MoveRandomly),
             typeof(Health),
             typeof(Damage),
-            typeof(TurnsUntilActive)
+            typeof(TurnsUntilActive),
+            typeof(CharacterColor)
         );
         ZombieArchetype = World.DefaultGameObjectInjectionWorld.EntityManager.CreateArchetype(
             typeof(Zombie),
@@ -30,7 +31,8 @@ public class Archetypes
             typeof(MoveTowardsTarget),
             typeof(Health),
             typeof(Damage),
-            typeof(TurnsUntilActive)
+            typeof(TurnsUntilActive),
+            typeof(CharacterColor)
         );
 
         AudibleArchetype = World.DefaultGameObjectInjectionWorld.EntityManager.CreateArchetype(typeof(Audible));

@@ -195,6 +195,7 @@ public class TileUnitSpawner_System : SystemBase
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new FollowTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new LineOfSight());
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(0.0f, 1.0f, 0.0f, 1.0f) });
                                 break;
                             case TileUnitKinds.ZombieUnit:
                                 instance = CommandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.ZombieUnit_Prefab);
@@ -208,6 +209,7 @@ public class TileUnitSpawner_System : SystemBase
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, 1.0f) });
                                 break;
                         }
                     }

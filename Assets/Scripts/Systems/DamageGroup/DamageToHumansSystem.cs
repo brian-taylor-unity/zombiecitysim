@@ -68,13 +68,15 @@ public class DamageToHumansSystem : SystemBase
                 })
             .ScheduleParallel();
 
+        var humanMaxHealth = GameController.instance.humanStartingHealth;
+
         Entities
             .WithName("DealDamageToHumans")
             .WithAll<Human>()
             .WithReadOnly(damageHashMap)
             .WithDisposeOnCompletion(damageHashMap)
             .WithBurst()
-            .ForEach((ref Health health, in GridPosition gridPosition) =>
+            .ForEach((ref Health health, ref CharacterColor materialColor, in GridPosition gridPosition) =>
                 {
                     int myHealth = health.Value;
 
@@ -88,6 +90,8 @@ public class DamageToHumansSystem : SystemBase
                             myHealth -= damage;
                         }
 
+                        var lerp = math.lerp(0.0f, 1.0f, (float)myHealth / humanMaxHealth);
+                        materialColor.Value = new float4(1.0f - lerp, lerp, 0.0f, 1.0f);
                         health.Value = myHealth;
                     }
                 })

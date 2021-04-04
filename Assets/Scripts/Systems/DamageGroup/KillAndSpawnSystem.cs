@@ -1,6 +1,7 @@
 ﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
@@ -42,7 +43,10 @@ public class KillAndSpawnSystem : SystemBase
             .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
             {
                 if (health.Value <= 0)
+                {
                     commandBufferBegin.DestroyEntity(entityInQueryIndex, entity);
+                    return;
+                }
             })
             .ScheduleParallel(Dependency);
         m_EntityCommandBufferSystemBegin.AddJobHandleForProducer(killJob);
@@ -67,6 +71,7 @@ public class KillAndSpawnSystem : SystemBase
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
+                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, 1.0f) });
                     }
                 })
             .ScheduleParallel(Dependency);
