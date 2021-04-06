@@ -96,7 +96,7 @@ public class MoveEscapeTargetSystem : SystemBase
             .WithBurst()
             .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
             {
-                if (turnsUntilActive.Value != 0)
+                if (turnsUntilActive.Value != 1)
                     return;
 
                 int3 myGridPositionValue = gridPosition.Value;

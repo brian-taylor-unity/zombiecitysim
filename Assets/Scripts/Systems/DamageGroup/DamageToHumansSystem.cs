@@ -50,7 +50,7 @@ public class DamageToHumansSystem : SystemBase
             .WithBurst()
             .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
                 {
-                    if (turnsUntilActive.Value != 0)
+                    if (turnsUntilActive.Value != 1)
                         return;
 
                     for (int z = -1; z <= 1; z++)

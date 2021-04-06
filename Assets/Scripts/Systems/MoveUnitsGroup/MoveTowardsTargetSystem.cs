@@ -123,7 +123,7 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithBurst()
             .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
                 {
-                    if (turnsUntilActive.Value != 0)
+                    if (turnsUntilActive.Value != 1)
                         return;
 
                     int3 myGridPositionValue = gridPosition.Value;

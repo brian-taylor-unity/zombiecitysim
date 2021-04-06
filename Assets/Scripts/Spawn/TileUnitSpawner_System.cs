@@ -28,9 +28,6 @@ public class TileUnitSpawner_System : SystemBase
         var tileUnitKinds = new List<TileUnitKinds>();
         var tileUnitHealth = new List<int>();
         var tileUnitDamage = new List<int>();
-        var tileUnitTurnsUntilActive = new List<int>();
-        tileUnitTurnsUntilActive.Add(GameController.instance.humanTurnDelay);
-        tileUnitTurnsUntilActive.Add(GameController.instance.zombieTurnDelay);
 
         var tileExists = new bool[GameController.instance.numTilesY, GameController.instance.numTilesX];
         for (int y = 0; y < GameController.instance.numTilesY; y++)
@@ -155,16 +152,16 @@ public class TileUnitSpawner_System : SystemBase
         var tileUnitKindsNativeArray = new NativeArray<TileUnitKinds>(tileUnitKinds.ToArray(), Allocator.TempJob);
         var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
         var tileUnitDamageNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
-        var tileUnitTurnsUntilActiveNativeArray = new NativeArray<int>(tileUnitTurnsUntilActive.ToArray(), Allocator.TempJob);
         var CommandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+        var humanTurnDelay = GameController.instance.humanTurnDelay;
+        var zombieTurnDelay = GameController.instance.zombieTurnDelay;
 
         var spawnJob = Entities
-            .WithBurst()
             .WithReadOnly(tileUnitPositionsNativeArray)
             .WithReadOnly(tileUnitKindsNativeArray)
             .WithReadOnly(tileUnitHealthNativeArray)
             .WithReadOnly(tileUnitDamageNativeArray)
-            .WithReadOnly(tileUnitTurnsUntilActiveNativeArray)
+            .WithBurst()
             .ForEach((Entity entity, int entityInQueryIndex, in TileUnitSpawner_Data tileUnitSpawner) =>
                 {
                     for (int i = 0; i < tileUnitPositionsNativeArray.Length; i++)
@@ -184,32 +181,34 @@ public class TileUnitSpawner_System : SystemBase
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Scale { Value = tileUnitPositionsNativeArray[i].x / 10.0f - 0.1f });
                                 break;
                             case TileUnitKinds.HumanUnit:
+                                var turnsUntilActive = i % humanTurnDelay + 1;
                                 instance = CommandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.HumanUnit_Prefab);
                                 CommandBuffer.SetComponent(entityInQueryIndex, instance, new Translation { Value = tileUnitPositionsNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamageNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[0] });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = turnsUntilActive });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Human());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new FollowTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new LineOfSight());
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(0.0f, 1.0f, 0.0f, 1.0f) });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(0.0f, 1.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
                                 break;
                             case TileUnitKinds.ZombieUnit:
+                                turnsUntilActive = i % zombieTurnDelay + 1;
                                 instance = CommandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.ZombieUnit_Prefab);
                                 CommandBuffer.SetComponent(entityInQueryIndex, instance, new Translation { Value = tileUnitPositionsNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Health { Value = tileUnitHealthNativeArray[i] });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Damage { Value = tileUnitDamageNativeArray[i] });
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = entityInQueryIndex % tileUnitTurnsUntilActiveNativeArray[1] });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = turnsUntilActive });
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new Zombie());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
-                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, 1.0f) });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
                                 break;
                         }
                     }
@@ -220,7 +219,6 @@ public class TileUnitSpawner_System : SystemBase
             .WithDisposeOnCompletion(tileUnitKindsNativeArray)
             .WithDisposeOnCompletion(tileUnitHealthNativeArray)
             .WithDisposeOnCompletion(tileUnitDamageNativeArray)
-            .WithDisposeOnCompletion(tileUnitTurnsUntilActiveNativeArray)
             .ScheduleParallel(Dependency);
 
         m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);

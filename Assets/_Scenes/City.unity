@@ -2913,18 +2913,18 @@ MonoBehaviour:
     needMotionVectorPass: 0
   numTilesX: 1200
   numTilesY: 1200
-  numStreets: 1400
+  numStreets: 1200
   numHumans: 30000
   humanStartingHealth: 100
   humanDamage: 0
   humanVisionDistance: 10
-  humanTurnDelay: 1
+  humanTurnDelay: 3
   numZombies: 10
   zombieStartingHealth: 70
   zombieDamage: 20
   zombieVisionDistance: 8
   zombieHearingDistance: 20
-  zombieTurnDelay: 3
+  zombieTurnDelay: 5
   audibleDecayTime: 20
   turnDelayTime: 0
   numHumansInputField: {fileID: 2136234495}

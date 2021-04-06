@@ -28,7 +28,7 @@ public class MoveRandomlySystem : SystemBase
             .WithBurst()
             .ForEach((int entityInQueryIndex, ref NextGridPosition nextGridPosition, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive) =>
                 {
-                    if (turnsUntilActive.Value != 0)
+                    if (turnsUntilActive.Value != 1)
                         return;
 
                     int3 myGridPositionValue = gridPosition.Value;

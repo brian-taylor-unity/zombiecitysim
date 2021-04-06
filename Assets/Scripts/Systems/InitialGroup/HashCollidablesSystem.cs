@@ -67,7 +67,7 @@ public class HashCollidablesSystem : SystemBase
         Dependency = JobHandle.CombineDependencies(m_StaticCollidableHashMapJobHandle, m_DynamicCollidableHashMapJobHandle);
     }
 
-    protected override void OnDestroy()
+    protected override void OnStopRunning()
     {
         if (m_StaticCollidableHashMap.IsCreated)
             m_StaticCollidableHashMap.Dispose();

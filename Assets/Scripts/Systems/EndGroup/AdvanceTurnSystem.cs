@@ -16,45 +16,36 @@ public class AdvanceTurnSystem : SystemBase
 
     protected override void OnUpdate()
     {
-        var humanTurnDelay = GameController.instance.humanTurnDelay;
-        var zombieTurnDelay = GameController.instance.zombieTurnDelay;
-
-        var resetHumanTurnJobHandle = Entities
-            .WithName("ResetHumanTurn")
-            .WithAll<Human>()
-            .WithBurst()
-            .ForEach((ref TurnsUntilActive turnsUntilActive) =>
-                {
-                    turnsUntilActive.Value = math.select(turnsUntilActive.Value, humanTurnDelay, turnsUntilActive.Value == 0);
-                })
-            .ScheduleParallel(Dependency);
-
-        var resetZombieTurnJobHandle = Entities
-            .WithName("ResetZombieTurn")
-            .WithAll<Zombie>()
-            .WithBurst()
-            .ForEach((ref TurnsUntilActive turnsUntilActive) =>
-            {
-                turnsUntilActive.Value = math.select(turnsUntilActive.Value, zombieTurnDelay, turnsUntilActive.Value == 0);
-            })
-            .ScheduleParallel(resetHumanTurnJobHandle);
-
-        var outputDeps = resetZombieTurnJobHandle;
-
+        var turnDelayTime = GameController.instance.turnDelayTime;
         var now = Time.ElapsedTime;
-        if (now - m_LastTime > GameController.instance.turnDelayTime)
+        if (now - m_LastTime > turnDelayTime)
         {
             m_LastTime = now;
 
-            var advanceTurnsUntilActiveJobHandle = Entities
-                .WithName("AdvanceTurn")
-                .WithAny<Human, Zombie>()
+            var humanTurnDelay = GameController.instance.humanTurnDelay;
+            var zombieTurnDelay = GameController.instance.zombieTurnDelay;
+
+            var advanceHumanTurnJobHandle = Entities
+                .WithName("AdvanceHumanTurn")
+                .WithAll<Human>()
                 .WithBurst()
-                .ForEach((ref TurnsUntilActive turnsUntilActive) =>
-                    {
-                        turnsUntilActive.Value -= 1;
-                    })
-                .ScheduleParallel(outputDeps);
+                .ForEach((ref TurnsUntilActive turnsUntilActive, ref CharacterColor characterColor) =>
+                {
+                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), turnDelayTime >= 0.2);
+                    turnsUntilActive.Value = math.select(turnsUntilActive.Value - 1, humanTurnDelay, turnsUntilActive.Value == 1);
+                })
+                .ScheduleParallel(Dependency);
+
+            var advanceZombieTurnJobHandle = Entities
+                .WithName("AdvanceZombieTurn")
+                .WithAll<Zombie>()
+                .WithBurst()
+                .ForEach((ref TurnsUntilActive turnsUntilActive, ref CharacterColor characterColor) =>
+                {
+                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), turnDelayTime >= 0.2);
+                    turnsUntilActive.Value = math.select(turnsUntilActive.Value - 1, zombieTurnDelay, turnsUntilActive.Value == 1);
+                })
+                .ScheduleParallel(advanceHumanTurnJobHandle);
 
             var audibleDecayTime = GameController.instance.audibleDecayTime;
             var commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
@@ -67,12 +58,10 @@ public class AdvanceTurnSystem : SystemBase
                         if (audible.Age > audibleDecayTime)
                             commands.DestroyEntity(entityInQueryIndex, entity);
                     })
-                .ScheduleParallel(outputDeps);
+                .ScheduleParallel(Dependency);
             m_EntityCommandBufferSystem.AddJobHandleForProducer(advanceAudibleAgeJobHandle);
 
-            outputDeps = JobHandle.CombineDependencies(advanceTurnsUntilActiveJobHandle, advanceAudibleAgeJobHandle);
+            Dependency = JobHandle.CombineDependencies(advanceZombieTurnJobHandle, advanceAudibleAgeJobHandle);
         }
-
-        Dependency = outputDeps;
     }
 }
