@@ -194,6 +194,7 @@ public class TileUnitSpawner_System : SystemBase
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new FollowTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new LineOfSight());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(0.0f, 1.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new RandomComponent { Value = new Random(i == 0 ? 1 : (uint)i) });
                                 break;
                             case TileUnitKinds.ZombieUnit:
                                 turnsUntilActive = i % zombieTurnDelay + 1;
@@ -209,6 +210,7 @@ public class TileUnitSpawner_System : SystemBase
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
                                 CommandBuffer.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
+                                CommandBuffer.AddComponent(entityInQueryIndex, instance, new RandomComponent { Value = new Random(i == 0 ? 1 : (uint)i) });
                                 break;
                         }
                     }

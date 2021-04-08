@@ -26,7 +26,7 @@ public class MoveRandomlySystem : SystemBase
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithBurst()
-            .ForEach((int entityInQueryIndex, ref NextGridPosition nextGridPosition, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive) =>
+            .ForEach((int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomComponent random, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive) =>
                 {
                     if (turnsUntilActive.Value != 1)
                         return;
@@ -52,14 +52,7 @@ public class MoveRandomlySystem : SystemBase
                     if (staticCollidableHashMap.TryGetValue(leftDirKey, out _) || dynamicCollidableHashMap.TryGetValue(leftDirKey, out _))
                         leftMoveAvail = false;
 
-                    // Pick a random direction to move
-                    uint seed = (uint)(tick * (int)math.hash(myGridPositionValue) * entityInQueryIndex);
-                    if (seed == 0)
-                        seed += (uint)(tick + entityInQueryIndex);
-
-                    Random rand = new Random(seed);
-                    int randomDirIndex = rand.NextInt(0, 4);
-
+                    int randomDirIndex = random.Value.NextInt(0, 4);
                     bool moved = false;
                     for (int i = 0; i < 4 && !moved; i++)
                     {

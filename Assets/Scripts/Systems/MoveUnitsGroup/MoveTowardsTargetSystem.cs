@@ -121,7 +121,7 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithDisposeOnCompletion(zombieVisionHashMap)
             .WithDisposeOnCompletion(zombieHearingHashMap)
             .WithBurst()
-            .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
+            .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomComponent random, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
                 {
                     if (turnsUntilActive.Value != 1)
                         return;
@@ -283,14 +283,7 @@ public class MoveTowardsTargetSystem : SystemBase
 
                     if (!moved)
                     {
-                        // Pick a random direction to move
-                        uint seed = (uint)(tick * (int)math.hash(myGridPositionValue) * entityInQueryIndex);
-                        if (seed == 0)
-                            seed += (uint)(tick + entityInQueryIndex);
-
-                        Random rand = new Random(seed);
-                        int randomDirIndex = rand.NextInt(0, 4);
-
+                        int randomDirIndex = random.Value.NextInt(0, 4);
                         for (int i = 0; i < 4 && !moved; i++)
                         {
                             int direction = (randomDirIndex + i) % 4;

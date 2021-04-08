@@ -2,6 +2,4 @@
 using Unity.Entities;
 
 [Serializable]
-public struct MoveTowardsTarget : IComponentData
-{
-}
+public struct MoveTowardsTarget : IComponentData { }

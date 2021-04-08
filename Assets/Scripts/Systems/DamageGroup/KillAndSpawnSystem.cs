@@ -72,6 +72,7 @@ public class KillAndSpawnSystem : SystemBase
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
                         commandBufferEnd.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, 0.85f) });
+                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new RandomComponent { Value = new Random(entityInQueryIndex == 0 ? 1 : (uint)entityInQueryIndex) });
                     }
                 })
             .ScheduleParallel(Dependency);
