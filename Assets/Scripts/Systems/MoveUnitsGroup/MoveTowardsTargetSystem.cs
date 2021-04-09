@@ -121,7 +121,7 @@ public class MoveTowardsTargetSystem : SystemBase
             .WithDisposeOnCompletion(zombieVisionHashMap)
             .WithDisposeOnCompletion(zombieHearingHashMap)
             .WithBurst()
-            .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomComponent random, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
+            .ForEach((Entity entity, int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomGenerator random, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
                 {
                     if (turnsUntilActive.Value != 1)
                         return;
@@ -163,13 +163,17 @@ public class MoveTowardsTargetSystem : SystemBase
 
                                         if (checkDist <= viewDistance && followTargetHashMap.TryGetValue(targetKey, out _))
                                         {
-                                            var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
-                                            var nearest = distance < nearestDistance;
+                                            // Check if we have line of sight to the target
+                                            if (LineOfSightUtilities.InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
+                                            {
+                                                var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
+                                                var nearest = distance < nearestDistance;
 
-                                            nearestDistance = math.select(nearestDistance, distance, nearest);
-                                            nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
+                                                nearestDistance = math.select(nearestDistance, distance, nearest);
+                                                nearestTarget = math.select(nearestTarget, targetGridPosition, nearest);
 
-                                            foundBySight = true;
+                                                foundBySight = true;
+                                            }
                                         }
 
                                         if (!foundBySight && checkDist <= hearingDistance && audibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))

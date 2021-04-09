@@ -9,31 +9,6 @@ public class MoveEscapeTargetSystem : SystemBase
 {
     private EntityQuery m_MoveEscapeTargetQuery;
 
-    private static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
-    {
-        float vx, vz, ox, oz, l;
-        int i;
-        vx = targetGridPosition.x - initialGridPosition.x;
-        vz = targetGridPosition.z - initialGridPosition.z;
-        ox = targetGridPosition.x + 0.5f;
-        oz = targetGridPosition.z + 0.5f;
-        l = math.sqrt((vx * vx) + (vz * vz));
-        vx /= l;
-        vz /= l;
-        for (i = 0; i < (int)l; i++)
-        {
-            int3 gridPosition = new int3((int)math.floor(ox), initialGridPosition.y, (int)math.floor(oz));
-            int key = (int)math.hash(gridPosition);
-            if (staticCollidableHashMap.TryGetValue(key, out _))
-                return false;
-
-            ox += vx;
-            oz += vz;
-        };
-
-        return true;
-    }
-
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
@@ -128,7 +103,7 @@ public class MoveEscapeTargetSystem : SystemBase
                                     if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
                                     {
                                         // Check if we have line of sight to the target
-                                        if (InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
+                                        if (LineOfSightUtilities.InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
                                         {
                                             averageTarget = averageTarget * targetCount + new float3(x, 0, z);
                                             targetCount++;

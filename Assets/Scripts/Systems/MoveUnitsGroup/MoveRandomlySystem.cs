@@ -26,7 +26,7 @@ public class MoveRandomlySystem : SystemBase
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
             .WithBurst()
-            .ForEach((int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomComponent random, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive) =>
+            .ForEach((int entityInQueryIndex, ref NextGridPosition nextGridPosition, ref RandomGenerator random, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive) =>
                 {
                     if (turnsUntilActive.Value != 1)
                         return;

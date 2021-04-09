@@ -60,19 +60,16 @@ public class KillAndSpawnSystem : SystemBase
                 {
                     if (health.Value <= 0)
                     {
-                        var instance = commandBufferEnd.Instantiate(entityInQueryIndex, unitSpawner.ZombieUnit_Prefab);
-                        commandBufferEnd.SetComponent(entityInQueryIndex, instance, new Translation { Value = gridPosition.Value });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = gridPosition.Value });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new NextGridPosition { Value = gridPosition.Value });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Health { Value = unitHealth });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Damage { Value = unitDamage });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new TurnsUntilActive { Value = unitTurnsUntilActive });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new Zombie());
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new DynamicCollidable());
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveTowardsTarget());
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new MoveEscapeTarget());
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, 0.85f) });
-                        commandBufferEnd.AddComponent(entityInQueryIndex, instance, new RandomComponent { Value = new Random(entityInQueryIndex == 0 ? 1 : (uint)entityInQueryIndex) });
+                        ZombieCreator.CreateZombie(
+                            commandBufferEnd,
+                            entityInQueryIndex,
+                            unitSpawner.ZombieUnit_Prefab,
+                            gridPosition.Value,
+                            unitHealth,
+                            unitDamage,
+                            unitTurnsUntilActive,
+                            entityInQueryIndex == 0 ? 1 : (uint)entityInQueryIndex
+                        );
                     }
                 })
             .ScheduleParallel(Dependency);
