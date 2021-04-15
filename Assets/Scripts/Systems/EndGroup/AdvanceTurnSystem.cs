@@ -31,7 +31,7 @@ public class AdvanceTurnSystem : SystemBase
                 .WithBurst()
                 .ForEach((ref TurnsUntilActive turnsUntilActive, ref CharacterColor characterColor) =>
                 {
-                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), turnDelayTime >= 0.2);
+                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 2), turnDelayTime >= 0.2);
                     turnsUntilActive.Value = math.select(turnsUntilActive.Value - 1, humanTurnDelay, turnsUntilActive.Value == 1);
                 })
                 .ScheduleParallel(Dependency);
@@ -42,7 +42,7 @@ public class AdvanceTurnSystem : SystemBase
                 .WithBurst()
                 .ForEach((ref TurnsUntilActive turnsUntilActive, ref CharacterColor characterColor) =>
                 {
-                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), turnDelayTime >= 0.2);
+                    characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 2), turnDelayTime >= 0.2);
                     turnsUntilActive.Value = math.select(turnsUntilActive.Value - 1, zombieTurnDelay, turnsUntilActive.Value == 1);
                 })
                 .ScheduleParallel(advanceHumanTurnJobHandle);
