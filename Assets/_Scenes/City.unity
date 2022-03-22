@@ -98,8 +98,7 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_LightingSettings: {fileID: 4890085278179872738, guid: 42e2f20276eea1441a1fe900e434d13f,
-    type: 2}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 42e2f20276eea1441a1fe900e434d13f, type: 2}
 --- !u!196 &5
 NavMeshSettings:
   serializedVersion: 2
@@ -216,9 +215,6 @@ MonoBehaviour:
   m_CharacterValidation: 1
   m_CharacterLimit: 0
   m_OnEndEdit:
-    m_PersistentCalls:
-      m_Calls: []
-  m_OnSubmit:
     m_PersistentCalls:
       m_Calls: []
   m_OnValueChanged:
@@ -471,7 +467,6 @@ MonoBehaviour:
   m_BarnDoorAngle: 90
   m_BarnDoorLength: 0.05
   m_preserveCachedShadow: 0
-  m_OnDemandShadowRenderOnPlacement: 1
   m_ShadowCascadeRatios:
   - 0.05
   - 0.2
@@ -491,14 +486,14 @@ MonoBehaviour:
   m_AreaLightEmissiveMeshShadowCastingMode: 0
   m_AreaLightEmissiveMeshMotionVectorGenerationMode: 0
   m_AreaLightEmissiveMeshLayer: -1
+  m_PointlightHDType: 0
+  m_SpotLightShape: 0
+  m_AreaLightShape: 0
   m_Version: 11
   m_ObsoleteShadowResolutionTier: 1
   m_ObsoleteUseShadowQualitySettings: 0
   m_ObsoleteCustomShadowResolution: 512
   m_ObsoleteContactShadows: 0
-  m_PointlightHDType: 0
-  m_SpotLightShape: 0
-  m_AreaLightShape: 0
 --- !u!1 &99703342
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,9 +1334,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_OnSubmit:
-    m_PersistentCalls:
-      m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -1691,7 +1683,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 725271540}
   m_Direction: 0
   m_MinValue: 1
-  m_MaxValue: 30000
+  m_MaxValue: 50000
   m_WholeNumbers: 1
   m_Value: 15000
   m_OnValueChanged:
@@ -2859,58 +2851,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e983fba2152052c4eb4bac27e939486f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialTileUnitSpawner: {fileID: 3966517543134075691, guid: 755ef4984c12fad47978df6a5f5bc154,
-    type: 3}
-  zombieUnitSpawner: {fileID: 7308855596244015273, guid: d807b01ffd00d3c4e8ab03ce5c097ee4,
-    type: 3}
-  Zombie_75_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: b5a753fc4dabb1b4fa6e56ab399ac2d0, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
-  Zombie_50_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: 80d12e8f9cc047441982e3f0a0a704b0, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
-  Zombie_25_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: 513da9dc7d667f649ae040c8622aa940, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
-  Human_75_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: ef03dbaf366b9b64484d4ada4c0193f8, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
-  Human_50_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: e4bf55d90048ce64790139c58067bb76, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
-  Human_25_RenderMesh:
-    mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 3}
-    material: {fileID: 2100000, guid: 969434e0ed22b0d47a0b935e13e2b471, type: 2}
-    subMesh: 0
-    layer: 0
-    castShadows: 1
-    receiveShadows: 1
-    needMotionVectorPass: 0
+  initialTileUnitSpawner: {fileID: 3966517543134075691, guid: 755ef4984c12fad47978df6a5f5bc154, type: 3}
+  zombieUnitSpawner: {fileID: 7308855596244015273, guid: d807b01ffd00d3c4e8ab03ce5c097ee4, type: 3}
   numTilesX: 1200
   numTilesY: 1200
   numStreets: 1200
@@ -3198,9 +3140,6 @@ MonoBehaviour:
   m_CharacterValidation: 1
   m_CharacterLimit: 0
   m_OnEndEdit:
-    m_PersistentCalls:
-      m_Calls: []
-  m_OnSubmit:
     m_PersistentCalls:
       m_Calls: []
   m_OnValueChanged:
@@ -3700,9 +3639,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_OnSubmit:
-    m_PersistentCalls:
-      m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -4377,9 +4313,6 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls: []
-  m_OnSubmit:
-    m_PersistentCalls:
-      m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -4689,9 +4622,6 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls: []
-  m_OnSubmit:
-    m_PersistentCalls:
-      m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
@@ -4859,9 +4789,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_OnSubmit:
-    m_PersistentCalls:
-      m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -6077,9 +6004,6 @@ MonoBehaviour:
   m_CharacterValidation: 1
   m_CharacterLimit: 0
   m_OnEndEdit:
-    m_PersistentCalls:
-      m_Calls: []
-  m_OnSubmit:
     m_PersistentCalls:
       m_Calls: []
   m_OnValueChanged:

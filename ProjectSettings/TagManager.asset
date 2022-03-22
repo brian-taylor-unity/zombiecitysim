@@ -3,11 +3,7 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags:
-  - Human
-  - Zombie
-  - Passable
-  - Impassable
+  tags: []
   layers:
   - Default
   - TransparentFX
@@ -17,8 +13,8 @@ TagManager:
   - UI
   - 
   - 
-  - Passable
-  - Impassable
+  - 
+  - 
   - 
   - 
   - 
@@ -44,10 +40,4 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
-    locked: 0
-  - name: City
-    uniqueID: 1641987979
-    locked: 0
-  - name: Characters
-    uniqueID: 1963988127
     locked: 0
