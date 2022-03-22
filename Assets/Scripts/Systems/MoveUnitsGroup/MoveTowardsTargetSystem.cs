@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-public class MoveTowardsTargetSystem : SystemBase
+public partial class MoveTowardsTargetSystem : SystemBase
 {
     private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
 

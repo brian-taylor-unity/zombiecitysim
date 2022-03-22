@@ -5,7 +5,7 @@ using Random = Unity.Mathematics.Random;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
-public class MoveRandomlySystem : SystemBase
+public partial class MoveRandomlySystem : SystemBase
 {
     protected override void OnUpdate()
     {

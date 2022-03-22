@@ -5,7 +5,7 @@ using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateAfter(typeof(MoveTowardsTargetSystem))]
-public class ResolveGridMovementSystem : SystemBase
+public partial class ResolveGridMovementSystem : SystemBase
 {
     private EntityQuery query;
 

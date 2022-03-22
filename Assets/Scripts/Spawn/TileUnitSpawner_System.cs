@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using System.Collections.Generic;
 
-public class TileUnitSpawner_System : SystemBase
+public partial class TileUnitSpawner_System : SystemBase
 {
     private enum TileUnitKinds
     {

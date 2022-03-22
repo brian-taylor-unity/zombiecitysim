@@ -3,7 +3,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(EndGroup))]
-public class AdvanceTurnSystem : SystemBase
+public partial class AdvanceTurnSystem : SystemBase
 {
     private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystem;
     private double m_LastTime;

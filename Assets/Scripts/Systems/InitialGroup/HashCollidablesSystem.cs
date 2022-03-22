@@ -4,7 +4,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(InitialGroup))]
-public class HashCollidablesSystem : SystemBase
+public partial class HashCollidablesSystem : SystemBase
 {
     private EntityQuery m_StaticCollidableEntityQuery;
     private EntityQuery m_DynamicCollidableEntityQuery;

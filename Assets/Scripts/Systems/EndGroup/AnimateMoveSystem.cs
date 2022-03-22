@@ -3,7 +3,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(EndGroup))]
-public class AnimateMoveSystem : SystemBase
+public partial class AnimateMoveSystem : SystemBase
 {
     private float m_TotalTime;
 

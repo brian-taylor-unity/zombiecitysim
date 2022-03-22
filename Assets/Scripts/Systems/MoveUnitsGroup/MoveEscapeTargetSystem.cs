@@ -5,7 +5,7 @@ using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
-public class MoveEscapeTargetSystem : SystemBase
+public partial class MoveEscapeTargetSystem : SystemBase
 {
     private EntityQuery m_MoveEscapeTargetQuery;
 

@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
-public class KillAndSpawnSystem : SystemBase
+public partial class KillAndSpawnSystem : SystemBase
 {
     private BeginSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemBegin;
     private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemEnd;

@@ -4,7 +4,7 @@ using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(DamageToHumansSystem))]
-public class DamageToZombiesSystem : SystemBase
+public partial class DamageToZombiesSystem : SystemBase
 {
     private EntityQuery zombiesQuery;
     private EntityQuery humansQuery;
