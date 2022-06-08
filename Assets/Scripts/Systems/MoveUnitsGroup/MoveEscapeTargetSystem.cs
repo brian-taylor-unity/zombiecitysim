@@ -7,20 +7,20 @@ using Unity.Mathematics;
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
 public partial class MoveEscapeTargetSystem : SystemBase
 {
-    private EntityQuery m_MoveEscapeTargetQuery;
+    private EntityQuery _moveEscapeTargetQuery;
 
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
+        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
+        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
 
-        var moveEscapeTargetCount = m_MoveEscapeTargetQuery.CalculateEntityCount();
+        var moveEscapeTargetCount = _moveEscapeTargetQuery.CalculateEntityCount();
         var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
@@ -32,7 +32,7 @@ public partial class MoveEscapeTargetSystem : SystemBase
         var hashMoveEscapeTargetGridPositionsJobHandle = Entities
             .WithName("HashMoveEscapeTargetGridPositions")
             .WithAll<MoveEscapeTarget>()
-            .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
+            .WithStoreEntityQueryInField(ref _moveEscapeTargetQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
@@ -44,7 +44,7 @@ public partial class MoveEscapeTargetSystem : SystemBase
         var hashMoveEscapeTargetVisionJobHandle = Entities
             .WithName("HashMoveEscapeTargetVision")
             .WithAll<MoveEscapeTarget>()
-            .WithStoreEntityQueryInField(ref m_MoveEscapeTargetQuery)
+            .WithStoreEntityQueryInField(ref _moveEscapeTargetQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
@@ -159,7 +159,6 @@ public partial class MoveEscapeTargetSystem : SystemBase
                                 !dynamicCollidableHashMap.TryGetValue(moveDownKey, out _))
                             {
                                 myGridPositionValue.z--;
-                                moved = true;
                             }
                         }
                         else
@@ -168,7 +167,6 @@ public partial class MoveEscapeTargetSystem : SystemBase
                                 !dynamicCollidableHashMap.TryGetValue(moveUpKey, out _))
                             {
                                 myGridPositionValue.z++;
-                                moved = true;
                             }
                         }
                     }

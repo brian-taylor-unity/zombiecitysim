@@ -6,29 +6,29 @@ using Unity.Mathematics;
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 public partial class MoveTowardsTargetSystem : SystemBase
 {
-    private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
+    private BeginInitializationEntityCommandBufferSystem _entityCommandBufferSystem;
 
-    private EntityQuery m_FollowTargetQuery;
-    private EntityQuery m_AudibleQuery;
+    private EntityQuery _followTargetQuery;
+    private EntityQuery _audibleQuery;
 
     protected override void OnCreate()
     {
-        m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+        _entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
+        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
+        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
 
         var viewDistance = GameController.instance.zombieVisionDistance;
-        var followTargetCount = m_FollowTargetQuery.CalculateEntityCount();
+        var followTargetCount = _followTargetQuery.CalculateEntityCount();
         var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToFollow" hash buckets, whichever is smaller
@@ -39,7 +39,7 @@ public partial class MoveTowardsTargetSystem : SystemBase
         var hashFollowTargetGridPositionsJobHandle = Entities
             .WithName("HashFollowTargetGridPositions")
             .WithAll<FollowTarget>()
-            .WithStoreEntityQueryInField(ref m_FollowTargetQuery)
+            .WithStoreEntityQueryInField(ref _followTargetQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                 {
@@ -51,7 +51,7 @@ public partial class MoveTowardsTargetSystem : SystemBase
         var hashFollowTargetVisionJobHandle = Entities
             .WithName("HashFollowTargetVision")
             .WithAll<FollowTarget>()
-            .WithStoreEntityQueryInField(ref m_FollowTargetQuery)
+            .WithStoreEntityQueryInField(ref _followTargetQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
             {
@@ -61,17 +61,17 @@ public partial class MoveTowardsTargetSystem : SystemBase
             .ScheduleParallel(Dependency);
 
         var hearingDistance = GameController.instance.zombieHearingDistance;
-        var audibleCount = m_AudibleQuery.CalculateEntityCount();
+        var audibleCount = _audibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();
-        // We need either "(X * Y) / visionDistance" or "numAudiblesToFollow" hash buckets, whichever is smaller
+        // We need either "(X * Y) / visionDistance" or "audibleCount" hash buckets, whichever is smaller
         var zombieHearingHashMapCellSize = viewDistance * 2 + 1;
         var zombieHearingHashMap = new NativeHashMap<int, int>(audibleCount, Allocator.TempJob);
         var zombieHearingParallelWriter = zombieHearingHashMap.AsParallelWriter();
 
         var hashAudiblesJobHandle = Entities
             .WithName("HashAudibles")
-            .WithStoreEntityQueryInField(ref m_AudibleQuery)
+            .WithStoreEntityQueryInField(ref _audibleQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in Audible audible) =>
             {
@@ -82,7 +82,7 @@ public partial class MoveTowardsTargetSystem : SystemBase
 
         var hashHearingJobHandle = Entities
             .WithName("HashHearing")
-            .WithStoreEntityQueryInField(ref m_AudibleQuery)
+            .WithStoreEntityQueryInField(ref _audibleQuery)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in Audible audible) =>
             {
@@ -102,9 +102,8 @@ public partial class MoveTowardsTargetSystem : SystemBase
             hashHearingJobHandle
         );
 
-        var Commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+        var commands = _entityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
         var audibleArchetype = Archetypes.AudibleArchetype;
-        var tick = UnityEngine.Time.frameCount;
 
         var moveTowardsTargetJobHandle = Entities
             .WithName("MoveTowardsTargets")
@@ -327,15 +326,15 @@ public partial class MoveTowardsTargetSystem : SystemBase
 
                     if (foundBySight)
                     {
-                        Entity audibleEntity = Commands.CreateEntity(entityInQueryIndex, audibleArchetype);
-                        Commands.SetComponent(entityInQueryIndex, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = nearestTarget, Age = 0 });
+                        Entity audibleEntity = commands.CreateEntity(entityInQueryIndex, audibleArchetype);
+                        commands.SetComponent(entityInQueryIndex, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = nearestTarget, Age = 0 });
                     }
 
                     nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
                 })
             .ScheduleParallel(movementBarrierHandle);
 
-        m_EntityCommandBufferSystem.AddJobHandleForProducer(moveTowardsTargetJobHandle);
+        _entityCommandBufferSystem.AddJobHandleForProducer(moveTowardsTargetJobHandle);
 
         Dependency = JobHandle.CombineDependencies(Dependency, movementBarrierHandle, moveTowardsTargetJobHandle);
     }

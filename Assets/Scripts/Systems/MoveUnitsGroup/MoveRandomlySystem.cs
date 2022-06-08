@@ -1,7 +1,6 @@
 ﻿using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Random = Unity.Mathematics.Random;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
@@ -11,14 +10,13 @@ public partial class MoveRandomlySystem : SystemBase
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMapJobHandle
+            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().m_DynamicCollidableHashMap;
+        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
+        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
 
-        var tick = UnityEngine.Time.frameCount;
         Entities
             .WithName("MoveRandomly")
             .WithAll<MoveRandomly>()

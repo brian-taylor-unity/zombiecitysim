@@ -6,33 +6,33 @@ using Unity.Mathematics;
 [UpdateInGroup(typeof(InitialGroup))]
 public partial class HashCollidablesSystem : SystemBase
 {
-    private EntityQuery m_StaticCollidableEntityQuery;
-    private EntityQuery m_DynamicCollidableEntityQuery;
+    private EntityQuery _staticCollidableEntityQuery;
+    private EntityQuery _dynamicCollidableEntityQuery;
 
-    public NativeHashMap<int, int> m_StaticCollidableHashMap;
-    public JobHandle m_StaticCollidableHashMapJobHandle;
-    public NativeHashMap<int, int> m_DynamicCollidableHashMap;
-    public JobHandle m_DynamicCollidableHashMapJobHandle;
+    public NativeHashMap<int, int> StaticCollidableHashMap;
+    public JobHandle StaticCollidableHashMapJobHandle;
+    public NativeHashMap<int, int> DynamicCollidableHashMap;
+    public JobHandle DynamicCollidableHashMapJobHandle;
 
     protected override void OnUpdate()
     {
-        m_StaticCollidableHashMapJobHandle = Dependency;
-        m_DynamicCollidableHashMapJobHandle = Dependency;
+        StaticCollidableHashMapJobHandle = Dependency;
+        DynamicCollidableHashMapJobHandle = Dependency;
 
-        int staticCollidableCount = m_StaticCollidableEntityQuery.CalculateEntityCount();
+        var staticCollidableCount = _staticCollidableEntityQuery.CalculateEntityCount();
         if (staticCollidableCount != 0)
         {
-            if (m_StaticCollidableHashMap.IsCreated)
-                m_StaticCollidableHashMap.Dispose();
+            if (StaticCollidableHashMap.IsCreated)
+                StaticCollidableHashMap.Dispose();
 
-            m_StaticCollidableHashMap = new NativeHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
-            var parallelWriter = m_StaticCollidableHashMap.AsParallelWriter();
+            StaticCollidableHashMap = new NativeHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            var parallelWriter = StaticCollidableHashMap.AsParallelWriter();
 
-            m_StaticCollidableHashMapJobHandle = Entities
+            StaticCollidableHashMapJobHandle = Entities
                 .WithName("HashStaticCollidables")
                 .WithAll<StaticCollidable>()
                 .WithChangeFilter<StaticCollidable>()
-                .WithStoreEntityQueryInField(ref m_StaticCollidableEntityQuery)
+                .WithStoreEntityQueryInField(ref _staticCollidableEntityQuery)
                 .WithBurst()
                 .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                     {
@@ -42,19 +42,19 @@ public partial class HashCollidablesSystem : SystemBase
                 .ScheduleParallel(Dependency);
         }
 
-        int dynamicCollidableCount = m_DynamicCollidableEntityQuery.CalculateEntityCount();
+        int dynamicCollidableCount = _dynamicCollidableEntityQuery.CalculateEntityCount();
         if (dynamicCollidableCount != 0)
         {
-            if (m_DynamicCollidableHashMap.IsCreated)
-                m_DynamicCollidableHashMap.Dispose();
+            if (DynamicCollidableHashMap.IsCreated)
+                DynamicCollidableHashMap.Dispose();
 
-            m_DynamicCollidableHashMap = new NativeHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
-            var parallelWriter = m_DynamicCollidableHashMap.AsParallelWriter();
+            DynamicCollidableHashMap = new NativeHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            var parallelWriter = DynamicCollidableHashMap.AsParallelWriter();
 
-            m_DynamicCollidableHashMapJobHandle = Entities
+            DynamicCollidableHashMapJobHandle = Entities
                 .WithName("HashDynamicCollidables")
                 .WithAll<DynamicCollidable>()
-                .WithStoreEntityQueryInField(ref m_DynamicCollidableEntityQuery)
+                .WithStoreEntityQueryInField(ref _dynamicCollidableEntityQuery)
                 .WithBurst()
                 .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
                 {
@@ -64,14 +64,14 @@ public partial class HashCollidablesSystem : SystemBase
                 .ScheduleParallel(Dependency);
         }
 
-        Dependency = JobHandle.CombineDependencies(m_StaticCollidableHashMapJobHandle, m_DynamicCollidableHashMapJobHandle);
+        Dependency = JobHandle.CombineDependencies(StaticCollidableHashMapJobHandle, DynamicCollidableHashMapJobHandle);
     }
 
     protected override void OnStopRunning()
     {
-        if (m_StaticCollidableHashMap.IsCreated)
-            m_StaticCollidableHashMap.Dispose();
-        if (m_DynamicCollidableHashMap.IsCreated)
-            m_DynamicCollidableHashMap.Dispose();
+        if (StaticCollidableHashMap.IsCreated)
+            StaticCollidableHashMap.Dispose();
+        if (DynamicCollidableHashMap.IsCreated)
+            DynamicCollidableHashMap.Dispose();
     }
 }

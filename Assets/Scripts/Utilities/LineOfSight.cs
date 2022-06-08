@@ -23,9 +23,8 @@ public static class LineOfSightUtilities
 
             ox += vx;
             oz += vz;
-        };
+        }
 
         return true;
     }
-
 }
