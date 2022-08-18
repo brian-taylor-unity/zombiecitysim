@@ -29,11 +29,11 @@ public partial class MoveTowardsTargetSystem : SystemBase
 
         var viewDistance = GameController.instance.zombieVisionDistance;
         var followTargetCount = _followTargetQuery.CalculateEntityCount();
-        var followTargetHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
+        var followTargetHashMap = new NativeParallelHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToFollow" hash buckets, whichever is smaller
         var zombieVisionHashMapCellSize = viewDistance * 2 + 1;
-        var zombieVisionHashMap = new NativeHashMap<int, int>(followTargetCount, Allocator.TempJob);
+        var zombieVisionHashMap = new NativeParallelHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var zombieVisionParallelWriter = zombieVisionHashMap.AsParallelWriter();
 
         var hashFollowTargetGridPositionsJobHandle = Entities
@@ -62,11 +62,11 @@ public partial class MoveTowardsTargetSystem : SystemBase
 
         var hearingDistance = GameController.instance.zombieHearingDistance;
         var audibleCount = _audibleQuery.CalculateEntityCount();
-        var audibleHashMap = new NativeMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
+        var audibleHashMap = new NativeParallelMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "audibleCount" hash buckets, whichever is smaller
         var zombieHearingHashMapCellSize = viewDistance * 2 + 1;
-        var zombieHearingHashMap = new NativeHashMap<int, int>(audibleCount, Allocator.TempJob);
+        var zombieHearingHashMap = new NativeParallelHashMap<int, int>(audibleCount, Allocator.TempJob);
         var zombieHearingParallelWriter = zombieHearingHashMap.AsParallelWriter();
 
         var hashAudiblesJobHandle = Entities

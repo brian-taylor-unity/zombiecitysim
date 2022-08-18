@@ -21,12 +21,12 @@ public partial class MoveEscapeTargetSystem : SystemBase
         var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
 
         var moveEscapeTargetCount = _moveEscapeTargetQuery.CalculateEntityCount();
-        var moveEscapeTargetHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
+        var moveEscapeTargetHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
         var viewDistance = GameController.instance.humanVisionDistance;
         var humanVisionHashMapCellSize = viewDistance * 2 + 1;
-        var humanVisionHashMap = new NativeHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
+        var humanVisionHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();
 
         var hashMoveEscapeTargetGridPositionsJobHandle = Entities

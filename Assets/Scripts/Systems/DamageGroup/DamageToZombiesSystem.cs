@@ -17,12 +17,12 @@ public partial class DamageToZombiesSystem : SystemBase
         if (zombieCount == 0 || humanCount == 0)
             return;
 
-        var zombieHashMap = new NativeHashMap<int, int>(zombieCount, Allocator.TempJob);
-        NativeMultiHashMap<int, int> damageToZombiesHashMap;
+        var zombieHashMap = new NativeParallelHashMap<int, int>(zombieCount, Allocator.TempJob);
+        NativeParallelMultiHashMap<int, int> damageToZombiesHashMap;
         if (humanCount < zombieCount)
-            damageToZombiesHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+            damageToZombiesHashMap = new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
         else
-            damageToZombiesHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+            damageToZombiesHashMap = new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
 
         var zombieHashMapParallelWriter = zombieHashMap.AsParallelWriter();
 

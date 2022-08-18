@@ -17,12 +17,12 @@ public partial class DamageToHumansSystem : SystemBase
         if (humanCount == 0 || zombieCount == 0)
             return;
 
-        var humanHashMap = new NativeHashMap<int, int>(humanCount, Allocator.TempJob);
-        NativeMultiHashMap<int, int> damageHashMap;
+        var humanHashMap = new NativeParallelHashMap<int, int>(humanCount, Allocator.TempJob);
+        NativeParallelMultiHashMap<int, int> damageHashMap;
         if (zombieCount < humanCount)
-            damageHashMap = new NativeMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+            damageHashMap = new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
         else
-            damageHashMap = new NativeMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
+            damageHashMap = new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
 
         var humanHashMapParallelWriter = humanHashMap.AsParallelWriter();
 

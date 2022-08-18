@@ -3,7 +3,7 @@ using Unity.Mathematics;
 
 public static class LineOfSightUtilities
 {
-    public static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeHashMap<int, int> staticCollidableHashMap)
+    public static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeParallelHashMap<int, int> staticCollidableHashMap)
     {
         float vx, vz, ox, oz, l;
         int i;

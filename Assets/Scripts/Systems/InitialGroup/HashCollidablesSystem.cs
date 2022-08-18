@@ -9,9 +9,9 @@ public partial class HashCollidablesSystem : SystemBase
     private EntityQuery _staticCollidableEntityQuery;
     private EntityQuery _dynamicCollidableEntityQuery;
 
-    public NativeHashMap<int, int> StaticCollidableHashMap;
+    public NativeParallelHashMap<int, int> StaticCollidableHashMap;
     public JobHandle StaticCollidableHashMapJobHandle;
-    public NativeHashMap<int, int> DynamicCollidableHashMap;
+    public NativeParallelHashMap<int, int> DynamicCollidableHashMap;
     public JobHandle DynamicCollidableHashMapJobHandle;
 
     protected override void OnUpdate()
@@ -25,7 +25,7 @@ public partial class HashCollidablesSystem : SystemBase
             if (StaticCollidableHashMap.IsCreated)
                 StaticCollidableHashMap.Dispose();
 
-            StaticCollidableHashMap = new NativeHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            StaticCollidableHashMap = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
             var parallelWriter = StaticCollidableHashMap.AsParallelWriter();
 
             StaticCollidableHashMapJobHandle = Entities
@@ -48,7 +48,7 @@ public partial class HashCollidablesSystem : SystemBase
             if (DynamicCollidableHashMap.IsCreated)
                 DynamicCollidableHashMap.Dispose();
 
-            DynamicCollidableHashMap = new NativeHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            DynamicCollidableHashMap = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
             var parallelWriter = DynamicCollidableHashMap.AsParallelWriter();
 
             DynamicCollidableHashMapJobHandle = Entities

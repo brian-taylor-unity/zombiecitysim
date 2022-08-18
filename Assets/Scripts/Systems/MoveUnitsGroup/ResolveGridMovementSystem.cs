@@ -12,7 +12,7 @@ public partial class ResolveGridMovementSystem : SystemBase
     protected override void OnUpdate()
     {
         var unitCount = query.CalculateEntityCount();
-        var nextGridPositionHashMap = new NativeMultiHashMap<int, int>(unitCount, Allocator.TempJob);
+        var nextGridPositionHashMap = new NativeParallelMultiHashMap<int, int>(unitCount, Allocator.TempJob);
         var parallelWriter = nextGridPositionHashMap.AsParallelWriter();
 
         Entities
