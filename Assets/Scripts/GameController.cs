@@ -1,14 +1,10 @@
 ﻿using Unity.Entities;
-using Unity.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    public static GameController instance = null;
-
-    public GameObject initialTileUnitSpawner;
-    public GameObject zombieUnitSpawner;
+    public static GameController Instance = null;
 
     public int numTilesX = 130;
     public int numTilesY = 130;
@@ -47,8 +43,13 @@ public class GameController : MonoBehaviour
 
     void Awake()
     {
-        if (instance == null)
-            instance = this;
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
     }
 
     // Use this for initialization
@@ -67,14 +68,6 @@ public class GameController : MonoBehaviour
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
         turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString();
         turnDelayTimeSlider.value = turnDelayTime * 1000;
-
-        Instantiate(initialTileUnitSpawner);
-        Instantiate(zombieUnitSpawner);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
     }
 
     public void SetNumHumansInputField(string num)
@@ -120,9 +113,6 @@ public class GameController : MonoBehaviour
     {
         var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         entityManager.DestroyEntity(entityManager.UniversalQuery);
-
-        Instantiate(initialTileUnitSpawner);
-        Instantiate(zombieUnitSpawner);
     }
 
     public void SetHumanTurnDelay(string num)

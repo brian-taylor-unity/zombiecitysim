@@ -10,20 +10,20 @@ public partial class AdvanceTurnSystem : SystemBase
 
     protected override void OnCreate()
     {
-        m_LastTime = Time.ElapsedTime;
-        m_EntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+        m_LastTime = SystemAPI.Time.ElapsedTime;
+        m_EntityCommandBufferSystem = World.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>();
     }
 
     protected override void OnUpdate()
     {
-        var turnDelayTime = GameController.instance.turnDelayTime;
-        var now = Time.ElapsedTime;
+        var turnDelayTime = GameController.Instance.turnDelayTime;
+        var now = SystemAPI.Time.ElapsedTime;
         if (now - m_LastTime > turnDelayTime)
         {
             m_LastTime = now;
 
-            var humanTurnDelay = GameController.instance.humanTurnDelay;
-            var zombieTurnDelay = GameController.instance.zombieTurnDelay;
+            var humanTurnDelay = GameController.Instance.humanTurnDelay;
+            var zombieTurnDelay = GameController.Instance.zombieTurnDelay;
 
             var advanceHumanTurnJobHandle = Entities
                 .WithName("AdvanceHumanTurn")
@@ -47,7 +47,7 @@ public partial class AdvanceTurnSystem : SystemBase
                 })
                 .ScheduleParallel(advanceHumanTurnJobHandle);
 
-            var audibleDecayTime = GameController.instance.audibleDecayTime;
+            var audibleDecayTime = GameController.Instance.audibleDecayTime;
             var commands = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
             var advanceAudibleAgeJobHandle = Entities
                 .WithName("AdvanceAudibleAge")

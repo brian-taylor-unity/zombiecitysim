@@ -1,31 +1,32 @@
-﻿using System.Collections.Generic;
-using Unity.Entities;
+﻿using Unity.Entities;
 using UnityEngine;
 
-public class TileUnitSpawner_Authoring : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity
+public class TileUnitSpawner_Authoring : MonoBehaviour
 {
     public GameObject BuildingTile_Prefab;
     public GameObject RoadTile_Prefab;
     public GameObject HumanUnit_Prefab;
     public GameObject ZombieUnit_Prefab;
+}
 
-    public void DeclareReferencedPrefabs(List<GameObject> referencedPrefabs)
-    {
-        referencedPrefabs.Add(BuildingTile_Prefab);
-        referencedPrefabs.Add(RoadTile_Prefab);
-        referencedPrefabs.Add(HumanUnit_Prefab);
-        referencedPrefabs.Add(ZombieUnit_Prefab);
-    }
+public struct TileUnitSpawner_Data : IComponentData
+{
+    public Entity BuildingTile_Prefab;
+    public Entity RoadTile_Prefab;
+    public Entity HumanUnit_Prefab;
+    public Entity ZombieUnit_Prefab;
+}
 
-    public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
+public class TileUnitSpawner_Baker : Baker<TileUnitSpawner_Authoring>
+{
+    public override void Bake(TileUnitSpawner_Authoring authoring)
     {
-        var tileUnitSpawnerData = new TileUnitSpawner_Data
+        AddComponent(new TileUnitSpawner_Data
         {
-            BuildingTile_Prefab = conversionSystem.GetPrimaryEntity(BuildingTile_Prefab),
-            RoadTile_Prefab = conversionSystem.GetPrimaryEntity(RoadTile_Prefab),
-            HumanUnit_Prefab = conversionSystem.GetPrimaryEntity(HumanUnit_Prefab),
-            ZombieUnit_Prefab = conversionSystem.GetPrimaryEntity(ZombieUnit_Prefab)
-        };
-        dstManager.AddComponentData(entity, tileUnitSpawnerData);
+            BuildingTile_Prefab = GetEntity(authoring.BuildingTile_Prefab),
+            RoadTile_Prefab = GetEntity(authoring.RoadTile_Prefab),
+            HumanUnit_Prefab = GetEntity(authoring.HumanUnit_Prefab),
+            ZombieUnit_Prefab = GetEntity(authoring.ZombieUnit_Prefab)
+        });
     }
 }

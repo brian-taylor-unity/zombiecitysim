@@ -7,17 +7,17 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(MoveTowardsTargetSystem))]
 public partial class ResolveGridMovementSystem : SystemBase
 {
-    private EntityQuery query;
+    private EntityQuery _query;
 
     protected override void OnUpdate()
     {
-        var unitCount = query.CalculateEntityCount();
+        var unitCount = _query.CalculateEntityCount();
         var nextGridPositionHashMap = new NativeParallelMultiHashMap<int, int>(unitCount, Allocator.TempJob);
         var parallelWriter = nextGridPositionHashMap.AsParallelWriter();
 
         Entities
             .WithName("HashNextGridPositions")
-            .WithStoreEntityQueryInField(ref query)
+            .WithStoreEntityQueryInField(ref _query)
             .WithBurst()
             .ForEach((int entityInQueryIndex, in NextGridPosition nextGridPosition) =>
                 {

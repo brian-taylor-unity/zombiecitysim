@@ -31,7 +31,7 @@ public class CameraController : MonoBehaviour
         swivel = transform.GetChild(0);
         stick = swivel.GetChild(0);
 
-        transform.localPosition = new Vector3(GameController.instance.numTilesX * 0.5f, 0f, GameController.instance.numTilesY * 0.2f);
+        transform.localPosition = new Vector3(GameController.Instance.numTilesX * 0.5f, 0f, GameController.Instance.numTilesY * 0.2f);
 
         orbitAngle = transform.eulerAngles.y;
         pitchAngle = swivel.eulerAngles.x;

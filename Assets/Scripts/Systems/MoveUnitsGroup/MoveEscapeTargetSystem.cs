@@ -9,22 +9,32 @@ public partial class MoveEscapeTargetSystem : SystemBase
 {
     private EntityQuery _moveEscapeTargetQuery;
 
+    protected override void OnCreate()
+    {
+        RequireForUpdate<StaticCollidableHashMapComponent>();
+        RequireForUpdate<DynamicCollidableHashMapComponent>();
+        RequireAnyForUpdate(_moveEscapeTargetQuery);
+    }
+
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
+            World.GetExistingSystemManaged<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystemManaged<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
+        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
+        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
+
+        if (!staticCollidableHashMap.IsCreated || !dynamicCollidableHashMap.IsCreated)
+            return;
 
         var moveEscapeTargetCount = _moveEscapeTargetQuery.CalculateEntityCount();
         var moveEscapeTargetHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
-        var viewDistance = GameController.instance.humanVisionDistance;
+        var viewDistance = GameController.Instance.humanVisionDistance;
         var humanVisionHashMapCellSize = viewDistance * 2 + 1;
         var humanVisionHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();

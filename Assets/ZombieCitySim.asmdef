@@ -14,7 +14,8 @@
     "Unity.Mathematics",
     "Unity.Rendering.Hybrid",
     "Unity.Transforms",
-    "Unity.Transforms.Hybrid"
+    "Unity.Transforms.Hybrid",
+    "Unity.Entities.Graphics"
   ],
   "optionalUnityReferences": [],
   "includePlatforms": [],

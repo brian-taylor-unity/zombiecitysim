@@ -1,6 +1,6 @@
 ﻿using Unity.Entities;
 
 [UpdateBefore(typeof(EndGroup))]
-public class DamageGroup : ComponentSystemGroup
+public partial class DamageGroup : ComponentSystemGroup
 {
 }

@@ -68,7 +68,7 @@ public partial class DamageToHumansSystem : SystemBase
                 })
             .ScheduleParallel();
 
-        var humanMaxHealth = GameController.instance.humanStartingHealth;
+        var humanMaxHealth = GameController.Instance.humanStartingHealth;
 
         Entities
             .WithName("DealDamageToHumans")

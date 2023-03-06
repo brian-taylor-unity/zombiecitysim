@@ -3,16 +3,32 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
+public struct StaticCollidableHashMapComponent : IComponentData
+{
+    public NativeParallelHashMap<int, int> Value;
+}
+
+public struct DynamicCollidableHashMapComponent : IComponentData
+{
+    public NativeParallelHashMap<int, int> Value;
+}
+
 [UpdateInGroup(typeof(InitialGroup))]
 public partial class HashCollidablesSystem : SystemBase
 {
     private EntityQuery _staticCollidableEntityQuery;
     private EntityQuery _dynamicCollidableEntityQuery;
 
-    public NativeParallelHashMap<int, int> StaticCollidableHashMap;
     public JobHandle StaticCollidableHashMapJobHandle;
-    public NativeParallelHashMap<int, int> DynamicCollidableHashMap;
     public JobHandle DynamicCollidableHashMapJobHandle;
+
+    protected override void OnCreate()
+    {
+        EntityManager.CreateEntity(typeof(StaticCollidableHashMapComponent));
+        EntityManager.CreateEntity(typeof(DynamicCollidableHashMapComponent));
+
+        RequireAnyForUpdate(_staticCollidableEntityQuery, _dynamicCollidableEntityQuery);
+    }
 
     protected override void OnUpdate()
     {
@@ -22,11 +38,11 @@ public partial class HashCollidablesSystem : SystemBase
         var staticCollidableCount = _staticCollidableEntityQuery.CalculateEntityCount();
         if (staticCollidableCount != 0)
         {
-            if (StaticCollidableHashMap.IsCreated)
-                StaticCollidableHashMap.Dispose();
+            if (SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.IsCreated)
+                SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.Dispose();
 
-            StaticCollidableHashMap = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
-            var parallelWriter = StaticCollidableHashMap.AsParallelWriter();
+            SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            var parallelWriter = SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.AsParallelWriter();
 
             StaticCollidableHashMapJobHandle = Entities
                 .WithName("HashStaticCollidables")
@@ -45,11 +61,11 @@ public partial class HashCollidablesSystem : SystemBase
         int dynamicCollidableCount = _dynamicCollidableEntityQuery.CalculateEntityCount();
         if (dynamicCollidableCount != 0)
         {
-            if (DynamicCollidableHashMap.IsCreated)
-                DynamicCollidableHashMap.Dispose();
+            if (SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.IsCreated)
+                SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.Dispose();
 
-            DynamicCollidableHashMap = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
-            var parallelWriter = DynamicCollidableHashMap.AsParallelWriter();
+            SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            var parallelWriter = SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.AsParallelWriter();
 
             DynamicCollidableHashMapJobHandle = Entities
                 .WithName("HashDynamicCollidables")
@@ -69,9 +85,12 @@ public partial class HashCollidablesSystem : SystemBase
 
     protected override void OnStopRunning()
     {
-        if (StaticCollidableHashMap.IsCreated)
-            StaticCollidableHashMap.Dispose();
-        if (DynamicCollidableHashMap.IsCreated)
-            DynamicCollidableHashMap.Dispose();
+        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
+        if (staticCollidableHashMap.IsCreated)
+            staticCollidableHashMap.Dispose();
+
+        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
+        if (dynamicCollidableHashMap.IsCreated)
+            dynamicCollidableHashMap.Dispose();
     }
 }

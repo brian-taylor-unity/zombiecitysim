@@ -3,7 +3,11 @@ guid: f5f25474ef515be49a9cff11faad3e2c
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - BuildingTile_Prefab: {fileID: 7201262117079363913, guid: 901f0780b0cb6594096e968691ec1028, type: 3}
+  - RoadTile_Prefab: {fileID: 7201262117079363913, guid: 402acb1c56e8185408bcd619ce295e76, type: 3}
+  - HumanUnit_Prefab: {fileID: 7201262117079363913, guid: d67157fd0ba1ff547aa355bec9e6e458, type: 3}
+  - ZombieUnit_Prefab: {fileID: 7201262117079363913, guid: 12c75429bd0915d44bb4c41f3b005dae, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

@@ -13,21 +13,27 @@ public partial class MoveTowardsTargetSystem : SystemBase
 
     protected override void OnCreate()
     {
-        _entityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+        _entityCommandBufferSystem = World.GetExistingSystemManaged<BeginInitializationEntityCommandBufferSystem>();
+        RequireForUpdate<StaticCollidableHashMapComponent>();
+        RequireForUpdate<DynamicCollidableHashMapComponent>();
+        RequireAnyForUpdate(_followTargetQuery, _audibleQuery);
     }
 
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
+            World.GetExistingSystemManaged<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystemManaged<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
+        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
+        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
 
-        var viewDistance = GameController.instance.zombieVisionDistance;
+        if (!staticCollidableHashMap.IsCreated || !dynamicCollidableHashMap.IsCreated)
+            return;
+
+        var viewDistance = GameController.Instance.zombieVisionDistance;
         var followTargetCount = _followTargetQuery.CalculateEntityCount();
         var followTargetHashMap = new NativeParallelHashMap<int, int>(followTargetCount, Allocator.TempJob);
         var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
@@ -60,7 +66,7 @@ public partial class MoveTowardsTargetSystem : SystemBase
             })
             .ScheduleParallel(Dependency);
 
-        var hearingDistance = GameController.instance.zombieHearingDistance;
+        var hearingDistance = GameController.Instance.zombieHearingDistance;
         var audibleCount = _audibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeParallelMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
         var audibleParallelWriter = audibleHashMap.AsParallelWriter();

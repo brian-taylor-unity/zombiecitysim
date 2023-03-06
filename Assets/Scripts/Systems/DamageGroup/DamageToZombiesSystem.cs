@@ -69,7 +69,7 @@ public partial class DamageToZombiesSystem : SystemBase
                 })
             .ScheduleParallel();
 
-        var zombieMaxHealth = GameController.instance.zombieStartingHealth;
+        var zombieMaxHealth = GameController.Instance.zombieStartingHealth;
 
         Entities
             .WithName("DealDamageToZombies")

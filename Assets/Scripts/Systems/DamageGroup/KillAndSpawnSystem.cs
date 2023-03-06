@@ -1,40 +1,29 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateInGroup(typeof(DamageGroup))]
 public partial class KillAndSpawnSystem : SystemBase
 {
     private BeginSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemBegin;
     private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemEnd;
-    private NativeArray<UnitSpawner_Data> m_UnitSpawnerArray;
 
     protected override void OnCreate()
     {
-        m_EntityCommandBufferSystemBegin = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
-        m_EntityCommandBufferSystemEnd = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-    }
+        RequireForUpdate<TileUnitSpawner_Data>();
 
-    protected override void OnStartRunning()
-    {
-        m_UnitSpawnerArray = EntityManager.CreateEntityQuery(typeof(UnitSpawner_Data)).ToComponentDataArray<UnitSpawner_Data>(Allocator.Persistent);
-    }
-
-    protected override void OnStopRunning()
-    {
-        m_UnitSpawnerArray.Dispose();
+        m_EntityCommandBufferSystemBegin = World.GetOrCreateSystemManaged<BeginSimulationEntityCommandBufferSystem>();
+        m_EntityCommandBufferSystemEnd = World.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>();
     }
 
     protected override void OnUpdate()
     {
+        var unitSpawner = SystemAPI.GetSingleton<TileUnitSpawner_Data>();
+
         var commandBufferBegin = m_EntityCommandBufferSystemBegin.CreateCommandBuffer().AsParallelWriter();
         var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().AsParallelWriter();
-        var unitSpawner = m_UnitSpawnerArray[0];
-        var unitHealth = GameController.instance.zombieStartingHealth;
-        var unitDamage = GameController.instance.zombieDamage;
-        var unitTurnsUntilActive = GameController.instance.zombieTurnDelay;
+        var unitHealth = GameController.Instance.zombieStartingHealth;
+        var unitDamage = GameController.Instance.zombieDamage;
+        var unitTurnsUntilActive = GameController.Instance.zombieTurnDelay;
 
         var killJob = Entities
             .WithName("KillUnits")

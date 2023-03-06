@@ -6,20 +6,33 @@ using Unity.Mathematics;
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
 public partial class MoveRandomlySystem : SystemBase
 {
+    private EntityQuery _moveRandomlyQuery;
+
+    protected override void OnCreate()
+    {
+        RequireForUpdate<StaticCollidableHashMapComponent>();
+        RequireForUpdate<DynamicCollidableHashMapComponent>();
+        RequireAnyForUpdate(_moveRandomlyQuery);
+    }
+
     protected override void OnUpdate()
     {
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
-            World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
+            World.GetExistingSystemManaged<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
+            World.GetExistingSystemManaged<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
         );
 
-        var staticCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().StaticCollidableHashMap;
-        var dynamicCollidableHashMap = World.GetExistingSystem<HashCollidablesSystem>().DynamicCollidableHashMap;
+        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
+        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
+
+        if (!staticCollidableHashMap.IsCreated || !dynamicCollidableHashMap.IsCreated)
+            return;
 
         Entities
             .WithName("MoveRandomly")
             .WithAll<MoveRandomly>()
+            .WithStoreEntityQueryInField(ref _moveRandomlyQuery)
             .WithChangeFilter<TurnsUntilActive>()
             .WithReadOnly(staticCollidableHashMap)
             .WithReadOnly(dynamicCollidableHashMap)
