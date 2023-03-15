@@ -1,10 +1,12 @@
+using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
 public static class HumanCreator
 {
-    public static void CreateHuman(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
+    [BurstCompile]
+    public static void CreateHuman(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int visionDistance, int turnsUntilActive, uint randomSeed)
     {
         var instance = commandBuffer.Instantiate(index, prefab);
         commandBuffer.SetComponent(index, instance, LocalTransform.FromPosition(gridPosition));
@@ -12,6 +14,7 @@ public static class HumanCreator
         commandBuffer.AddComponent(index, instance, new NextGridPosition { Value = gridPosition });
         commandBuffer.AddComponent(index, instance, new Health { Value = health });
         commandBuffer.AddComponent(index, instance, new Damage { Value = damage });
+        commandBuffer.AddComponent(index, instance, new Vision { Distance = visionDistance });
         commandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = turnsUntilActive });
         commandBuffer.AddComponent(index, instance, new Human());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
@@ -21,7 +24,7 @@ public static class HumanCreator
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });
     }
 
-    public static void CreateHuman(ref SystemState state, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
+    public static void CreateHuman(ref SystemState state, Entity prefab, int3 gridPosition, int health, int damage, int visionDistance, int turnsUntilActive, uint randomSeed)
     {
         var instance = state.EntityManager.Instantiate(prefab);
         state.EntityManager.SetComponentData(instance, LocalTransform.FromPosition(gridPosition));
@@ -29,6 +32,7 @@ public static class HumanCreator
         state.EntityManager.AddComponentData(instance, new NextGridPosition { Value = gridPosition });
         state.EntityManager.AddComponentData(instance, new Health { Value = health });
         state.EntityManager.AddComponentData(instance, new Damage { Value = damage });
+        state.EntityManager.AddComponentData(instance, new Vision { Distance = visionDistance });
         state.EntityManager.AddComponentData(instance, new TurnsUntilActive { Value = turnsUntilActive });
         state.EntityManager.AddComponentData(instance, new Human());
         state.EntityManager.AddComponentData(instance, new DynamicCollidable());

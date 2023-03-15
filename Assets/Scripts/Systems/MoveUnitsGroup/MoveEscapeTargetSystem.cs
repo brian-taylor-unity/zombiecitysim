@@ -11,21 +11,24 @@ public partial class MoveEscapeTargetSystem : SystemBase
 
     protected override void OnCreate()
     {
-        RequireForUpdate<StaticCollidableHashMapComponent>();
-        RequireForUpdate<DynamicCollidableHashMapComponent>();
+        RequireForUpdate<StaticCollidableComponent>();
+        RequireForUpdate<DynamicCollidableComponent>();
         RequireAnyForUpdate(_moveEscapeTargetQuery);
     }
 
     protected override void OnUpdate()
     {
+        var staticCollidableComponent = SystemAPI.GetSingleton<StaticCollidableComponent>();
+        var dynamicCollidableComponent = SystemAPI.GetSingleton<DynamicCollidableComponent>();
+
         Dependency = JobHandle.CombineDependencies(
             Dependency,
-            World.GetExistingSystemManaged<HashCollidablesSystem>().StaticCollidableHashMapJobHandle,
-            World.GetExistingSystemManaged<HashCollidablesSystem>().DynamicCollidableHashMapJobHandle
+            SystemAPI.GetSingleton<StaticCollidableComponent>().Handle,
+            SystemAPI.GetSingleton<DynamicCollidableComponent>().Handle
         );
 
-        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
-        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
+        var staticCollidableHashMap = staticCollidableComponent.HashMap;
+        var dynamicCollidableHashMap = dynamicCollidableComponent.HashMap;
 
         if (!staticCollidableHashMap.IsCreated || !dynamicCollidableHashMap.IsCreated)
             return;

@@ -1,95 +1,100 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
+using UnityEngine;
 
-public struct StaticCollidableHashMapComponent : IComponentData
+public struct StaticCollidableComponent : IComponentData
 {
-    public NativeParallelHashMap<int, int> Value;
+    public JobHandle Handle;
+    public NativeParallelHashMap<int, int> HashMap;
 }
 
-public struct DynamicCollidableHashMapComponent : IComponentData
+public struct DynamicCollidableComponent : IComponentData
 {
-    public NativeParallelHashMap<int, int> Value;
+    public JobHandle Handle;
+    public NativeParallelHashMap<int, int> HashMap;
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
-public partial class HashCollidablesSystem : SystemBase
+public partial struct HashCollidablesSystem : ISystem, ISystemStartStop
 {
     private EntityQuery _staticCollidableEntityQuery;
     private EntityQuery _dynamicCollidableEntityQuery;
 
-    public JobHandle StaticCollidableHashMapJobHandle;
-    public JobHandle DynamicCollidableHashMapJobHandle;
-
-    protected override void OnCreate()
+    public void OnCreate(ref SystemState state)
     {
-        EntityManager.CreateEntity(typeof(StaticCollidableHashMapComponent));
-        EntityManager.CreateEntity(typeof(DynamicCollidableHashMapComponent));
+        state.EntityManager.CreateEntity(typeof(StaticCollidableComponent));
+        state.EntityManager.CreateEntity(typeof(DynamicCollidableComponent));
 
-        RequireAnyForUpdate(_staticCollidableEntityQuery, _dynamicCollidableEntityQuery);
+        _staticCollidableEntityQuery = new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<StaticCollidable>()
+            .WithAll<GridPosition>()
+            .Build(ref state);
+        _staticCollidableEntityQuery.SetChangedVersionFilter(typeof(GridPosition));
+
+        _dynamicCollidableEntityQuery = new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<DynamicCollidable>()
+            .WithAll<GridPosition>()
+            .Build(ref state);
+
+        state.RequireAnyForUpdate(_staticCollidableEntityQuery, _dynamicCollidableEntityQuery);
     }
 
-    protected override void OnUpdate()
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
     {
-        StaticCollidableHashMapJobHandle = Dependency;
-        DynamicCollidableHashMapJobHandle = Dependency;
+        var staticCollidableComponent = SystemAPI.GetSingletonRW<StaticCollidableComponent>();
+        var dynamicCollidableComponent = SystemAPI.GetSingletonRW<DynamicCollidableComponent>();
+
+        staticCollidableComponent.ValueRW.Handle = state.Dependency;
+        dynamicCollidableComponent.ValueRW.Handle = state.Dependency;
 
         var staticCollidableCount = _staticCollidableEntityQuery.CalculateEntityCount();
         if (staticCollidableCount != 0)
         {
-            if (SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.IsCreated)
-                SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.Dispose();
+            if (SystemAPI.GetSingletonRW<StaticCollidableComponent>().ValueRO.HashMap.IsCreated)
+                SystemAPI.GetSingletonRW<StaticCollidableComponent>().ValueRW.HashMap.Dispose();
 
-            SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
-            var parallelWriter = SystemAPI.GetSingletonRW<StaticCollidableHashMapComponent>().ValueRW.Value.AsParallelWriter();
+            var hashMap = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            staticCollidableComponent.ValueRW.Handle = new HashGridPositionsJob
+            {
+                parallelWriter = hashMap.AsParallelWriter()
+            }.ScheduleParallel(_staticCollidableEntityQuery, state.Dependency);
 
-            StaticCollidableHashMapJobHandle = Entities
-                .WithName("HashStaticCollidables")
-                .WithAll<StaticCollidable>()
-                .WithChangeFilter<StaticCollidable>()
-                .WithStoreEntityQueryInField(ref _staticCollidableEntityQuery)
-                .WithBurst()
-                .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
-                    {
-                        var hash = (int)math.hash(gridPosition.Value);
-                        parallelWriter.TryAdd(hash, entityInQueryIndex);
-                    })
-                .ScheduleParallel(Dependency);
+            SystemAPI.GetSingletonRW<StaticCollidableComponent>().ValueRW.HashMap = hashMap;
         }
 
         int dynamicCollidableCount = _dynamicCollidableEntityQuery.CalculateEntityCount();
         if (dynamicCollidableCount != 0)
         {
-            if (SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.IsCreated)
-                SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.Dispose();
+            if (SystemAPI.GetSingletonRW<DynamicCollidableComponent>().ValueRO.HashMap.IsCreated)
+                SystemAPI.GetSingletonRW<DynamicCollidableComponent>().ValueRW.HashMap.Dispose();
 
-            SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
-            var parallelWriter = SystemAPI.GetSingletonRW<DynamicCollidableHashMapComponent>().ValueRW.Value.AsParallelWriter();
+            var hashMap = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            dynamicCollidableComponent.ValueRW.Handle = new HashGridPositionsJob
+            {
+                parallelWriter = hashMap.AsParallelWriter()
+            }.ScheduleParallel(_dynamicCollidableEntityQuery, state.Dependency);
 
-            DynamicCollidableHashMapJobHandle = Entities
-                .WithName("HashDynamicCollidables")
-                .WithAll<DynamicCollidable>()
-                .WithStoreEntityQueryInField(ref _dynamicCollidableEntityQuery)
-                .WithBurst()
-                .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
-                {
-                    var hash = (int)math.hash(gridPosition.Value);
-                    parallelWriter.TryAdd(hash, entityInQueryIndex);
-                })
-                .ScheduleParallel(Dependency);
+            SystemAPI.GetSingletonRW<DynamicCollidableComponent>().ValueRW.HashMap = hashMap;
         }
 
-        Dependency = JobHandle.CombineDependencies(StaticCollidableHashMapJobHandle, DynamicCollidableHashMapJobHandle);
+        state.Dependency = JobHandle.CombineDependencies(staticCollidableComponent.ValueRO.Handle, staticCollidableComponent.ValueRO.Handle);
     }
 
-    protected override void OnStopRunning()
+    public void OnStartRunning(ref SystemState state)
     {
-        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableHashMapComponent>().Value;
+
+    }
+
+    public void OnStopRunning(ref SystemState state)
+    {
+        var staticCollidableHashMap = SystemAPI.GetSingleton<StaticCollidableComponent>().HashMap;
         if (staticCollidableHashMap.IsCreated)
             staticCollidableHashMap.Dispose();
 
-        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableHashMapComponent>().Value;
+        var dynamicCollidableHashMap = SystemAPI.GetSingleton<DynamicCollidableComponent>().HashMap;
         if (dynamicCollidableHashMap.IsCreated)
             dynamicCollidableHashMap.Dispose();
     }

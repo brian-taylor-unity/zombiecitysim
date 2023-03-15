@@ -155,7 +155,10 @@ public partial class TileUnitSpawner_System : SystemBase
         var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
         var tileUnitDamageNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
         var commandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+        var humanVisionDistance = GameController.Instance.humanVisionDistance;
         var humanTurnDelay = GameController.Instance.humanTurnDelay;
+        var zombieVisionDistance = GameController.Instance.zombieVisionDistance;
+        var zombieHearingDistance = GameController.Instance.zombieHearingDistance;
         var zombieTurnDelay = GameController.Instance.zombieTurnDelay;
 
         var spawnJob = Entities
@@ -194,6 +197,7 @@ public partial class TileUnitSpawner_System : SystemBase
                                     tileUnitPositionsNativeArray[i],
                                     tileUnitHealthNativeArray[i],
                                     tileUnitDamageNativeArray[i],
+                                    humanVisionDistance,
                                     turnsUntilActive,
                                     i == 0 ? 1 : (uint)i
                                 );
@@ -207,6 +211,8 @@ public partial class TileUnitSpawner_System : SystemBase
                                     tileUnitPositionsNativeArray[i],
                                     tileUnitHealthNativeArray[i],
                                     tileUnitDamageNativeArray[i],
+                                    zombieVisionDistance,
+                                    zombieHearingDistance,
                                     turnsUntilActive,
                                     i == 0 ? 1 : (uint)i
                                 );
