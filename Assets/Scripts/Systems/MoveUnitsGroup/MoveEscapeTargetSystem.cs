@@ -1,28 +1,156 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
+
+[BurstCompile]
+public partial struct MoveEscapeTargetJob : IJobEntity
+{
+    public int visionDistance;
+    [ReadOnly] public NativeParallelHashMap<int, int> humanVisionHashMap;
+
+    [ReadOnly] public NativeParallelHashMap<int, int> moveEscapeTargetHashMap;
+    [ReadOnly] public NativeParallelHashMap<int, int> staticCollidablesHashMap;
+    [ReadOnly] public NativeParallelHashMap<int, int> dynamicCollidablesHashMap;
+
+    public void Execute(ref NextGridPosition nextGridPosition, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive, in LineOfSight lineOfSight)
+    {
+        if (turnsUntilActive.Value != 1)
+            return;
+
+        var humanVisionHashMapCellSize = visionDistance * 2 + 1;
+
+        int3 myGridPositionValue = gridPosition.Value;
+        float3 averageTarget = new int3(0, 0, 0);
+        bool moved = false;
+
+        bool foundTarget = humanVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / humanVisionHashMapCellSize), out _) ||
+                           humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - visionDistance, myGridPositionValue.y, myGridPositionValue.z - visionDistance) / humanVisionHashMapCellSize), out _) ||
+                           humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + visionDistance, myGridPositionValue.y, myGridPositionValue.z - visionDistance) / humanVisionHashMapCellSize), out _) ||
+                           humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - visionDistance, myGridPositionValue.y, myGridPositionValue.z + visionDistance) / humanVisionHashMapCellSize), out _) ||
+                           humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + visionDistance, myGridPositionValue.y, myGridPositionValue.z + visionDistance) / humanVisionHashMapCellSize), out _);
+
+        if (foundTarget)
+        {
+            foundTarget = false;
+
+            int targetCount = 0;
+            for (int checkDist = 1; checkDist <= visionDistance; checkDist++)
+            {
+                for (int z = -checkDist; z <= checkDist; z++)
+                {
+                    for (int x = -checkDist; x <= checkDist; x++)
+                    {
+                        if (math.abs(x) == checkDist || math.abs(z) == checkDist)
+                        {
+                            int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
+                            int targetKey = (int)math.hash(targetGridPosition);
+
+                            if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
+                            {
+                                // Check if we have line of sight to the target
+                                if (LineOfSightUtilities.InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidablesHashMap))
+                                {
+                                    averageTarget = averageTarget * targetCount + new float3(x, 0, z);
+                                    targetCount++;
+                                    averageTarget /= targetCount;
+
+                                    foundTarget = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (foundTarget)
+        {
+            int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
+
+            // Check if space is already occupied
+            int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+            int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+            int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+            int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+            if (math.abs(direction.x) >= math.abs(direction.z))
+            {
+                // Move horizontally
+                if (direction.x < 0)
+                {
+                    if (!staticCollidablesHashMap.TryGetValue(moveLeftKey, out _) &&
+                        !dynamicCollidablesHashMap.TryGetValue(moveLeftKey, out _))
+                    {
+                        myGridPositionValue.x--;
+                        moved = true;
+                    }
+                }
+                else
+                {
+                    if (!staticCollidablesHashMap.TryGetValue(moveRightKey, out _) &&
+                        !dynamicCollidablesHashMap.TryGetValue(moveRightKey, out _))
+                    {
+                        myGridPositionValue.x++;
+                        moved = true;
+                    }
+                }
+            }
+            // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
+            if (!moved)
+            {
+                // Move vertically
+                if (direction.z < 0)
+                {
+                    if (!staticCollidablesHashMap.TryGetValue(moveDownKey, out _) &&
+                        !dynamicCollidablesHashMap.TryGetValue(moveDownKey, out _))
+                    {
+                        myGridPositionValue.z--;
+                    }
+                }
+                else
+                {
+                    if (!staticCollidablesHashMap.TryGetValue(moveUpKey, out _) &&
+                        !dynamicCollidablesHashMap.TryGetValue(moveUpKey, out _))
+                    {
+                        myGridPositionValue.z++;
+                    }
+                }
+            }
+        }
+
+        nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
+    }
+}
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsTargetSystem))]
-public partial class MoveEscapeTargetSystem : SystemBase
+public partial struct MoveEscapeTargetSystem : ISystem
 {
     private EntityQuery _moveEscapeTargetQuery;
 
-    protected override void OnCreate()
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
     {
-        RequireForUpdate<StaticCollidableComponent>();
-        RequireForUpdate<DynamicCollidableComponent>();
-        RequireAnyForUpdate(_moveEscapeTargetQuery);
+        _moveEscapeTargetQuery = new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<MoveEscapeTarget>()
+            .Build(ref state);
+
+        state.RequireForUpdate<StaticCollidableComponent>();
+        state.RequireForUpdate<DynamicCollidableComponent>();
+        state.RequireForUpdate<GameControllerComponent>();
     }
 
-    protected override void OnUpdate()
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
     {
         var staticCollidableComponent = SystemAPI.GetSingleton<StaticCollidableComponent>();
         var dynamicCollidableComponent = SystemAPI.GetSingleton<DynamicCollidableComponent>();
+        var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
-        Dependency = JobHandle.CombineDependencies(
-            Dependency,
+        state.Dependency = JobHandle.CombineDependencies(
+            state.Dependency,
             SystemAPI.GetSingleton<StaticCollidableComponent>().Handle,
             SystemAPI.GetSingleton<DynamicCollidableComponent>().Handle
         );
@@ -37,158 +165,29 @@ public partial class MoveEscapeTargetSystem : SystemBase
         var moveEscapeTargetHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var moveEscapeTargetParallelWriter = moveEscapeTargetHashMap.AsParallelWriter();
         // We need either "(X * Y) / visionDistance" or "numUnitsToEscapeFrom" hash buckets, whichever is smaller
-        var viewDistance = GameController.Instance.humanVisionDistance;
-        var humanVisionHashMapCellSize = viewDistance * 2 + 1;
         var humanVisionHashMap = new NativeParallelHashMap<int, int>(moveEscapeTargetCount, Allocator.TempJob);
         var humanVisionParallelWriter = humanVisionHashMap.AsParallelWriter();
 
-        var hashMoveEscapeTargetGridPositionsJobHandle = Entities
-            .WithName("HashMoveEscapeTargetGridPositions")
-            .WithAll<MoveEscapeTarget>()
-            .WithStoreEntityQueryInField(ref _moveEscapeTargetQuery)
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
-            {
-                var hash = (int)math.hash(gridPosition.Value);
-                moveEscapeTargetParallelWriter.TryAdd(hash, entityInQueryIndex);
-            })
-            .ScheduleParallel(Dependency);
+        var hashMoveEscapeTargetGridPositionsJobHandle = new HashGridPositionsJob { parallelWriter = moveEscapeTargetParallelWriter }.ScheduleParallel(_moveEscapeTargetQuery, state.Dependency);
+        var hashMoveEscapeTargetVisionJobHandle = new HashGridPositionsCellJob { cellSize = gameControllerComponent.humanVisionDistance * 2 + 1, parallelWriter = humanVisionParallelWriter }.ScheduleParallel(_moveEscapeTargetQuery, state.Dependency);
 
-        var hashMoveEscapeTargetVisionJobHandle = Entities
-            .WithName("HashMoveEscapeTargetVision")
-            .WithAll<MoveEscapeTarget>()
-            .WithStoreEntityQueryInField(ref _moveEscapeTargetQuery)
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
-            {
-                var hash = (int)math.hash(gridPosition.Value / humanVisionHashMapCellSize);
-                humanVisionParallelWriter.TryAdd(hash, entityInQueryIndex);
-            })
-            .ScheduleParallel(Dependency);
-
-        var movementBarrierHandle = JobHandle.CombineDependencies(
-            Dependency,
+        state.Dependency = JobHandle.CombineDependencies(
+            state.Dependency,
             hashMoveEscapeTargetGridPositionsJobHandle,
             hashMoveEscapeTargetVisionJobHandle
         );
 
-        var moveEscapeTargetsJobHandle = Entities
-            .WithName("MoveEscapeTargets")
-            .WithAll<LineOfSight>()
-            .WithReadOnly(staticCollidableHashMap)
-            .WithReadOnly(dynamicCollidableHashMap)
-            .WithReadOnly(moveEscapeTargetHashMap)
-            .WithReadOnly(humanVisionHashMap)
-            .WithDisposeOnCompletion(moveEscapeTargetHashMap)
-            .WithDisposeOnCompletion(humanVisionHashMap)
-            .WithBurst()
-            .ForEach((ref NextGridPosition nextGridPosition, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition) =>
-            {
-                if (turnsUntilActive.Value != 1)
-                    return;
+        state.Dependency = new MoveEscapeTargetJob
+        {
+            visionDistance = gameControllerComponent.humanVisionDistance,
+            humanVisionHashMap = humanVisionHashMap,
 
-                int3 myGridPositionValue = gridPosition.Value;
-                float3 averageTarget = new int3(0, 0, 0);
-                bool moved = false;
+            moveEscapeTargetHashMap = moveEscapeTargetHashMap,
+            staticCollidablesHashMap = staticCollidableHashMap,
+            dynamicCollidablesHashMap = dynamicCollidableHashMap
+        }.ScheduleParallel(state.Dependency);
 
-                bool foundTarget = humanVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / humanVisionHashMapCellSize), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / humanVisionHashMapCellSize), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z - viewDistance) / humanVisionHashMapCellSize), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / humanVisionHashMapCellSize), out _) ||
-                                   humanVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + viewDistance, myGridPositionValue.y, myGridPositionValue.z + viewDistance) / humanVisionHashMapCellSize), out _);
-
-                if (foundTarget)
-                {
-                    foundTarget = false;
-
-                    int targetCount = 0;
-                    for (int checkDist = 1; checkDist <= viewDistance; checkDist++)
-                    {
-                        for (int z = -checkDist; z <= checkDist; z++)
-                        {
-                            for (int x = -checkDist; x <= checkDist; x++)
-                            {
-                                if (math.abs(x) == checkDist || math.abs(z) == checkDist)
-                                {
-                                    int3 targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-                                    int targetKey = (int)math.hash(targetGridPosition);
-
-                                    if (moveEscapeTargetHashMap.TryGetValue(targetKey, out _))
-                                    {
-                                        // Check if we have line of sight to the target
-                                        if (LineOfSightUtilities.InLineOfSight(myGridPositionValue, targetGridPosition, staticCollidableHashMap))
-                                        {
-                                            averageTarget = averageTarget * targetCount + new float3(x, 0, z);
-                                            targetCount++;
-                                            averageTarget /= targetCount;
-
-                                            foundTarget = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (foundTarget)
-                {
-                    int3 direction = new int3((int)-averageTarget.x, (int)averageTarget.y, (int)-averageTarget.z);
-
-                    // Check if space is already occupied
-                    int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-                    int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-                    int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-                    int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-                    if (math.abs(direction.x) >= math.abs(direction.z))
-                    {
-                        // Move horizontally
-                        if (direction.x < 0)
-                        {
-                            if (!staticCollidableHashMap.TryGetValue(moveLeftKey, out _) &&
-                                !dynamicCollidableHashMap.TryGetValue(moveLeftKey, out _))
-                            {
-                                myGridPositionValue.x--;
-                                moved = true;
-                            }
-                        }
-                        else
-                        {
-                            if (!staticCollidableHashMap.TryGetValue(moveRightKey, out _) &&
-                                !dynamicCollidableHashMap.TryGetValue(moveRightKey, out _))
-                            {
-                                myGridPositionValue.x++;
-                                moved = true;
-                            }
-                        }
-                    }
-                    // Unit maybe wanted to move horizontally but couldn't, so check if it wants to move vertically
-                    if (!moved)
-                    {
-                        // Move vertically
-                        if (direction.z < 0)
-                        {
-                            if (!staticCollidableHashMap.TryGetValue(moveDownKey, out _) &&
-                                !dynamicCollidableHashMap.TryGetValue(moveDownKey, out _))
-                            {
-                                myGridPositionValue.z--;
-                            }
-                        }
-                        else
-                        {
-                            if (!staticCollidableHashMap.TryGetValue(moveUpKey, out _) &&
-                                !dynamicCollidableHashMap.TryGetValue(moveUpKey, out _))
-                            {
-                                myGridPositionValue.z++;
-                            }
-                        }
-                    }
-                }
-
-                nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
-            })
-            .ScheduleParallel(movementBarrierHandle);
-
-        Dependency = moveEscapeTargetsJobHandle;
+        moveEscapeTargetHashMap.Dispose(state.Dependency);
+        humanVisionHashMap.Dispose(state.Dependency);
     }
 }

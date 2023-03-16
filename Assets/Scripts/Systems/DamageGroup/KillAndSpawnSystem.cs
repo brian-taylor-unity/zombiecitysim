@@ -23,8 +23,6 @@ public partial class KillAndSpawnSystem : SystemBase
         var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().AsParallelWriter();
         var unitHealth = GameController.Instance.zombieStartingHealth;
         var unitDamage = GameController.Instance.zombieDamage;
-        var unitVisionDistance = GameController.Instance.zombieVisionDistance;
-        var unitHearingDistance = GameController.Instance.zombieHearingDistance;
         var unitTurnsUntilActive = GameController.Instance.zombieTurnDelay;
 
         var killJob = Entities
@@ -58,8 +56,6 @@ public partial class KillAndSpawnSystem : SystemBase
                             gridPosition.Value,
                             unitHealth,
                             unitDamage,
-                            unitVisionDistance,
-                            unitHearingDistance,
                             unitTurnsUntilActive,
                             entityInQueryIndex == 0 ? 1 : (uint)entityInQueryIndex
                         );

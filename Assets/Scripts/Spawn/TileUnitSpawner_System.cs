@@ -197,7 +197,6 @@ public partial class TileUnitSpawner_System : SystemBase
                                     tileUnitPositionsNativeArray[i],
                                     tileUnitHealthNativeArray[i],
                                     tileUnitDamageNativeArray[i],
-                                    humanVisionDistance,
                                     turnsUntilActive,
                                     i == 0 ? 1 : (uint)i
                                 );
@@ -211,8 +210,6 @@ public partial class TileUnitSpawner_System : SystemBase
                                     tileUnitPositionsNativeArray[i],
                                     tileUnitHealthNativeArray[i],
                                     tileUnitDamageNativeArray[i],
-                                    zombieVisionDistance,
-                                    zombieHearingDistance,
                                     turnsUntilActive,
                                     i == 0 ? 1 : (uint)i
                                 );

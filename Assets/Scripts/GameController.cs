@@ -70,43 +70,62 @@ public class GameController : MonoBehaviour
         turnDelayTimeSlider.value = turnDelayTime * 1000;
     }
 
+    private void CreateUpdateGameControllerComponentEntity()
+    {
+        World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntity(typeof(UpdateGameControllerComponent));
+    }
+
     public void SetNumHumansInputField(string num)
     {
         numHumans = int.Parse(num);
         numHumansSlider.value = numHumans;
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumHumansSlider(float num)
     {
         numHumans = (int)num;
         numHumansInputField.text = numHumans.ToString();
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumZombiesInputField(string num)
     {
         numZombies = int.Parse(num);
         numZombiesSlider.value = numZombies;
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumZombiesSlider(float num)
     {
         numZombies = (int)num;
         numZombiesInputField.text = numZombies.ToString();
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumTilesXInputField(string num)
     {
         numTilesX = int.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumTilesYInputField(string num)
     {
         numTilesY = int.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumStreetsInputField(string num)
     {
         numStreets = int.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void OnRegeneratePressed()
@@ -118,22 +137,30 @@ public class GameController : MonoBehaviour
     public void SetHumanTurnDelay(string num)
     {
         humanTurnDelay = int.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetZombieTurnDelay(string num)
     {
         zombieTurnDelay = int.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetTurnDelayTimeInputField(string num)
     {
         turnDelayTime = float.Parse(num) / 1000;
         turnDelayTimeSlider.value = float.Parse(num);
+
+        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetTurnDelayTimeSlider(float num)
     {
         turnDelayTime = num / 1000;
         turnDelayTimeInputField.text = num.ToString();
+
+        CreateUpdateGameControllerComponentEntity();
     }
 }

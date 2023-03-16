@@ -1,38 +1,49 @@
-﻿using Unity.Entities;
+﻿using Unity.Burst;
+using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 
+[BurstCompile]
+public partial struct AnimateMoveJob : IJobEntity
+{
+    public float percentAnimate;
+
+    public void Execute(ref LocalTransform transform, ref GridPosition gridPosition, in NextGridPosition nextGridPosition)
+    {
+        var nextTranslation = math.lerp(new float3(gridPosition.Value), new float3(nextGridPosition.Value), percentAnimate);
+        transform.Position = nextTranslation;
+        var clamp = percentAnimate == 1.0f;
+        gridPosition.Value = math.select(gridPosition.Value, nextGridPosition.Value, clamp);
+    }
+}
+
 [UpdateInGroup(typeof(EndGroup))]
-public partial class AnimateMoveSystem : SystemBase
+public partial struct AnimateMoveSystem : ISystem
 {
     private float m_TotalTime;
 
-    protected override void OnCreate()
+    [BurstCompile]
+    void OnCreate(ref SystemState state)
     {
         m_TotalTime = 0.0f;
+
+        state.RequireForUpdate<GameControllerComponent>();
     }
 
-    protected override void OnUpdate()
+    [BurstCompile]
+    void OnUpdate(ref SystemState state)
     {
+        var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
+
         m_TotalTime += SystemAPI.Time.DeltaTime;
 
-        var percentAnimate = m_TotalTime / GameController.Instance.turnDelayTime;
+        var percentAnimate = m_TotalTime / gameControllerComponent.turnDelayTime;
         if (percentAnimate >= 1.0f)
         {
             percentAnimate = 1.0f;
             m_TotalTime = 0.0f;
         }
 
-        Entities
-            .WithName("AnimateMove")
-            .WithBurst()
-            .ForEach((ref LocalTransform transform, ref GridPosition gridPosition, in NextGridPosition nextGridPosition) =>
-                {
-                    var nextTranslation = math.lerp(new float3(gridPosition.Value), new float3(nextGridPosition.Value), percentAnimate);
-                    transform.Position = nextTranslation;
-                    var clamp = percentAnimate == 1.0f;
-                    gridPosition.Value = math.select(gridPosition.Value, nextGridPosition.Value, clamp);
-                })
-            .ScheduleParallel();
+        new AnimateMoveJob { percentAnimate = percentAnimate }.ScheduleParallel();
     }
 }

@@ -1,21 +1,22 @@
+using System;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using Random = Unity.Mathematics.Random;
 
 public static class ZombieCreator
 {
     [BurstCompile]
-    public static void CreateZombie(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int visionDistance, int hearingDistance, int turnsUntilActive, uint randomSeed)
+    public static void CreateZombie(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
     {
         var instance = commandBuffer.Instantiate(index, prefab);
         commandBuffer.SetComponent(index, instance, LocalTransform.FromPosition(gridPosition));
         commandBuffer.AddComponent(index, instance, new GridPosition { Value = gridPosition });
         commandBuffer.AddComponent(index, instance, new NextGridPosition { Value = gridPosition });
         commandBuffer.AddComponent(index, instance, new Health { Value = health });
+        commandBuffer.AddComponent(index, instance, new MaxHealth { Value = health });
         commandBuffer.AddComponent(index, instance, new Damage { Value = damage });
-        commandBuffer.AddComponent(index, instance, new Vision { Distance = visionDistance });
-        commandBuffer.AddComponent(index, instance, new Hearing { Distance = hearingDistance });
         commandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = turnsUntilActive });
         commandBuffer.AddComponent(index, instance, new Zombie());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
@@ -25,16 +26,16 @@ public static class ZombieCreator
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });
     }
 
-    public static void CreateZombie(ref SystemState state, Entity prefab, int3 gridPosition, int health, int damage, int visionDistance, int hearingDistance, int turnsUntilActive, uint randomSeed)
+    [BurstCompile]
+    public static void CreateZombie(ref SystemState state, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
     {
         var instance = state.EntityManager.Instantiate(prefab);
         state.EntityManager.SetComponentData(instance, LocalTransform.FromPosition(gridPosition));
         state.EntityManager.AddComponentData(instance, new GridPosition { Value = gridPosition });
         state.EntityManager.AddComponentData(instance, new NextGridPosition { Value = gridPosition });
         state.EntityManager.AddComponentData(instance, new Health { Value = health });
+        state.EntityManager.AddComponentData(instance, new MaxHealth { Value = health });
         state.EntityManager.AddComponentData(instance, new Damage { Value = damage });
-        state.EntityManager.AddComponentData(instance, new Vision { Distance = visionDistance });
-        state.EntityManager.AddComponentData(instance, new Hearing { Distance = hearingDistance });
         state.EntityManager.AddComponentData(instance, new TurnsUntilActive { Value = turnsUntilActive });
         state.EntityManager.AddComponentData(instance, new Zombie());
         state.EntityManager.AddComponentData(instance, new DynamicCollidable());
