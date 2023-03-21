@@ -26,7 +26,7 @@ public class CameraController : MonoBehaviour
     private float pitchAngle = 0;
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         swivel = transform.GetChild(0);
         stick = swivel.GetChild(0);
@@ -38,24 +38,24 @@ public class CameraController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        float mouseWheelDelta = Input.GetAxis("Mouse ScrollWheel");
-        float mouseHorizontalDelta = Input.GetAxis("Mouse X");
-        float mouseVerticalDelta = Input.GetAxis("Mouse Y");
-        float rotationDelta = Input.GetAxis("Rotation");
-        float keyHorizontalDelta = Input.GetAxis("Horizontal");
-        float keyVerticalDelta = Input.GetAxis("Vertical");
-        bool shift = Input.GetButton("Fire3");
-        bool leftClick = Input.GetMouseButton(0);
-        bool rightClick = Input.GetMouseButton(1);
+        var mouseWheelDelta = Input.GetAxis("Mouse ScrollWheel");
+        var mouseHorizontalDelta = Input.GetAxis("Mouse X");
+        var mouseVerticalDelta = Input.GetAxis("Mouse Y");
+        var rotationDelta = Input.GetAxis("Rotation");
+        var keyHorizontalDelta = Input.GetAxis("Horizontal");
+        var keyVerticalDelta = Input.GetAxis("Vertical");
+        var shift = Input.GetButton("Fire3");
+        var leftClick = Input.GetMouseButton(0);
+        var rightClick = Input.GetMouseButton(1);
 
         if (zoomAnimTimer < zoomAnimLength)
         {
             zoomAnimTimer += Time.deltaTime;
             zoom = Mathf.Lerp(zoom, zoomTarget, zoomAnimTimer / zoomAnimLength);
 
-            float distance = Mathf.Lerp(stickMinZoom, stickMaxZoom, zoom);
+            var distance = Mathf.Lerp(stickMinZoom, stickMaxZoom, zoom);
             stick.localPosition = new Vector3(0f, 0f, distance);
         }
 
@@ -76,10 +76,9 @@ public class CameraController : MonoBehaviour
 
     private void AdjustZoom(float delta)
     {
-        float zoomAmount = delta * zoomSpeed * Mathf.Clamp(1f - zoomTarget, 0.05f, 1f);
+        var zoomAmount = delta * zoomSpeed * Mathf.Clamp(1f - zoomTarget, 0.05f, 1f);
         zoomTarget = Mathf.Clamp01(zoomTarget + zoomAmount);
-        if (zoomAnimTimer != 0f)
-            zoomAnimTimer = 0f;
+        zoomAnimTimer = 0f;
     }
 
     private void AdjustOrbit(float delta)
@@ -102,11 +101,11 @@ public class CameraController : MonoBehaviour
             zDelta *= fastMoveSpeedFactor;
         }
 
-        Vector3 direction = transform.localRotation * new Vector3(xDelta, 0f, zDelta).normalized;
-        float damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
-        float distance = Mathf.Lerp(moveSpeedMinZoom, moveSpeedMaxZoom, zoom) * damping * Time.deltaTime;
+        var direction = transform.localRotation * new Vector3(xDelta, 0f, zDelta).normalized;
+        var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
+        var distance = Mathf.Lerp(moveSpeedMinZoom, moveSpeedMaxZoom, zoom) * damping * Time.deltaTime;
 
-        Vector3 position = transform.localPosition;
+        var position = transform.localPosition;
         position += direction * distance;
         transform.localPosition = position;
     }
@@ -123,7 +122,7 @@ public class CameraController : MonoBehaviour
     {
         foreach (var blocker in UIBlockingMouse)
         {
-            if (blocker.BlockedByUI)
+            if (blocker.blockedByUI)
                 return true;
         }
 

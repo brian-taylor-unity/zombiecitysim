@@ -1,101 +1,47 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
+using UnityEngine;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(DamageToHumansSystem))]
-public partial class DamageToZombiesSystem : SystemBase
+public partial struct DamageToZombiesSystem : ISystem
 {
-    private EntityQuery zombiesQuery;
-    private EntityQuery humansQuery;
+    private EntityQuery _zombiesQuery;
+    private EntityQuery _humansQuery;
 
-    protected override void OnUpdate()
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
     {
-        var zombieCount = zombiesQuery.CalculateEntityCount();
-        var humanCount = humansQuery.CalculateEntityCount();
+        _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Zombie, GridPosition>());
+        _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, TurnActive, GridPosition, Damage>());
+    }
+
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
+    {
+        var zombieCount = _zombiesQuery.CalculateEntityCount();
+        var humanCount = _humansQuery.CalculateEntityCount();
 
         if (zombieCount == 0 || humanCount == 0)
             return;
 
         var zombieHashMap = new NativeParallelHashMap<int, int>(zombieCount, Allocator.TempJob);
-        NativeParallelMultiHashMap<int, int> damageToZombiesHashMap;
-        if (humanCount < zombieCount)
-            damageToZombiesHashMap = new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
-        else
-            damageToZombiesHashMap = new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+        var damageToZombiesHashMap = humanCount < zombieCount ?
+            new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob) :
+            new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
 
-        var zombieHashMapParallelWriter = zombieHashMap.AsParallelWriter();
+        Debug.Log($"{damageToZombiesHashMap.Count()}");
 
-        Entities
-            .WithName("HashZombies")
-            .WithStoreEntityQueryInField(ref zombiesQuery)
-            .WithAll<Zombie>()
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, in GridPosition gridPosition) =>
-                {
-                    var hash = (int)math.hash(gridPosition.Value);
-                    zombieHashMapParallelWriter.TryAdd(hash, entityInQueryIndex);
-                })
-            .ScheduleParallel();
+        state.Dependency = new HashGridPositionsJob { parallelWriter = zombieHashMap.AsParallelWriter() }.ScheduleParallel(_zombiesQuery, state.Dependency);
+        state.Dependency = new CalculateDamageJob
+        {
+            DamageTakingHashMap = zombieHashMap,
+            DamageAmountHashMapParallelWriter = damageToZombiesHashMap.AsParallelWriter()
+        }.ScheduleParallel(_humansQuery, state.Dependency);
+        zombieHashMap.Dispose(state.Dependency);
 
-        var damageHashMap = damageToZombiesHashMap;
-        var damageHashMapParallelWriter = damageHashMap.AsParallelWriter();
-
-        Entities
-            .WithName("CalculateDamageFromHumans")
-            .WithStoreEntityQueryInField(ref humansQuery)
-            .WithAll<Human>()
-            .WithChangeFilter<TurnsUntilActive>()
-            .WithReadOnly(zombieHashMap)
-            .WithDisposeOnCompletion(zombieHashMap)
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, in TurnsUntilActive turnsUntilActive, in GridPosition gridPosition, in Damage damage) =>
-                {
-                    if (turnsUntilActive.Value != 1)
-                        return;
-
-                    for (int z = -1; z <= 1; z++)
-                    {
-                        for (int x = -1; x <= 1; x++)
-                        {
-                            if (!(x == 0 && z == 0))
-                            {
-                                int damageKey = (int)math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
-                                if (zombieHashMap.TryGetValue(damageKey, out _))
-                                    damageHashMapParallelWriter.Add(damageKey, damage.Value);
-                            }
-                        }
-                    }
-                })
-            .ScheduleParallel();
-
-        var zombieMaxHealth = GameController.Instance.zombieStartingHealth;
-
-        Entities
-            .WithName("DealDamageToZombies")
-            .WithAll<Zombie>()
-            .WithReadOnly(damageHashMap)
-            .WithDisposeOnCompletion(damageHashMap)
-            .WithBurst()
-            .ForEach((ref Health health, ref CharacterColor materialColor, in GridPosition gridPosition) =>
-                {
-                    int myHealth = health.Value;
-
-                    int gridPositionHash = (int)math.hash(new int3(gridPosition.Value));
-                    if (damageHashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
-                    {
-                        myHealth -= damage;
-
-                        while (damageHashMap.TryGetNextValue(out damage, ref it))
-                        {
-                            myHealth -= damage;
-                        }
-
-                        var lerp = math.lerp(0.0f, 1.0f, (float)myHealth / zombieMaxHealth);
-                        materialColor.Value = new float4(lerp, 1.0f - lerp, 0.0f, 1.0f);
-                        health.Value = myHealth;
-                    }
-                })
-            .ScheduleParallel();
+        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToZombiesHashMap }.ScheduleParallel(_zombiesQuery, state.Dependency);
+        damageToZombiesHashMap.Dispose(state.Dependency);
     }
 }

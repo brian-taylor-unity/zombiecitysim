@@ -3,35 +3,34 @@ using UnityEngine.EventSystems;
 
 public class MouseInputUIBlocker : MonoBehaviour
 {
-    public bool BlockedByUI;
+    public bool blockedByUI;
     
-    private EventTrigger eventTrigger;
+    private EventTrigger _eventTrigger;
 
     private void Start()
     {
-        eventTrigger = GetComponent<EventTrigger>();
-        if(eventTrigger != null)
-        {
-            EventTrigger.Entry enterUIEntry = new EventTrigger.Entry();
-            // Pointer Enter
-            enterUIEntry.eventID = EventTriggerType.PointerEnter;
-            enterUIEntry.callback.AddListener((eventData) => { EnterUI(); });
-            eventTrigger.triggers.Add(enterUIEntry);
+        _eventTrigger = GetComponent<EventTrigger>();
+        if (_eventTrigger == null)
+            return;
 
-            //Pointer Exit
-            EventTrigger.Entry exitUIEntry = new EventTrigger.Entry();
-            exitUIEntry.eventID = EventTriggerType.PointerExit;
-            exitUIEntry.callback.AddListener((eventData) => { ExitUI(); });
-            eventTrigger.triggers.Add(exitUIEntry);
-        }
+        // Pointer Enter
+        var enterUIEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+        enterUIEntry.callback.AddListener(_ => { EnterUI(); });
+        _eventTrigger.triggers.Add(enterUIEntry);
+
+        //Pointer Exit
+        var exitUIEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+        exitUIEntry.callback.AddListener(_ => { ExitUI(); });
+        _eventTrigger.triggers.Add(exitUIEntry);
     }
 
-    public void EnterUI()
+    private void EnterUI()
     {
-        BlockedByUI = true;
+        blockedByUI = true;
     }
-    public void ExitUI()
+
+    private void ExitUI()
     {
-        BlockedByUI = false;
+        blockedByUI = false;
     }
 }

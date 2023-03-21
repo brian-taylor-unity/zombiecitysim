@@ -10,15 +10,15 @@ public partial class MoveRandomlySystem : SystemBase
 
     protected override void OnCreate()
     {
-        RequireForUpdate<StaticCollidableComponent>();
-        RequireForUpdate<DynamicCollidableComponent>();
+        RequireForUpdate<HashStaticCollidableSystemComponent>();
+        RequireForUpdate<HashDynamicCollidableSystemComponent>();
         RequireAnyForUpdate(_moveRandomlyQuery);
     }
 
     protected override void OnUpdate()
     {
-        var staticCollidableComponent = SystemAPI.GetSingleton<StaticCollidableComponent>();
-        var dynamicCollidableComponent = SystemAPI.GetSingleton<DynamicCollidableComponent>();
+        var staticCollidableComponent = SystemAPI.GetSingleton<HashStaticCollidableSystemComponent>();
+        var dynamicCollidableComponent = SystemAPI.GetSingleton<HashDynamicCollidableSystemComponent>();
 
         Dependency = JobHandle.CombineDependencies(
             Dependency,

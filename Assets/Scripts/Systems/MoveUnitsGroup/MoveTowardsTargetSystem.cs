@@ -246,8 +246,8 @@ public partial struct MoveTowardsTargetSystem : ISystem
         _followTargetQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<FollowTarget>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
-        state.RequireForUpdate<StaticCollidableComponent>();
-        state.RequireForUpdate<DynamicCollidableComponent>();
+        state.RequireForUpdate<HashStaticCollidableSystemComponent>();
+        state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
         state.RequireForUpdate(_moveTowardsTargetQuery);
         state.RequireAnyForUpdate(_followTargetQuery, _audibleQuery);
@@ -256,8 +256,8 @@ public partial struct MoveTowardsTargetSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        var staticCollidableComponent = SystemAPI.GetSingleton<StaticCollidableComponent>();
-        var dynamicCollidableComponent = SystemAPI.GetSingleton<DynamicCollidableComponent>();
+        var staticCollidableComponent = SystemAPI.GetSingleton<HashStaticCollidableSystemComponent>();
+        var dynamicCollidableComponent = SystemAPI.GetSingleton<HashDynamicCollidableSystemComponent>();
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
         state.Dependency = JobHandle.CombineDependencies(state.Dependency, staticCollidableComponent.Handle, dynamicCollidableComponent.Handle);

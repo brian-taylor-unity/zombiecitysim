@@ -1,76 +1,147 @@
-﻿using Unity.Collections;
+﻿using System;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using System.Collections.Generic;
+using Unity.Burst;
 using UnityEngine;
 
-public partial class TileUnitSpawner_System : SystemBase
+public enum TileUnitKinds
 {
-    private enum TileUnitKinds
+    BuildingTile,
+    RoadTile,
+    HumanUnit,
+    ZombieUnit
+}
+
+[BurstCompile]
+public partial struct SpawnJob : IJobEntity
+{
+    public int HumanTurnDelay;
+    public int ZombieTurnDelay;
+
+    public EntityCommandBuffer.ParallelWriter Ecb;
+
+    [ReadOnly] public NativeList<int3> TileUnitPositionsNativeList;
+    [ReadOnly] public NativeList<TileUnitKinds> TileUnitKindsNativeList;
+    [ReadOnly] public NativeList<int> TileUnitHealthNativeList;
+    [ReadOnly] public NativeList<int> TileUnitDamageNativeList;
+
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, [ReadOnly] in TileUnitSpawner_Data tileUnitSpawner)
     {
-        BuildingTile,
-        RoadTile,
-        HumanUnit,
-        ZombieUnit
+        for (var i = 0; i < TileUnitPositionsNativeList.Length; i++)
+        {
+            Entity instance;
+            switch (TileUnitKindsNativeList[i])
+            {
+                case TileUnitKinds.BuildingTile:
+                    instance = Ecb.Instantiate(entityIndexInQuery, tileUnitSpawner.BuildingTile_Prefab);
+                    Ecb.SetComponent(entityIndexInQuery, instance, LocalTransform.FromPosition(TileUnitPositionsNativeList[i]));
+                    Ecb.AddComponent(entityIndexInQuery, instance, new GridPosition { Value = new int3(TileUnitPositionsNativeList[i]) });
+                    Ecb.AddComponent(entityIndexInQuery, instance, new StaticCollidable());
+                    break;
+                case TileUnitKinds.RoadTile:
+                    instance = Ecb.Instantiate(entityIndexInQuery, tileUnitSpawner.RoadTile_Prefab);
+                    Ecb.SetComponent(entityIndexInQuery, instance, LocalTransform.FromPositionRotationScale(
+                        new float3(TileUnitPositionsNativeList[i].x / 2.0f, 0.5f, TileUnitPositionsNativeList[i].z / 2.0f),
+                        Quaternion.identity,
+                        TileUnitPositionsNativeList[i].x / 10.0f - 0.1f
+                    ));
+                    break;
+                case TileUnitKinds.HumanUnit:
+                    var turnsUntilActive = i % HumanTurnDelay + 1;
+                    HumanCreator.CreateHuman(
+                        Ecb,
+                        entityIndexInQuery,
+                        tileUnitSpawner.HumanUnit_Prefab,
+                        TileUnitPositionsNativeList[i],
+                        TileUnitHealthNativeList[i],
+                        TileUnitDamageNativeList[i],
+                        turnsUntilActive,
+                        i == 0 ? 1 : (uint)i
+                    );
+                    break;
+                case TileUnitKinds.ZombieUnit:
+                    turnsUntilActive = i % ZombieTurnDelay + 1;
+                    ZombieCreator.CreateZombie(
+                        Ecb,
+                        entityIndexInQuery,
+                        tileUnitSpawner.ZombieUnit_Prefab,
+                        TileUnitPositionsNativeList[i],
+                        TileUnitHealthNativeList[i],
+                        TileUnitDamageNativeList[i],
+                        turnsUntilActive,
+                        i == 0 ? 1 : (uint)i
+                    );
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+    }
+}
+
+[UpdateInGroup(typeof(EndGroup))]
+public partial struct TileUnitSpawnerSystem : ISystem
+{
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
+    {
+        state.RequireForUpdate<TileUnitSpawner_Data>();
+        state.RequireForUpdate<GameControllerComponent>();
+        state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
     }
 
-    private BeginInitializationEntityCommandBufferSystem m_EntityCommandBufferSystem;
-
-    protected override void OnCreate()
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
     {
-        RequireForUpdate<TileUnitSpawner_Data>();
+        var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
-        m_EntityCommandBufferSystem = World.GetOrCreateSystemManaged<BeginInitializationEntityCommandBufferSystem>();
-    }
+        var tileUnitPositions = new NativeList<int3>(Allocator.TempJob);
+        var tileUnitKinds = new NativeList<TileUnitKinds>(Allocator.TempJob);
+        var tileUnitHealth = new NativeList<int>(Allocator.TempJob);
+        var tileUnitDamage = new NativeList<int>(Allocator.TempJob);
 
-    protected override void OnUpdate()
-    {
-        var tileUnitPositions = new List<int3>();
-        var tileUnitKinds = new List<TileUnitKinds>();
-        var tileUnitHealth = new List<int>();
-        var tileUnitDamage = new List<int>();
-
-        var tileExists = new bool[GameController.Instance.numTilesY, GameController.Instance.numTilesX];
-        for (int y = 0; y < GameController.Instance.numTilesY; y++)
-            for (int x = 0; x < GameController.Instance.numTilesX; x++)
-                tileExists[y, x] = true;
+        var tileExists = new NativeArray<bool>(gameControllerComponent.numTilesY * gameControllerComponent.numTilesX, Allocator.Temp);
+        for (var y = 0; y < gameControllerComponent.numTilesY; y++)
+            for (var x = 0; x < gameControllerComponent.numTilesX; x++)
+                tileExists[y * gameControllerComponent.numTilesX + x] = true;
 
         // Streets
-        for (int i = 0, xPos = 1; i < GameController.Instance.numStreets / 2; i++)
+        for (int i = 0, xPos = 1; i < gameControllerComponent.numStreets / 2; i++)
         {
             var roadSize = UnityEngine.Random.Range(1, 4);
-            xPos += UnityEngine.Random.Range(0, 2 * (GameController.Instance.numTilesX / (GameController.Instance.numStreets / 2)));
-            if (xPos >= GameController.Instance.numTilesX - 1)
+            xPos += UnityEngine.Random.Range(0, 2 * (gameControllerComponent.numTilesX / (gameControllerComponent.numStreets / 2)));
+            if (xPos >= gameControllerComponent.numTilesX - 1)
                 break;
 
-            while (roadSize >= 1 && xPos < GameController.Instance.numTilesX - 1)
+            while (roadSize >= 1 && xPos < gameControllerComponent.numTilesX - 1)
             {
-                for (int yPos = 1; yPos < GameController.Instance.numTilesY - 1; yPos++)
+                for (var yPos = 1; yPos < gameControllerComponent.numTilesY - 1; yPos++)
                 {
-                    if (tileExists[yPos, xPos])
+                    if (tileExists[yPos * gameControllerComponent.numTilesX + xPos])
                     {
-                        tileExists[yPos, xPos] = false;
+                        tileExists[yPos * gameControllerComponent.numTilesX + xPos] = false;
                     }
                 }
                 xPos++;
                 roadSize--;
             }
         }
-        for (int i = 0, yPos = 1; i < GameController.Instance.numStreets / 2; i++)
+        for (int i = 0, yPos = 1; i < gameControllerComponent.numStreets / 2; i++)
         {
             var roadSize = UnityEngine.Random.Range(1, 4);
-            yPos += UnityEngine.Random.Range(0, 2 * (GameController.Instance.numTilesX / (GameController.Instance.numStreets / 2)));
-            if (yPos >= GameController.Instance.numTilesX - 1)
+            yPos += UnityEngine.Random.Range(0, 2 * (gameControllerComponent.numTilesX / (gameControllerComponent.numStreets / 2)));
+            if (yPos >= gameControllerComponent.numTilesX - 1)
                 break;
 
-            while (roadSize >= 1 && yPos < GameController.Instance.numTilesY - 1)
+            while (roadSize >= 1 && yPos < gameControllerComponent.numTilesY - 1)
             {
-                for (var xPos = 1; xPos < GameController.Instance.numTilesX - 1; xPos++)
+                for (var xPos = 1; xPos < gameControllerComponent.numTilesX - 1; xPos++)
                 {
-                    if (tileExists[yPos, xPos])
+                    if (tileExists[yPos * gameControllerComponent.numTilesX + xPos])
                     {
-                        tileExists[yPos, xPos] = false;
+                        tileExists[yPos * gameControllerComponent.numTilesX + xPos] = false;
                     }
                 }
                 yPos++;
@@ -79,154 +150,97 @@ public partial class TileUnitSpawner_System : SystemBase
         }
 
         // Road border boundary
-        for (int y = 0; y < GameController.Instance.numTilesY; y++)
+        for (var y = 0; y < gameControllerComponent.numTilesY; y++)
         {
-            tileExists[y, 0] = true;
-            tileExists[y, GameController.Instance.numTilesX - 1] = true;
+            tileExists[y * gameControllerComponent.numTilesX] = true;
+            tileExists[y * gameControllerComponent.numTilesX + gameControllerComponent.numTilesX - 1] = true;
         }
 
         // Road border boundary
-        for (int x = 1; x < GameController.Instance.numTilesX - 1; x++)
+        for (var x = 1; x < gameControllerComponent.numTilesX - 1; x++)
         {
-            tileExists[0, x] = true;
-            tileExists[GameController.Instance.numTilesY - 1, 0] = true;
+            tileExists[x] = true;
+            tileExists[(gameControllerComponent.numTilesY - 1) * gameControllerComponent.numTilesX] = true;
         }
 
         // Fill in buildings
-        for (var y = 0; y < GameController.Instance.numTilesY; y++)
+        for (var y = 0; y < gameControllerComponent.numTilesY; y++)
         {
-            for (var x = 0; x < GameController.Instance.numTilesX; x++)
+            for (var x = 0; x < gameControllerComponent.numTilesX; x++)
             {
-                if (tileExists[y, x])
-                {
-                    tileUnitKinds.Add(TileUnitKinds.BuildingTile);
-                    tileUnitPositions.Add(new int3(x, 1, y));
-                    tileUnitHealth.Add(0);
-                    tileUnitDamage.Add(0);
-                }
+                if (!tileExists[y * gameControllerComponent.numTilesX + x])
+                    continue;
+
+                tileUnitKinds.Add(TileUnitKinds.BuildingTile);
+                tileUnitPositions.Add(new int3(x, 1, y));
+                tileUnitHealth.Add(0);
+                tileUnitDamage.Add(0);
             }
         }
 
         // Road Floor Plane
         tileUnitKinds.Add(TileUnitKinds.RoadTile);
-        tileUnitPositions.Add(new int3(GameController.Instance.numTilesX, 0, GameController.Instance.numTilesY));
+        tileUnitPositions.Add(new int3(gameControllerComponent.numTilesX, 0, gameControllerComponent.numTilesY));
         tileUnitHealth.Add(0);
         tileUnitDamage.Add(0);
 
         // Human Units
-        for (var i = 0; i < GameController.Instance.numHumans; i++)
+        for (var i = 0; i < gameControllerComponent.numHumans; i++)
         {
             int xPos, yPos;
 
             do
             {
-                xPos = UnityEngine.Random.Range(1, GameController.Instance.numTilesX - 1);
-                yPos = UnityEngine.Random.Range(1, GameController.Instance.numTilesY - 1);
-            } while (tileExists[yPos, xPos]);
+                xPos = UnityEngine.Random.Range(1, gameControllerComponent.numTilesX - 1);
+                yPos = UnityEngine.Random.Range(1, gameControllerComponent.numTilesY - 1);
+            } while (tileExists[yPos * gameControllerComponent.numTilesX + xPos]);
 
-            tileExists[yPos, xPos] = true;
+            tileExists[yPos * gameControllerComponent.numTilesX + xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.HumanUnit);
             tileUnitPositions.Add(new int3(xPos, 1, yPos));
-            tileUnitHealth.Add(GameController.Instance.humanStartingHealth);
-            tileUnitDamage.Add(GameController.Instance.humanDamage);
+            tileUnitHealth.Add(gameControllerComponent.humanStartingHealth);
+            tileUnitDamage.Add(gameControllerComponent.humanDamage);
         }
 
         // Zombie Units
-        for (var i = 0; i < GameController.Instance.numZombies; i++)
+        for (var i = 0; i < gameControllerComponent.numZombies; i++)
         {
             int xPos, yPos;
 
             do
             {
-                xPos = UnityEngine.Random.Range(1, GameController.Instance.numTilesX - 1);
-                yPos = UnityEngine.Random.Range(1, GameController.Instance.numTilesY - 1);
-            } while (tileExists[yPos, xPos]);
+                xPos = UnityEngine.Random.Range(1, gameControllerComponent.numTilesX - 1);
+                yPos = UnityEngine.Random.Range(1, gameControllerComponent.numTilesY - 1);
+            } while (tileExists[yPos * gameControllerComponent.numTilesX + xPos]);
 
-            tileExists[yPos, xPos] = true;
+            tileExists[yPos * gameControllerComponent.numTilesX + xPos] = true;
             tileUnitKinds.Add(TileUnitKinds.ZombieUnit);
             tileUnitPositions.Add(new int3(xPos, 1, yPos));
-            tileUnitHealth.Add(GameController.Instance.zombieStartingHealth);
-            tileUnitDamage.Add(GameController.Instance.zombieDamage);
+            tileUnitHealth.Add(gameControllerComponent.zombieStartingHealth);
+            tileUnitDamage.Add(gameControllerComponent.zombieDamage);
         }
 
-        // Spawn Tiles and Units
-        var tileUnitPositionsNativeArray = new NativeArray<int3>(tileUnitPositions.ToArray(), Allocator.TempJob);
-        var tileUnitKindsNativeArray = new NativeArray<TileUnitKinds>(tileUnitKinds.ToArray(), Allocator.TempJob);
-        var tileUnitHealthNativeArray = new NativeArray<int>(tileUnitHealth.ToArray(), Allocator.TempJob);
-        var tileUnitDamageNativeArray = new NativeArray<int>(tileUnitDamage.ToArray(), Allocator.TempJob);
-        var commandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
-        var humanVisionDistance = GameController.Instance.humanVisionDistance;
-        var humanTurnDelay = GameController.Instance.humanTurnDelay;
-        var zombieVisionDistance = GameController.Instance.zombieVisionDistance;
-        var zombieHearingDistance = GameController.Instance.zombieHearingDistance;
-        var zombieTurnDelay = GameController.Instance.zombieTurnDelay;
+        tileExists.Dispose();
 
-        var spawnJob = Entities
-            .WithReadOnly(tileUnitPositionsNativeArray)
-            .WithReadOnly(tileUnitKindsNativeArray)
-            .WithReadOnly(tileUnitHealthNativeArray)
-            .WithReadOnly(tileUnitDamageNativeArray)
-            .WithBurst()
-            .ForEach((Entity entity, int entityInQueryIndex, in TileUnitSpawner_Data tileUnitSpawner) =>
-                {
-                    for (int i = 0; i < tileUnitPositionsNativeArray.Length; i++)
-                    {
-                        Entity instance;
-                        switch (tileUnitKindsNativeArray[i])
-                        {
-                            case TileUnitKinds.BuildingTile:
-                                instance = commandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.BuildingTile_Prefab);
-                                commandBuffer.SetComponent(entityInQueryIndex, instance, LocalTransform.FromPosition(tileUnitPositionsNativeArray[i]));
-                                commandBuffer.AddComponent(entityInQueryIndex, instance, new GridPosition { Value = new int3(tileUnitPositionsNativeArray[i]) });
-                                commandBuffer.AddComponent(entityInQueryIndex, instance, new StaticCollidable());
-                                break;
-                            case TileUnitKinds.RoadTile:
-                                instance = commandBuffer.Instantiate(entityInQueryIndex, tileUnitSpawner.RoadTile_Prefab);
-                                commandBuffer.SetComponent(entityInQueryIndex, instance, LocalTransform.FromPositionRotationScale(
-                                    new float3(tileUnitPositionsNativeArray[i].x / 2.0f, 0.5f, tileUnitPositionsNativeArray[i].z / 2.0f),
-                                    Quaternion.identity,
-                                    tileUnitPositionsNativeArray[i].x / 10.0f - 0.1f
-                                ));
-                                break;
-                            case TileUnitKinds.HumanUnit:
-                                var turnsUntilActive = i % humanTurnDelay + 1;
-                                HumanCreator.CreateHuman(
-                                    commandBuffer,
-                                    entityInQueryIndex,
-                                    tileUnitSpawner.HumanUnit_Prefab,
-                                    tileUnitPositionsNativeArray[i],
-                                    tileUnitHealthNativeArray[i],
-                                    tileUnitDamageNativeArray[i],
-                                    turnsUntilActive,
-                                    i == 0 ? 1 : (uint)i
-                                );
-                                break;
-                            case TileUnitKinds.ZombieUnit:
-                                turnsUntilActive = i % zombieTurnDelay + 1;
-                                ZombieCreator.CreateZombie(
-                                    commandBuffer,
-                                    entityInQueryIndex,
-                                    tileUnitSpawner.ZombieUnit_Prefab,
-                                    tileUnitPositionsNativeArray[i],
-                                    tileUnitHealthNativeArray[i],
-                                    tileUnitDamageNativeArray[i],
-                                    turnsUntilActive,
-                                    i == 0 ? 1 : (uint)i
-                                );
-                                break;
-                        }
-                    }
-                })
-            .WithDisposeOnCompletion(tileUnitPositionsNativeArray)
-            .WithDisposeOnCompletion(tileUnitKindsNativeArray)
-            .WithDisposeOnCompletion(tileUnitHealthNativeArray)
-            .WithDisposeOnCompletion(tileUnitDamageNativeArray)
-            .ScheduleParallel(Dependency);
+        state.Dependency = new SpawnJob
+        {
+            HumanTurnDelay = gameControllerComponent.humanTurnDelay,
+            ZombieTurnDelay = gameControllerComponent.zombieTurnDelay,
 
-        m_EntityCommandBufferSystem.AddJobHandleForProducer(spawnJob);
+            Ecb = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>()
+                .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
 
-        Dependency = spawnJob;
+            TileUnitPositionsNativeList = tileUnitPositions,
+            TileUnitKindsNativeList = tileUnitKinds,
+            TileUnitHealthNativeList = tileUnitHealth,
+            TileUnitDamageNativeList = tileUnitDamage
+        }.ScheduleParallel(state.Dependency);
 
-        Enabled = false;
+        tileUnitPositions.Dispose(state.Dependency);
+        tileUnitKinds.Dispose(state.Dependency);
+        tileUnitHealth.Dispose(state.Dependency);
+        tileUnitDamage.Dispose(state.Dependency);
+
+        state.Enabled = false;
     }
 }

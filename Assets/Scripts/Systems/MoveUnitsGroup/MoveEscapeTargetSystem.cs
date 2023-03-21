@@ -131,22 +131,22 @@ public partial struct MoveEscapeTargetSystem : ISystem
     {
         _moveEscapeTargetQuery = state.GetEntityQuery(ComponentType.ReadOnly<MoveEscapeTarget>());
 
-        state.RequireForUpdate<StaticCollidableComponent>();
-        state.RequireForUpdate<DynamicCollidableComponent>();
+        state.RequireForUpdate<HashStaticCollidableSystemComponent>();
+        state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        var staticCollidableComponent = SystemAPI.GetSingleton<StaticCollidableComponent>();
-        var dynamicCollidableComponent = SystemAPI.GetSingleton<DynamicCollidableComponent>();
+        var staticCollidableComponent = SystemAPI.GetSingleton<HashStaticCollidableSystemComponent>();
+        var dynamicCollidableComponent = SystemAPI.GetSingleton<HashDynamicCollidableSystemComponent>();
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
         state.Dependency = JobHandle.CombineDependencies(
             state.Dependency,
-            SystemAPI.GetSingleton<StaticCollidableComponent>().Handle,
-            SystemAPI.GetSingleton<DynamicCollidableComponent>().Handle
+            SystemAPI.GetSingleton<HashStaticCollidableSystemComponent>().Handle,
+            SystemAPI.GetSingleton<HashDynamicCollidableSystemComponent>().Handle
         );
 
         var staticCollidableHashMap = staticCollidableComponent.HashMap;

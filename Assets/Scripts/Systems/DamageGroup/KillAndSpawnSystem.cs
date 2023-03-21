@@ -1,69 +1,88 @@
-﻿using Unity.Entities;
-using Unity.Jobs;
+﻿using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
+
+[BurstCompile]
+public partial struct KillUnitsJob : IJobEntity
+{
+    public EntityCommandBuffer.ParallelWriter Ecb;
+
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, Entity entity, in Health health)
+    {
+        if (health.Value <= 0)
+        {
+            Ecb.DestroyEntity(entityIndexInQuery, entity);
+        }
+    }
+}
+
+[BurstCompile]
+public partial struct SpawnZombiesJob : IJobEntity
+{
+    public EntityCommandBuffer.ParallelWriter Ecb;
+    public Entity ZombiePrefab;
+    public int UnitHealth;
+    public int UnitDamage;
+    public int UnitTurnsUntilActive;
+
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, in Health health, in GridPosition gridPosition)
+    {
+        if (health.Value <= 0)
+        {
+            ZombieCreator.CreateZombie(
+                Ecb,
+                entityIndexInQuery,
+                ZombiePrefab,
+                gridPosition.Value,
+                UnitHealth,
+                UnitDamage,
+                UnitTurnsUntilActive,
+                entityIndexInQuery == 0 ? 1 : (uint)entityIndexInQuery
+            );
+        }
+    }
+}
 
 [UpdateInGroup(typeof(DamageGroup))]
-public partial class KillAndSpawnSystem : SystemBase
+public partial struct KillAndSpawnSystem : ISystem
 {
-    private BeginSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemBegin;
-    private EndSimulationEntityCommandBufferSystem m_EntityCommandBufferSystemEnd;
+    private EntityQuery _unitQuery;
+    private EntityQuery _humanQuery;
 
-    protected override void OnCreate()
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
     {
-        RequireForUpdate<TileUnitSpawner_Data>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<GameControllerComponent>();
+        state.RequireForUpdate<TileUnitSpawner_Data>();
 
-        m_EntityCommandBufferSystemBegin = World.GetOrCreateSystemManaged<BeginSimulationEntityCommandBufferSystem>();
-        m_EntityCommandBufferSystemEnd = World.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>();
+        _unitQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Health>());
+        _unitQuery.SetChangedVersionFilter(ComponentType.ReadOnly<Health>());
+        _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, Health, GridPosition>());
+        _humanQuery.SetChangedVersionFilter(ComponentType.ReadOnly<Health>());
     }
 
-    protected override void OnUpdate()
+    [BurstCompile]
+    public void OnUpdate(ref SystemState state)
     {
+        new KillUnitsJob
+        {
+            Ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
+                .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter()
+        }.ScheduleParallel(_unitQuery);
+
+        var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
         var unitSpawner = SystemAPI.GetSingleton<TileUnitSpawner_Data>();
 
-        var commandBufferBegin = m_EntityCommandBufferSystemBegin.CreateCommandBuffer().AsParallelWriter();
-        var commandBufferEnd = m_EntityCommandBufferSystemEnd.CreateCommandBuffer().AsParallelWriter();
-        var unitHealth = GameController.Instance.zombieStartingHealth;
-        var unitDamage = GameController.Instance.zombieDamage;
-        var unitTurnsUntilActive = GameController.Instance.zombieTurnDelay;
-
-        var killJob = Entities
-            .WithName("KillUnits")
-            .WithChangeFilter<Health>()
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, Entity entity, in Health health) =>
-            {
-                if (health.Value <= 0)
-                {
-                    commandBufferBegin.DestroyEntity(entityInQueryIndex, entity);
-                    return;
-                }
-            })
-            .ScheduleParallel(Dependency);
-        m_EntityCommandBufferSystemBegin.AddJobHandleForProducer(killJob);
-
-        var spawnJob = Entities
-            .WithName("SpawnZombies")
-            .WithAll<Human>()
-            .WithChangeFilter<Health>()
-            .WithBurst()
-            .ForEach((int entityInQueryIndex, Entity entity, in Health health, in GridPosition gridPosition) =>
-                {
-                    if (health.Value <= 0)
-                    {
-                        ZombieCreator.CreateZombie(
-                            commandBufferEnd,
-                            entityInQueryIndex,
-                            unitSpawner.ZombieUnit_Prefab,
-                            gridPosition.Value,
-                            unitHealth,
-                            unitDamage,
-                            unitTurnsUntilActive,
-                            entityInQueryIndex == 0 ? 1 : (uint)entityInQueryIndex
-                        );
-                    }
-                })
-            .ScheduleParallel(Dependency);
-        m_EntityCommandBufferSystemEnd.AddJobHandleForProducer(spawnJob);
-
-        Dependency = JobHandle.CombineDependencies(spawnJob, killJob);
+        new SpawnZombiesJob
+        {
+            Ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+                .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
+            ZombiePrefab = unitSpawner.ZombieUnit_Prefab,
+            UnitHealth = gameControllerComponent.zombieStartingHealth,
+            UnitDamage = gameControllerComponent.zombieDamage,
+            UnitTurnsUntilActive = gameControllerComponent.zombieTurnDelay
+        }.ScheduleParallel(_humanQuery);
     }
 }
