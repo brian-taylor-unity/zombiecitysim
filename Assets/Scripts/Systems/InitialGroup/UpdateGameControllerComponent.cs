@@ -41,11 +41,7 @@ public partial class UpdateGameControllerComponentSystem : SystemBase
     protected override void OnCreate()
     {
         World.EntityManager.CreateSingleton<GameControllerComponent>();
-
-        _updateGameControllerComponentQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<UpdateGameControllerComponent>()
-            .Build(EntityManager);
-
+        _updateGameControllerComponentQuery = GetEntityQuery(ComponentType.ReadOnly<UpdateGameControllerComponent>());
         RequireForUpdate<UpdateGameControllerComponent>();
     }
 

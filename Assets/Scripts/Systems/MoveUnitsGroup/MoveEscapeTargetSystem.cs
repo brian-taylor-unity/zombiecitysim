@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
 [BurstCompile]
 public partial struct MoveEscapeTargetJob : IJobEntity
@@ -15,11 +14,8 @@ public partial struct MoveEscapeTargetJob : IJobEntity
     [ReadOnly] public NativeParallelHashMap<int, int> staticCollidablesHashMap;
     [ReadOnly] public NativeParallelHashMap<int, int> dynamicCollidablesHashMap;
 
-    public void Execute(ref NextGridPosition nextGridPosition, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive, in LineOfSight lineOfSight)
+    public void Execute(ref NextGridPosition nextGridPosition, in GridPosition gridPosition, in TurnActive turnActive, in LineOfSight lineOfSight)
     {
-        if (turnsUntilActive.Value != 1)
-            return;
-
         var humanVisionHashMapCellSize = visionDistance * 2 + 1;
 
         int3 myGridPositionValue = gridPosition.Value;
@@ -133,9 +129,7 @@ public partial struct MoveEscapeTargetSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _moveEscapeTargetQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<MoveEscapeTarget>()
-            .Build(ref state);
+        _moveEscapeTargetQuery = state.GetEntityQuery(ComponentType.ReadOnly<MoveEscapeTarget>());
 
         state.RequireForUpdate<StaticCollidableComponent>();
         state.RequireForUpdate<DynamicCollidableComponent>();

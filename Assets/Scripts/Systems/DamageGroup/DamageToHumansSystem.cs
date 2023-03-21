@@ -12,12 +12,8 @@ public partial struct DamageToHumansSystem : ISystem
     [BurstCompile]
     void OnCreate(ref SystemState state)
     {
-        humansQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<Human>()
-            .Build(ref state);
-        zombiesQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<Zombie>()
-            .Build(ref state);
+        humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human>());
+        zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Zombie>());
     }
 
     [BurstCompile]

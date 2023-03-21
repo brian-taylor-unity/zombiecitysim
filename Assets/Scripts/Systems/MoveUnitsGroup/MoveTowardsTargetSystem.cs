@@ -19,11 +19,8 @@ public partial struct MoveTowardsTargetJob : IJobEntity
     [ReadOnly] public NativeParallelHashMap<int, int> staticCollidablesHashMap;
     [ReadOnly] public NativeParallelHashMap<int, int> dynamicCollidablesHashMap;
 
-    public void Execute([EntityIndexInQuery] int entityIndexInQuery, ref NextGridPosition nextGridPosition, ref RandomGenerator random, in GridPosition gridPosition, in TurnsUntilActive turnsUntilActive)
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, ref NextGridPosition nextGridPosition, ref RandomGenerator random, in GridPosition gridPosition)
     {
-        if (turnsUntilActive.Value != 1)
-            return;
-
         var zombieHearingHashMapCellSize = hearingDistance * 2 + 1;
         var zombieVisionHashMapCellSize = visionDistance * 2 + 1;
 
@@ -245,19 +242,14 @@ public partial struct MoveTowardsTargetSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        _moveTowardsTargetQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<MoveTowardsTarget>()
-            .Build(ref state);
-        _followTargetQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<FollowTarget>()
-            .Build(ref state);
-        _audibleQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<Audible>()
-            .Build(ref state);
+        _moveTowardsTargetQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<MoveTowardsTarget, TurnActive>());
+        _followTargetQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<FollowTarget>());
+        _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
         state.RequireForUpdate<StaticCollidableComponent>();
         state.RequireForUpdate<DynamicCollidableComponent>();
         state.RequireForUpdate<GameControllerComponent>();
+        state.RequireForUpdate(_moveTowardsTargetQuery);
         state.RequireAnyForUpdate(_followTargetQuery, _audibleQuery);
     }
 

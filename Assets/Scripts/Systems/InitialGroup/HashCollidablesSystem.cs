@@ -27,16 +27,12 @@ public partial struct HashCollidablesSystem : ISystem, ISystemStartStop
         state.EntityManager.CreateEntity(typeof(StaticCollidableComponent));
         state.EntityManager.CreateEntity(typeof(DynamicCollidableComponent));
 
-        _staticCollidableEntityQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<StaticCollidable>()
-            .WithAll<GridPosition>()
-            .Build(ref state);
+        _staticCollidableEntityQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<StaticCollidable, GridPosition>());
         _staticCollidableEntityQuery.SetChangedVersionFilter(typeof(GridPosition));
 
-        _dynamicCollidableEntityQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<DynamicCollidable>()
-            .WithAll<GridPosition>()
-            .Build(ref state);
+        _dynamicCollidableEntityQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<DynamicCollidable, GridPosition>());
 
         state.RequireAnyForUpdate(_staticCollidableEntityQuery, _dynamicCollidableEntityQuery);
     }
