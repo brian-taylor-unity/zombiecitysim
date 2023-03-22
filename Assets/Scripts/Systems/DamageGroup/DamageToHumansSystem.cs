@@ -35,7 +35,7 @@ public partial struct DamageToHumansSystem : ISystem
             new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob) :
             new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob);
 
-        state.Dependency = new HashGridPositionsJob { parallelWriter = humanHashMap.AsParallelWriter() }.ScheduleParallel(_humansQuery, state.Dependency);
+        state.Dependency = new HashGridPositionsJob { ParallelWriter = humanHashMap.AsParallelWriter() }.ScheduleParallel(_humansQuery, state.Dependency);
         state.Dependency = new CalculateDamageJob
         {
             DamageTakingHashMap = humanHashMap,

@@ -57,7 +57,7 @@ public partial struct HashCollidablesSystem : ISystem
             var hashMap = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
             hashStaticCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
-                parallelWriter = hashMap.AsParallelWriter()
+                ParallelWriter = hashMap.AsParallelWriter()
             }.ScheduleParallel(_staticCollidableEntityQuery, state.Dependency);
 
             SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRW.HashMap = hashMap;
@@ -72,7 +72,7 @@ public partial struct HashCollidablesSystem : ISystem
             var hashMap = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
             hashDynamicCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
-                parallelWriter = hashMap.AsParallelWriter()
+                ParallelWriter = hashMap.AsParallelWriter()
             }.ScheduleParallel(_dynamicCollidableEntityQuery, state.Dependency);
 
             SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRW.HashMap = hashMap;

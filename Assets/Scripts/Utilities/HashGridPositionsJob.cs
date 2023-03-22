@@ -6,11 +6,11 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct HashGridPositionsJob : IJobEntity
 {
-    public NativeParallelHashMap<int, int>.ParallelWriter parallelWriter;
+    public NativeParallelHashMap<int, int>.ParallelWriter ParallelWriter;
 
     public void Execute([EntityIndexInQuery] int entityIndexInQuery, in GridPosition gridPosition)
     {
         var hash = (int)math.hash(gridPosition.Value);
-        parallelWriter.TryAdd(hash, entityIndexInQuery);
+        ParallelWriter.TryAdd(hash, entityIndexInQuery);
     }
 }

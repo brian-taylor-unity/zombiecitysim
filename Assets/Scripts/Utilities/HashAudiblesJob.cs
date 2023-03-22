@@ -6,11 +6,11 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct HashAudiblesJob : IJobEntity
 {
-    public NativeParallelMultiHashMap<int, int3>.ParallelWriter parallelWriter;
+    public NativeParallelMultiHashMap<int, int3>.ParallelWriter ParallelWriter;
 
     public void Execute([EntityIndexInQuery] int entityIndexInQuery, in Audible audible)
     {
         var hash = (int)math.hash(audible.GridPositionValue);
-        parallelWriter.Add(hash, audible.Target);
+        ParallelWriter.Add(hash, audible.Target);
     }
 }
