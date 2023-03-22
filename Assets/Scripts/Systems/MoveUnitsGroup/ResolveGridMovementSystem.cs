@@ -45,7 +45,7 @@ public partial struct DisableTurnActiveJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-[UpdateAfter(typeof(MoveTowardsTargetSystem))]
+[UpdateAfter(typeof(MoveTowardsHumansSystem))]
 public partial struct ResolveGridMovementSystem : ISystem
 {
     private EntityQuery _query;

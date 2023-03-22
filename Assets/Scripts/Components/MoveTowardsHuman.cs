@@ -2,4 +2,4 @@
 using Unity.Entities;
 
 [Serializable]
-public struct FollowTarget : IComponentData { }
+public struct MoveTowardsHuman : IComponentData { }

@@ -27,13 +27,11 @@ public partial struct MoveTowardsTargetJob : IJobEntity
         int3 myGridPositionValue = gridPosition.Value;
         int3 nearestTarget = myGridPositionValue;
         bool moved = false;
-        bool foundByHearing = zombieHearingHashMap.TryGetValue((int)math.hash(myGridPositionValue / zombieHearingHashMapCellSize), out _) ||
-                              zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / zombieHearingHashMapCellSize), out _) ||
+        bool foundByHearing = zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / zombieHearingHashMapCellSize), out _) ||
                               zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z - hearingDistance) / zombieHearingHashMapCellSize), out _) ||
                               zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / zombieHearingHashMapCellSize), out _) ||
                               zombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + hearingDistance, myGridPositionValue.y, myGridPositionValue.z + hearingDistance) / zombieHearingHashMapCellSize), out _);
-        bool foundBySight = zombieVisionHashMap.TryGetValue((int)math.hash(myGridPositionValue / zombieVisionHashMapCellSize), out _) ||
-                            zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - visionDistance, myGridPositionValue.y, myGridPositionValue.z - visionDistance) / zombieVisionHashMapCellSize), out _) ||
+        bool foundBySight = zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - visionDistance, myGridPositionValue.y, myGridPositionValue.z - visionDistance) / zombieVisionHashMapCellSize), out _) ||
                             zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + visionDistance, myGridPositionValue.y, myGridPositionValue.z - visionDistance) / zombieVisionHashMapCellSize), out _) ||
                             zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - visionDistance, myGridPositionValue.y, myGridPositionValue.z + visionDistance) / zombieVisionHashMapCellSize), out _) ||
                             zombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + visionDistance, myGridPositionValue.y, myGridPositionValue.z + visionDistance) / zombieVisionHashMapCellSize), out _);
@@ -234,23 +232,23 @@ public partial struct MoveTowardsTargetJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-public partial struct MoveTowardsTargetSystem : ISystem
+public partial struct MoveTowardsHumansSystem : ISystem
 {
-    private EntityQuery _moveTowardsTargetQuery;
-    private EntityQuery _followTargetQuery;
+    private EntityQuery _moveTowardsHumanQuery;
+    private EntityQuery _humanQuery;
     private EntityQuery _audibleQuery;
 
     public void OnCreate(ref SystemState state)
     {
-        _moveTowardsTargetQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<MoveTowardsTarget, TurnActive>());
-        _followTargetQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<FollowTarget>());
+        _moveTowardsHumanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<MoveTowardsHuman, TurnActive>());
+        _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
-        state.RequireForUpdate(_moveTowardsTargetQuery);
-        state.RequireAnyForUpdate(_followTargetQuery, _audibleQuery);
+        state.RequireForUpdate(_moveTowardsHumanQuery);
+        state.RequireAnyForUpdate(_humanQuery, _audibleQuery);
     }
 
     [BurstCompile]
@@ -262,15 +260,21 @@ public partial struct MoveTowardsTargetSystem : ISystem
 
         state.Dependency = JobHandle.CombineDependencies(state.Dependency, staticCollidableComponent.Handle, dynamicCollidableComponent.Handle);
 
-        var followTargetCount = _followTargetQuery.CalculateEntityCount();
-        var followTargetHashMap = new NativeParallelHashMap<int, int>(followTargetCount, Allocator.TempJob);
-        var followTargetParallelWriter = followTargetHashMap.AsParallelWriter();
+        var humanCount = _humanQuery.CalculateEntityCount();
+        var humanHashMap = new NativeParallelHashMap<int, int>(humanCount, Allocator.TempJob);
         // We need either "(X * Y) / visionDistance" or "numUnitsToFollow" hash buckets, whichever is smaller
-        var zombieVisionHashMap = new NativeParallelHashMap<int, int>(followTargetCount, Allocator.TempJob);
-        var zombieVisionParallelWriter = zombieVisionHashMap.AsParallelWriter();
+        var zombieVisionHashMap = new NativeParallelHashMap<int, int>(humanCount, Allocator.TempJob);
 
-        var hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob { parallelWriter = followTargetParallelWriter }.ScheduleParallel(_followTargetQuery, state.Dependency);
-        var hashFollowTargetVisionJobHandle = new HashGridPositionsCellJob { cellSize = gameControllerComponent.zombieVisionDistance * 2 + 1, parallelWriter = zombieVisionParallelWriter }.ScheduleParallel(_followTargetQuery, state.Dependency);
+        var hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob
+        {
+            parallelWriter = humanHashMap.AsParallelWriter()
+        }.ScheduleParallel(_humanQuery, state.Dependency);
+
+        var hashFollowTargetVisionJobHandle = new HashGridPositionsCellJob
+        {
+            cellSize = gameControllerComponent.zombieVisionDistance * 2 + 1,
+            parallelWriter = zombieVisionHashMap.AsParallelWriter()
+        }.ScheduleParallel(_humanQuery, state.Dependency);
 
         var audibleCount = _audibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeParallelMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
@@ -306,16 +310,16 @@ public partial struct MoveTowardsTargetSystem : ISystem
             visionDistance = gameControllerComponent.zombieVisionDistance,
             zombieVisionHashMap = zombieVisionHashMap,
 
-            followTargetHashMap = followTargetHashMap,
+            followTargetHashMap = humanHashMap,
             audibleHashMap = audibleHashMap,
             staticCollidablesHashMap = staticCollidableComponent.HashMap,
             dynamicCollidablesHashMap = dynamicCollidableComponent.HashMap,
-        }.ScheduleParallel(_moveTowardsTargetQuery, state.Dependency);
+        }.ScheduleParallel(_moveTowardsHumanQuery, state.Dependency);
 
         zombieHearingHashMap.Dispose(state.Dependency);
         zombieVisionHashMap.Dispose(state.Dependency);
 
-        followTargetHashMap.Dispose(state.Dependency);
+        humanHashMap.Dispose(state.Dependency);
         audibleHashMap.Dispose(state.Dependency);
     }
 }

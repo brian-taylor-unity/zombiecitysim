@@ -1,4 +1,3 @@
-using System;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -22,8 +21,7 @@ public static class ZombieCreator
         commandBuffer.SetComponentEnabled<TurnActive>(index, instance, false);
         commandBuffer.AddComponent(index, instance, new Zombie());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
-        commandBuffer.AddComponent(index, instance, new MoveTowardsTarget());
-        commandBuffer.AddComponent(index, instance, new MoveEscapeTarget());
+        commandBuffer.AddComponent(index, instance, new MoveTowardsHuman());
         commandBuffer.AddComponent(index, instance, new CharacterColor { Value = new float4(1.0f, 0.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });
     }

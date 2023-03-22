@@ -20,7 +20,6 @@ public static class HumanCreator
         commandBuffer.SetComponentEnabled<TurnActive>(index, instance, false);
         commandBuffer.AddComponent(index, instance, new Human());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
-        commandBuffer.AddComponent(index, instance, new FollowTarget());
         commandBuffer.AddComponent(index, instance, new LineOfSight());
         commandBuffer.AddComponent(index, instance, new CharacterColor { Value = new float4(0.0f, 1.0f, 0.0f, turnsUntilActive == 1 ? 1.0f : 0.85f) });
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });

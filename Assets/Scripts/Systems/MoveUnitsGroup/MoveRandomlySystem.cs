@@ -3,7 +3,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
-[UpdateBefore(typeof(MoveTowardsTargetSystem))]
+[UpdateBefore(typeof(MoveTowardsHumansSystem))]
 public partial class MoveRandomlySystem : SystemBase
 {
     private EntityQuery _moveRandomlyQuery;
