@@ -6,6 +6,7 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct DealDamageJob : IJobEntity
 {
+    public float4 FullHealthColor;
     [ReadOnly] public NativeParallelMultiHashMap<int, int> DamageAmountHashMap;
 
     public void Execute(ref Health health, ref CharacterColor materialColor, in MaxHealth maxHealth, in GridPosition gridPosition)
@@ -23,7 +24,12 @@ public partial struct DealDamageJob : IJobEntity
             }
 
             var lerp = math.lerp(0.0f, 1.0f, (float)myHealth / maxHealth.Value);
-            materialColor.Value = new float4(1.0f - lerp, lerp, 0.0f, 1.0f);
+            materialColor.Value = new float4(
+                FullHealthColor.x == 1.0f ? lerp : 1.0f - lerp,
+                FullHealthColor.y == 1.0f ? lerp : 1.0f - lerp,
+                0.0f,
+                materialColor.Value.w
+            );
             health.Value = myHealth;
         }
     }

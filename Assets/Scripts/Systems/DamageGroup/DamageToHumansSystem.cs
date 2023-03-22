@@ -12,8 +12,13 @@ public partial struct DamageToHumansSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human>());
-        _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Zombie>());
+        _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<Human, MaxHealth, GridPosition>()
+            .WithAllRW<Health, CharacterColor>()
+        );
+        _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<Zombie, GridPosition, Damage, TurnActive>()
+        );
     }
 
     [BurstCompile]
@@ -38,7 +43,7 @@ public partial struct DamageToHumansSystem : ISystem
         }.ScheduleParallel(_zombiesQuery, state.Dependency);
         humanHashMap.Dispose(state.Dependency);
 
-        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToHumansHashMap }.ScheduleParallel(_humansQuery, state.Dependency);
+        state.Dependency = new DealDamageJob { FullHealthColor = HumanCreator.GetFullHealthColor(), DamageAmountHashMap = damageToHumansHashMap }.ScheduleParallel(_humansQuery, state.Dependency);
         damageToHumansHashMap.Dispose(state.Dependency);
     }
 }

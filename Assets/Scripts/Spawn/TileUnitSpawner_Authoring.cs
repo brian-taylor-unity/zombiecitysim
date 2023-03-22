@@ -21,12 +21,12 @@ public class TileUnitSpawner_Baker : Baker<TileUnitSpawner_Authoring>
 {
     public override void Bake(TileUnitSpawner_Authoring authoring)
     {
-        AddComponent(new TileUnitSpawner_Data
+        AddComponent(GetEntity(TransformUsageFlags.Dynamic), new TileUnitSpawner_Data
         {
-            BuildingTile_Prefab = GetEntity(authoring.BuildingTile_Prefab),
-            RoadTile_Prefab = GetEntity(authoring.RoadTile_Prefab),
-            HumanUnit_Prefab = GetEntity(authoring.HumanUnit_Prefab),
-            ZombieUnit_Prefab = GetEntity(authoring.ZombieUnit_Prefab)
+            BuildingTile_Prefab = GetEntity(authoring.BuildingTile_Prefab, TransformUsageFlags.WorldSpace),
+            RoadTile_Prefab = GetEntity(authoring.RoadTile_Prefab, TransformUsageFlags.WorldSpace),
+            HumanUnit_Prefab = GetEntity(authoring.HumanUnit_Prefab, TransformUsageFlags.Dynamic),
+            ZombieUnit_Prefab = GetEntity(authoring.ZombieUnit_Prefab, TransformUsageFlags.Dynamic)
         });
     }
 }

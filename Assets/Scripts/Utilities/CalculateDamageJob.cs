@@ -9,9 +9,9 @@ public partial struct CalculateDamageJob : IJobEntity
     [ReadOnly] public NativeParallelHashMap<int, int> DamageTakingHashMap;
     public NativeParallelMultiHashMap<int, int>.ParallelWriter DamageAmountHashMapParallelWriter;
 
-    public void Execute(in GridPosition gridPosition, in Damage damage, in TurnsUntilActive turnsUntilActive)
+    public void Execute(in GridPosition gridPosition, in Damage damage)
     {
-        if (turnsUntilActive.Value != 1)
+        if (damage.Value == 0)
             return;
 
         for (var z = -1; z <= 1; z++)

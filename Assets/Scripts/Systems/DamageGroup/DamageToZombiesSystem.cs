@@ -1,7 +1,6 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [UpdateAfter(typeof(DamageToHumansSystem))]
@@ -13,8 +12,13 @@ public partial struct DamageToZombiesSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Zombie, GridPosition>());
-        _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, TurnActive, GridPosition, Damage>());
+        _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<Zombie, MaxHealth, GridPosition>()
+            .WithAllRW<Health, CharacterColor>()
+        );
+        _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<Human, GridPosition, Damage, TurnActive>()
+        );
     }
 
     [BurstCompile]
@@ -39,7 +43,7 @@ public partial struct DamageToZombiesSystem : ISystem
         }.ScheduleParallel(_humansQuery, state.Dependency);
         zombieHashMap.Dispose(state.Dependency);
 
-        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToZombiesHashMap }.ScheduleParallel(_zombiesQuery, state.Dependency);
+        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToZombiesHashMap, FullHealthColor = ZombieCreator.GetFullHealthColor() }.ScheduleParallel(_zombiesQuery, state.Dependency);
         damageToZombiesHashMap.Dispose(state.Dependency);
     }
 }

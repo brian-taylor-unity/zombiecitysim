@@ -1703,7 +1703,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BlockedByUI: 0
+  blockedByUI: 0
 --- !u!114 &333691484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2190,7 +2190,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BlockedByUI: 0
+  blockedByUI: 0
 --- !u!114 &567194048
 MonoBehaviour:
   m_ObjectHideFlags: 0

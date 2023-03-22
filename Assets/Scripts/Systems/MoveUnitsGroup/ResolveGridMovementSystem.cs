@@ -32,24 +32,11 @@ public partial struct FinalizeMovementJob : IJobEntity
     }
 }
 
-[BurstCompile]
-public partial struct DisableTurnActiveJob : IJobEntity
-{
-    [NativeDisableParallelForRestriction]
-    public ComponentLookup<TurnActive> TurnActiveFromEntity;
-
-    public void Execute(Entity entity)
-    {
-        TurnActiveFromEntity.SetComponentEnabled(entity, false);
-    }
-}
-
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateAfter(typeof(MoveTowardsHumansSystem))]
 public partial struct ResolveGridMovementSystem : ISystem
 {
     private EntityQuery _query;
-    private ComponentLookup<TurnActive> _turnActiveFromEntity;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -57,8 +44,6 @@ public partial struct ResolveGridMovementSystem : ISystem
          _query = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
              .WithAllRW<NextGridPosition>()
              .WithAll<GridPosition, TurnActive>());
-
-         _turnActiveFromEntity = state.GetComponentLookup<TurnActive>();
     }
 
     [BurstCompile]
@@ -70,8 +55,5 @@ public partial struct ResolveGridMovementSystem : ISystem
         state.Dependency = new HashNextGridPositionsJob { parallelWriter = nextGridPositionHashMap.AsParallelWriter() }.ScheduleParallel(_query, state.Dependency);
         state.Dependency = new FinalizeMovementJob { nextGridPositionHashMap = nextGridPositionHashMap }.ScheduleParallel(_query, state.Dependency);
         nextGridPositionHashMap.Dispose(state.Dependency);
-
-        _turnActiveFromEntity.Update(ref state);
-        state.Dependency = new DisableTurnActiveJob { TurnActiveFromEntity = _turnActiveFromEntity }.ScheduleParallel(_query, state.Dependency);
     }
 }

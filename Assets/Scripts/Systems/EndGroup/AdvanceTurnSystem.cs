@@ -43,10 +43,23 @@ public partial struct AdvanceAudiblesAgeJob : IJobEntity
     }
 }
 
+[BurstCompile]
+public partial struct DisableTurnActiveJob : IJobEntity
+{
+    [NativeDisableParallelForRestriction]
+    public ComponentLookup<TurnActive> TurnActiveFromEntity;
+
+    public void Execute(Entity entity)
+    {
+        TurnActiveFromEntity.SetComponentEnabled(entity, false);
+    }
+}
+
 [UpdateInGroup(typeof(EndGroup))]
 public partial struct AdvanceTurnSystem : ISystem
 {
     private ComponentLookup<TurnActive> _turnActiveFromEntity;
+    private EntityQuery _turnActiveQuery;
     private EntityQuery _humanQuery;
     private EntityQuery _zombieQuery;
     private double _LastTime;
@@ -54,6 +67,7 @@ public partial struct AdvanceTurnSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         _turnActiveFromEntity = state.GetComponentLookup<TurnActive>();
+        _turnActiveQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAllRW<TurnActive>());
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Human>()
             .WithAllRW<TurnsUntilActive, CharacterColor>());
@@ -72,6 +86,10 @@ public partial struct AdvanceTurnSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         _turnActiveFromEntity.Update(ref state);
+        state.Dependency = new DisableTurnActiveJob
+        {
+            TurnActiveFromEntity = _turnActiveFromEntity
+        }.ScheduleParallel(_turnActiveQuery, state.Dependency);
 
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
@@ -100,6 +118,7 @@ public partial struct AdvanceTurnSystem : ISystem
                 UnitTurnDelay = gameControllerComponent.zombieTurnDelay
             }.ScheduleParallel(_zombieQuery, state.Dependency);
 
+            _turnActiveFromEntity.Update(ref state);
             state.Dependency = new SetTurnActiveJob
             {
                 TurnActiveFromEntity = _turnActiveFromEntity

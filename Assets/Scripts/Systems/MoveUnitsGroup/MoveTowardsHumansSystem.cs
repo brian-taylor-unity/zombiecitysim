@@ -240,10 +240,14 @@ public partial struct MoveTowardsHumansSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        _moveTowardsHumanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<MoveTowardsHuman, TurnActive>());
-        _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human>());
+        _moveTowardsHumanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAll<GridPosition, MoveTowardsHuman, TurnActive>()
+            .WithAllRW<NextGridPosition, RandomGenerator>()
+        );
+        _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, GridPosition>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
+        state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
