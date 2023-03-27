@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 
 [UpdateInGroup(typeof(DamageGroup))]
-[UpdateAfter(typeof(DamageToHumansSystem))]
 public partial struct DamageToZombiesSystem : ISystem
 {
     private EntityQuery _zombiesQuery;

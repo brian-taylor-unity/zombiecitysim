@@ -20,6 +20,8 @@ public static class HumanCreator
         commandBuffer.AddComponent(index, instance, new NextGridPosition { Value = gridPosition });
         commandBuffer.AddComponent(index, instance, new Health { Value = health });
         commandBuffer.AddComponent(index, instance, new MaxHealth { Value = health });
+        commandBuffer.AddComponent<Dead>(index, instance);
+        commandBuffer.SetComponentEnabled<Dead>(index, instance, false);
         commandBuffer.AddComponent(index, instance, new Damage { Value = damage });
         commandBuffer.AddComponent(index, instance, new TurnsUntilActive { Value = turnsUntilActive });
         commandBuffer.AddComponent<TurnActive>(index, instance);
