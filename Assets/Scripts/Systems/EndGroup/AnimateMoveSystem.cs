@@ -18,6 +18,7 @@ public partial struct AnimateMoveJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(EndGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct AnimateMoveSystem : ISystem
 {
     private float _totalTime;

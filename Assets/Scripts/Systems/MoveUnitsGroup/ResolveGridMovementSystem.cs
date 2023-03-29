@@ -33,6 +33,7 @@ public partial struct FinalizeMovementJob : IJobEntity
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateAfter(typeof(MoveTowardsHumansSystem))]
+[RequireMatchingQueriesForUpdate]
 public partial struct ResolveGridMovementSystem : ISystem
 {
     private EntityQuery _query;

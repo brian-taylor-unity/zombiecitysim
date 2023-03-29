@@ -32,6 +32,7 @@ public struct GameControllerComponent : IComponentData
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial class UpdateGameControllerComponentSystem : SystemBase
 {
     private EntityQuery _updateGameControllerComponentQuery;

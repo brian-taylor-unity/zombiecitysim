@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 
 [UpdateInGroup(typeof(DamageGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct DamageToHumansSystem : ISystem
 {
     private EntityQuery _humansQuery;

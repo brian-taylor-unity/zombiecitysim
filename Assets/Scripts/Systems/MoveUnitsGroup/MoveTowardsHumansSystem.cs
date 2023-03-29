@@ -3,10 +3,9 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine.Serialization;
 
 [BurstCompile]
-public partial struct MoveTowardsTargetJob : IJobEntity
+public partial struct MoveTowardsHumansJob : IJobEntity
 {
     public EntityCommandBuffer.ParallelWriter Ecb;
 
@@ -15,7 +14,7 @@ public partial struct MoveTowardsTargetJob : IJobEntity
     public int VisionDistance;
     [ReadOnly] public NativeParallelHashMap<int, int> ZombieVisionHashMap;
 
-    [FormerlySerializedAs("FollowTargetHashMap")] [ReadOnly] public NativeParallelHashMap<int, int> HumanHashMap;
+    [ReadOnly] public NativeParallelHashMap<int, int> HumanHashMap;
     [ReadOnly] public NativeParallelMultiHashMap<int, int3> AudibleHashMap;
     [ReadOnly] public NativeParallelHashMap<int, int> StaticCollidablesHashMap;
     [ReadOnly] public NativeParallelHashMap<int, int> DynamicCollidablesHashMap;
@@ -25,18 +24,18 @@ public partial struct MoveTowardsTargetJob : IJobEntity
         var zombieHearingHashMapCellSize = HearingDistance * 2 + 1;
         var zombieVisionHashMapCellSize = VisionDistance * 2 + 1;
 
-        int3 myGridPositionValue = gridPosition.Value;
-        int3 nearestTarget = myGridPositionValue;
-        bool moved = false;
-        bool foundByHearing = ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - HearingDistance, myGridPositionValue.y, myGridPositionValue.z - HearingDistance) / zombieHearingHashMapCellSize), out _) ||
-                              ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + HearingDistance, myGridPositionValue.y, myGridPositionValue.z - HearingDistance) / zombieHearingHashMapCellSize), out _) ||
-                              ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - HearingDistance, myGridPositionValue.y, myGridPositionValue.z + HearingDistance) / zombieHearingHashMapCellSize), out _) ||
-                              ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + HearingDistance, myGridPositionValue.y, myGridPositionValue.z + HearingDistance) / zombieHearingHashMapCellSize), out _);
-        bool foundBySight = ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - VisionDistance, myGridPositionValue.y, myGridPositionValue.z - VisionDistance) / zombieVisionHashMapCellSize), out _) ||
-                            ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + VisionDistance, myGridPositionValue.y, myGridPositionValue.z - VisionDistance) / zombieVisionHashMapCellSize), out _) ||
-                            ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - VisionDistance, myGridPositionValue.y, myGridPositionValue.z + VisionDistance) / zombieVisionHashMapCellSize), out _) ||
-                            ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + VisionDistance, myGridPositionValue.y, myGridPositionValue.z + VisionDistance) / zombieVisionHashMapCellSize), out _);
-        bool foundTarget = foundByHearing || foundBySight;
+        var myGridPositionValue = gridPosition.Value;
+        var nearestTarget = myGridPositionValue;
+        var moved = false;
+        var foundByHearing = ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - HearingDistance, myGridPositionValue.y, myGridPositionValue.z - HearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                             ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + HearingDistance, myGridPositionValue.y, myGridPositionValue.z - HearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                             ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - HearingDistance, myGridPositionValue.y, myGridPositionValue.z + HearingDistance) / zombieHearingHashMapCellSize), out _) ||
+                             ZombieHearingHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + HearingDistance, myGridPositionValue.y, myGridPositionValue.z + HearingDistance) / zombieHearingHashMapCellSize), out _);
+        var foundBySight = ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - VisionDistance, myGridPositionValue.y, myGridPositionValue.z - VisionDistance) / zombieVisionHashMapCellSize), out _) ||
+                           ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + VisionDistance, myGridPositionValue.y, myGridPositionValue.z - VisionDistance) / zombieVisionHashMapCellSize), out _) ||
+                           ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x - VisionDistance, myGridPositionValue.y, myGridPositionValue.z + VisionDistance) / zombieVisionHashMapCellSize), out _) ||
+                           ZombieVisionHashMap.TryGetValue((int)math.hash(new int3(myGridPositionValue.x + VisionDistance, myGridPositionValue.y, myGridPositionValue.z + VisionDistance) / zombieVisionHashMapCellSize), out _);
+        var foundTarget = foundByHearing || foundBySight;
 
         if (foundTarget)
         {
@@ -46,17 +45,17 @@ public partial struct MoveTowardsTargetJob : IJobEntity
 
             // Get nearest target
             // Check all grid positions that are checkDist away in the x or y direction
-            for (int checkDist = 1; (checkDist <= VisionDistance || checkDist <= HearingDistance) && !foundTarget; checkDist++)
+            for (var checkDist = 1; (checkDist <= VisionDistance || checkDist <= HearingDistance) && !foundTarget; checkDist++)
             {
                 float nearestDistance = (checkDist + 2) * (checkDist + 2);
-                for (int z = -checkDist; z <= checkDist; z++)
+                for (var z = -checkDist; z <= checkDist; z++)
                 {
-                    for (int x = -checkDist; x <= checkDist; x++)
+                    for (var x = -checkDist; x <= checkDist; x++)
                     {
                         if (math.abs(x) == checkDist || math.abs(z) == checkDist)
                         {
                             var targetGridPosition = new int3(myGridPositionValue.x + x, myGridPositionValue.y, myGridPositionValue.z + z);
-                            int targetKey = (int)math.hash(targetGridPosition);
+                            var targetKey = (int)math.hash(targetGridPosition);
 
                             if (checkDist <= VisionDistance && HumanHashMap.TryGetValue(targetKey, out _))
                             {
@@ -73,7 +72,7 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                                 }
                             }
 
-                            if (!foundBySight && checkDist <= HearingDistance && AudibleHashMap.TryGetFirstValue(targetKey, out int3 audibleTarget, out _))
+                            if (!foundBySight && checkDist <= HearingDistance && AudibleHashMap.TryGetFirstValue(targetKey, out var audibleTarget, out _))
                             {
                                 var distance = math.lengthsq(new float3(myGridPositionValue) - new float3(targetGridPosition));
                                 var nearest = distance < nearestDistance;
@@ -92,33 +91,33 @@ public partial struct MoveTowardsTargetJob : IJobEntity
         }
 
         var leftMoveAvail = true;
+        var leftMoveChecked = false;
         var rightMoveAvail = true;
+        var rightMoveChecked = false;
         var downMoveAvail = true;
+        var downMoveChecked = false;
         var upMoveAvail = true;
+        var upMoveChecked = false;
 
-        int moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
-        int moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-        int moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-        int moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-
-        if (StaticCollidablesHashMap.TryGetValue(moveLeftKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveLeftKey, out _))
-            leftMoveAvail = false;
-        if (StaticCollidablesHashMap.TryGetValue(moveRightKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveRightKey, out _))
-            rightMoveAvail = false;
-        if (StaticCollidablesHashMap.TryGetValue(moveDownKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveDownKey, out _))
-            downMoveAvail = false;
-        if (StaticCollidablesHashMap.TryGetValue(moveUpKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveUpKey, out _))
-            upMoveAvail = false;
+        var moveLeftKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+        var moveRightKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+        var moveDownKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+        var moveUpKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
 
         if (foundTarget)
         {
-            int3 direction = nearestTarget - myGridPositionValue;
+            var direction = nearestTarget - myGridPositionValue;
             if (math.abs(direction.x) >= math.abs(direction.z))
             {
                 // Move horizontally
                 if (direction.x < 0)
                 {
-                    if (leftMoveAvail)
+                    leftMoveChecked = true;
+                    if (StaticCollidablesHashMap.TryGetValue(moveLeftKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveLeftKey, out _))
+                    {
+                        leftMoveAvail = false;
+                    }
+                    else
                     {
                         myGridPositionValue.x--;
                         moved = true;
@@ -126,7 +125,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                 }
                 else if (direction.x > 0)
                 {
-                    if (rightMoveAvail)
+                    rightMoveChecked = true;
+                    if (StaticCollidablesHashMap.TryGetValue(moveRightKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveRightKey, out _))
+                    {
+                        rightMoveAvail = false;
+                    }
+                    else
                     {
                         myGridPositionValue.x++;
                         moved = true;
@@ -139,7 +143,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                 // Move vertically
                 if (direction.z < 0)
                 {
-                    if (downMoveAvail)
+                    downMoveChecked = true;
+                    if (StaticCollidablesHashMap.TryGetValue(moveDownKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveDownKey, out _))
+                    {
+                        downMoveAvail = false;
+                    }
+                    else
                     {
                         myGridPositionValue.z--;
                         moved = true;
@@ -147,7 +156,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                 }
                 else if (direction.z > 0)
                 {
-                    if (upMoveAvail)
+                    upMoveChecked = true;
+                    if (StaticCollidablesHashMap.TryGetValue(moveUpKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveUpKey, out _))
+                    {
+                        downMoveAvail = false;
+                    }
+                    else
                     {
                         myGridPositionValue.z++;
                         moved = true;
@@ -160,6 +174,13 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                     // Move horizontally
                     if (direction.x < 0)
                     {
+                        if (!leftMoveChecked)
+                        {
+                            leftMoveChecked = true;
+                            if (StaticCollidablesHashMap.TryGetValue(moveLeftKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveLeftKey, out _))
+                                leftMoveAvail = false;
+                        }
+
                         if (leftMoveAvail)
                         {
                             myGridPositionValue.x--;
@@ -168,6 +189,13 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                     }
                     else if (direction.x > 0)
                     {
+                        if (!rightMoveChecked)
+                        {
+                            rightMoveChecked = true;
+                            if (StaticCollidablesHashMap.TryGetValue(moveRightKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveRightKey, out _))
+                                rightMoveAvail = false;
+                        }
+
                         if (rightMoveAvail)
                         {
                             myGridPositionValue.x++;
@@ -184,13 +212,19 @@ public partial struct MoveTowardsTargetJob : IJobEntity
 
         if (!moved)
         {
-            int randomDirIndex = random.Value.NextInt(0, 4);
-            for (int i = 0; i < 4 && !moved; i++)
+            var randomDirIndex = random.Value.NextInt(0, 4);
+            for (var i = 0; i < 4 && !moved; i++)
             {
-                int direction = (randomDirIndex + i) % 4;
+                var direction = (randomDirIndex + i) % 4;
                 switch (direction)
                 {
                     case 0:
+                        if (!upMoveChecked)
+                        {
+                            upMoveChecked = true;
+                            upMoveAvail = !(StaticCollidablesHashMap.TryGetValue(moveUpKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveUpKey, out _));
+                        }
+
                         if (upMoveAvail)
                         {
                             myGridPositionValue.z += 1;
@@ -198,6 +232,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                         }
                         break;
                     case 1:
+                        if (!rightMoveChecked)
+                        {
+                            rightMoveChecked = true;
+                            rightMoveAvail = !(StaticCollidablesHashMap.TryGetValue(moveRightKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveRightKey, out _));
+                        }
+
                         if (rightMoveAvail)
                         {
                             myGridPositionValue.x += 1;
@@ -205,6 +245,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                         }
                         break;
                     case 2:
+                        if (!downMoveChecked)
+                        {
+                            downMoveChecked = true;
+                            downMoveAvail = !(StaticCollidablesHashMap.TryGetValue(moveDownKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveDownKey, out _));
+                        }
+
                         if (downMoveAvail)
                         {
                             myGridPositionValue.z -= 1;
@@ -212,6 +258,12 @@ public partial struct MoveTowardsTargetJob : IJobEntity
                         }
                         break;
                     case 3:
+                        if (!leftMoveChecked)
+                        {
+                            leftMoveChecked = true;
+                            leftMoveAvail = !(StaticCollidablesHashMap.TryGetValue(moveLeftKey, out _) || DynamicCollidablesHashMap.TryGetValue(moveLeftKey, out _));
+                        }
+
                         if (leftMoveAvail)
                         {
                             myGridPositionValue.x -= 1;
@@ -224,7 +276,7 @@ public partial struct MoveTowardsTargetJob : IJobEntity
 
         if (foundBySight)
         {
-            Entity audibleEntity = Ecb.CreateEntity(entityIndexInQuery);
+            var audibleEntity = Ecb.CreateEntity(entityIndexInQuery);
             Ecb.AddComponent(entityIndexInQuery, audibleEntity, new Audible { GridPositionValue = myGridPositionValue, Target = nearestTarget, Age = 0 });
         }
 
@@ -233,6 +285,7 @@ public partial struct MoveTowardsTargetJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct MoveTowardsHumansSystem : ISystem
 {
     private EntityQuery _moveTowardsHumanQuery;
@@ -267,27 +320,27 @@ public partial struct MoveTowardsHumansSystem : ISystem
 
         var humanCount = _humanQuery.CalculateEntityCount();
         var humanHashMap = new NativeParallelHashMap<int, int>(humanCount, Allocator.TempJob);
-        var zombieVisionHashMap = new NativeParallelHashMap<int, int>(humanCount, Allocator.TempJob);
+        var hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob { ParallelWriter = humanHashMap.AsParallelWriter() }.ScheduleParallel(_humanQuery, state.Dependency);
 
-        var hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob
-        {
-            ParallelWriter = humanHashMap.AsParallelWriter()
-        }.ScheduleParallel(_humanQuery, state.Dependency);
-
+        var cellSize = gameControllerComponent.zombieVisionDistance * 2 + 1;
+        var cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
+        var zombieVisionHashMap = new NativeParallelHashMap<int, int>(cellCount < humanCount ? cellCount : humanCount, Allocator.TempJob);
         var hashFollowTargetVisionJobHandle = new HashGridPositionsCellJob
         {
-            CellSize = gameControllerComponent.zombieVisionDistance * 2 + 1,
+            CellSize = cellSize,
             ParallelWriter = zombieVisionHashMap.AsParallelWriter()
         }.ScheduleParallel(_humanQuery, state.Dependency);
 
         var audibleCount = _audibleQuery.CalculateEntityCount();
         var audibleHashMap = new NativeParallelMultiHashMap<int, int3>(audibleCount, Allocator.TempJob);
-        var zombieHearingHashMap = new NativeParallelHashMap<int, int>(audibleCount, Allocator.TempJob);
-
         var hashAudiblesJobHandle = new HashAudiblesJob { ParallelWriter = audibleHashMap.AsParallelWriter() }.ScheduleParallel(_audibleQuery, state.Dependency);
+
+        cellSize = gameControllerComponent.zombieHearingDistance * 2 + 1;
+        cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
+        var zombieHearingHashMap = new NativeParallelHashMap<int, int>(cellCount < audibleCount ? cellCount : audibleCount, Allocator.TempJob);
         var hashHearingJobHandle = new HashAudiblesCellJob
         {
-            CellSize = gameControllerComponent.zombieHearingDistance * 2 + 1,
+            CellSize = cellSize,
             ParallelWriter = zombieHearingHashMap.AsParallelWriter()
         }.ScheduleParallel(_audibleQuery, state.Dependency);
 
@@ -306,7 +359,7 @@ public partial struct MoveTowardsHumansSystem : ISystem
             .CreateCommandBuffer(state.WorldUnmanaged)
             .AsParallelWriter();
 
-        state.Dependency = new MoveTowardsTargetJob
+        state.Dependency = new MoveTowardsHumansJob
         {
             Ecb = ecb,
 

@@ -76,6 +76,7 @@ public partial struct MoveRandomlyJob : IJobEntity
 
 [UpdateInGroup(typeof(MoveUnitsGroup))]
 [UpdateBefore(typeof(MoveTowardsHumansSystem))]
+[RequireMatchingQueriesForUpdate]
 public partial struct MoveRandomlySystem : ISystem
 {
     private EntityQuery _moveRandomlyQuery;

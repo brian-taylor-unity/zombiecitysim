@@ -39,6 +39,7 @@ public partial struct SpawnZombiesJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(DamageGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct KillAndSpawnSystem : ISystem
 {
     private ComponentLookup<Dead> _deadLookup;

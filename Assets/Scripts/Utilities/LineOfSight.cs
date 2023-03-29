@@ -1,8 +1,10 @@
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
 
 public static class LineOfSightUtilities
 {
+    [BurstCompile]
     public static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, NativeParallelHashMap<int, int> staticCollidableHashMap)
     {
         float vx = targetGridPosition.x - initialGridPosition.x;

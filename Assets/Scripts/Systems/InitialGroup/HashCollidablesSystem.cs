@@ -16,6 +16,7 @@ public struct HashDynamicCollidableSystemComponent : IComponentData
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct HashCollidablesSystem : ISystem
 {
     private EntityQuery _staticCollidableEntityQuery;
@@ -63,7 +64,7 @@ public partial struct HashCollidablesSystem : ISystem
             SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRW.HashMap = hashMap;
         }
 
-        int dynamicCollidableCount = _dynamicCollidableEntityQuery.CalculateEntityCount();
+        var dynamicCollidableCount = _dynamicCollidableEntityQuery.CalculateEntityCount();
         if (dynamicCollidableCount != 0)
         {
             if (SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
