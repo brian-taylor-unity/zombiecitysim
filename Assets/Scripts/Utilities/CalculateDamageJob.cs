@@ -6,10 +6,10 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct CalculateDamageJob : IJobEntity
 {
-    [ReadOnly] public NativeParallelHashMap<int, int> DamageTakingHashMap;
-    public NativeParallelMultiHashMap<int, int>.ParallelWriter DamageAmountHashMapParallelWriter;
+    [ReadOnly] public NativeParallelHashMap<uint, int> DamageTakingHashMap;
+    public NativeParallelMultiHashMap<uint, int>.ParallelWriter DamageAmountHashMapParallelWriter;
 
-    public void Execute(in GridPosition gridPosition, in Damage damage)
+    public void Execute(in GridPosition gridPosition, [ReadOnly] in Damage damage)
     {
         if (damage.Value == 0)
             return;
@@ -21,7 +21,7 @@ public partial struct CalculateDamageJob : IJobEntity
                 if (x == 0 && z == 0)
                     continue;
 
-                var damageKey = (int)math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
+                var damageKey = math.hash(new int3(gridPosition.Value.x + x, gridPosition.Value.y, gridPosition.Value.z + z));
                 if (DamageTakingHashMap.TryGetValue(damageKey, out _))
                     DamageAmountHashMapParallelWriter.Add(damageKey, damage.Value);
             }

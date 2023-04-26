@@ -7,22 +7,22 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct MoveRandomlyJob : IJobEntity
 {
-    [ReadOnly] public NativeParallelHashMap<int, int> StaticCollidableHashMap;
-    [ReadOnly] public NativeParallelHashMap<int, int> DynamicCollidableHashMap;
+    [ReadOnly] public NativeParallelHashMap<uint, int> StaticCollidableHashMap;
+    [ReadOnly] public NativeParallelHashMap<uint, int> DynamicCollidableHashMap;
 
-    public void Execute(ref NextGridPosition nextGridPosition, ref RandomGenerator random, in GridPosition gridPosition)
+    public void Execute(ref DesiredNextGridPosition desiredNextGridPosition, ref RandomGenerator random, [ReadOnly] in GridPosition gridPosition)
     {
-        int3 myGridPositionValue = gridPosition.Value;
+        var myGridPositionValue = gridPosition.Value;
 
-        int upDirKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
-        int rightDirKey = (int)math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
-        int downDirKey = (int)math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
-        int leftDirKey = (int)math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
+        var upDirKey = math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z + 1));
+        var rightDirKey = math.hash(new int3(myGridPositionValue.x + 1, myGridPositionValue.y, myGridPositionValue.z));
+        var downDirKey = math.hash(new int3(myGridPositionValue.x, myGridPositionValue.y, myGridPositionValue.z - 1));
+        var leftDirKey = math.hash(new int3(myGridPositionValue.x - 1, myGridPositionValue.y, myGridPositionValue.z));
 
-        bool upMoveAvail = true;
-        bool rightMoveAvail = true;
-        bool downMoveAvail = true;
-        bool leftMoveAvail = true;
+        var upMoveAvail = true;
+        var rightMoveAvail = true;
+        var downMoveAvail = true;
+        var leftMoveAvail = true;
 
         if (StaticCollidableHashMap.TryGetValue(upDirKey, out _) || DynamicCollidableHashMap.TryGetValue(upDirKey, out _))
             upMoveAvail = false;
@@ -33,11 +33,11 @@ public partial struct MoveRandomlyJob : IJobEntity
         if (StaticCollidableHashMap.TryGetValue(leftDirKey, out _) || DynamicCollidableHashMap.TryGetValue(leftDirKey, out _))
             leftMoveAvail = false;
 
-        int randomDirIndex = random.Value.NextInt(0, 4);
-        bool moved = false;
-        for (int i = 0; i < 4 && !moved; i++)
+        var randomDirIndex = random.Value.NextInt(0, 4);
+        var moved = false;
+        for (var i = 0; i < 4 && !moved; i++)
         {
-            int direction = (randomDirIndex + i) % 4;
+            var direction = (randomDirIndex + i) % 4;
             switch (direction)
             {
                 case 0:
@@ -70,7 +70,7 @@ public partial struct MoveRandomlyJob : IJobEntity
                     break;
             }
         }
-        nextGridPosition = new NextGridPosition { Value = myGridPositionValue };
+        desiredNextGridPosition = new DesiredNextGridPosition { Value = myGridPositionValue };
     }
 }
 

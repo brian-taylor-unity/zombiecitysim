@@ -1,10 +1,11 @@
-﻿using Unity.Entities;
+﻿using System.Globalization;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    public static GameController Instance = null;
+    public static GameController Instance;
 
     public int numTilesX = 130;
     public int numTilesY = 130;
@@ -66,7 +67,7 @@ public class GameController : MonoBehaviour
 
         humanTurnDelayInputField.text = humanTurnDelay.ToString();
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
-        turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString();
+        turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString(CultureInfo.InvariantCulture);
         turnDelayTimeSlider.value = turnDelayTime * 1000;
     }
 
@@ -159,7 +160,7 @@ public class GameController : MonoBehaviour
     public void SetTurnDelayTimeSlider(float num)
     {
         turnDelayTime = num / 1000;
-        turnDelayTimeInputField.text = num.ToString();
+        turnDelayTimeInputField.text = num.ToString(CultureInfo.InvariantCulture);
 
         CreateUpdateGameControllerComponentEntity();
     }

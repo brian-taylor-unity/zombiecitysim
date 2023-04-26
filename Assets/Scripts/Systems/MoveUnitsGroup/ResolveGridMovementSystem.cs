@@ -6,11 +6,11 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct HashNextGridPositionsJob : IJobEntity
 {
-    public NativeParallelMultiHashMap<int, int>.ParallelWriter ParallelWriter;
+    public NativeParallelMultiHashMap<uint, int>.ParallelWriter ParallelWriter;
 
-    public void Execute([EntityIndexInQuery] int entityIndexInQuery, in NextGridPosition nextGridPosition)
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, [ReadOnly] in DesiredNextGridPosition desiredNextGridPosition)
     {
-        var hash = (int)math.hash(nextGridPosition.Value);
+        var hash = math.hash(desiredNextGridPosition.Value);
         ParallelWriter.Add(hash, entityIndexInQuery);
     }
 }
@@ -18,16 +18,19 @@ public partial struct HashNextGridPositionsJob : IJobEntity
 [BurstCompile]
 public partial struct FinalizeMovementJob : IJobEntity
 {
-    [ReadOnly] public NativeParallelMultiHashMap<int, int> NextGridPositionHashMap;
+    [ReadOnly] public NativeParallelMultiHashMap<uint, int> NextGridPositionHashMap;
 
-    public void Execute(ref NextGridPosition nextGridPosition, in GridPosition gridPosition)
+    public void Execute(ref DesiredNextGridPosition desiredNextGridPosition, [ReadOnly] in GridPosition gridPosition)
     {
-        int hash = (int)math.hash(nextGridPosition.Value);
-        if (NextGridPositionHashMap.TryGetFirstValue(hash, out _, out var iter))
-        {
-            if (NextGridPositionHashMap.TryGetNextValue(out _, ref iter))
-                nextGridPosition.Value = gridPosition.Value;
-        }
+        // Check for all units that wanted to move
+        var hash = math.hash(desiredNextGridPosition.Value);
+        if (!NextGridPositionHashMap.TryGetFirstValue(hash, out _, out var iter))
+            return;
+
+        // Don't allow movement if another unit has already claimed that grid space
+        // (that unit is the first entry in the multi-hashmap)
+        if (NextGridPositionHashMap.TryGetNextValue(out _, ref iter))
+            desiredNextGridPosition.Value = gridPosition.Value;
     }
 }
 
@@ -42,7 +45,7 @@ public partial struct ResolveGridMovementSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
          _query = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
-             .WithAllRW<NextGridPosition>()
+             .WithAllRW<DesiredNextGridPosition>()
              .WithAll<GridPosition, TurnActive>());
     }
 
@@ -50,7 +53,7 @@ public partial struct ResolveGridMovementSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var unitCount = _query.CalculateEntityCount();
-        var nextGridPositionHashMap = new NativeParallelMultiHashMap<int, int>(unitCount, Allocator.TempJob);
+        var nextGridPositionHashMap = new NativeParallelMultiHashMap<uint, int>(unitCount, Allocator.TempJob);
 
         state.Dependency = new HashNextGridPositionsJob { ParallelWriter = nextGridPositionHashMap.AsParallelWriter() }.ScheduleParallel(_query, state.Dependency);
         state.Dependency = new FinalizeMovementJob { NextGridPositionHashMap = nextGridPositionHashMap }.ScheduleParallel(_query, state.Dependency);

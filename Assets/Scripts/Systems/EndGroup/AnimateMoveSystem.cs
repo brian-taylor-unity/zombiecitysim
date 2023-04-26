@@ -1,5 +1,6 @@
 ﻿using System;
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
@@ -9,11 +10,11 @@ public partial struct AnimateMoveJob : IJobEntity
 {
     public float PercentAnimate;
 
-    public void Execute(ref LocalTransform transform, ref GridPosition gridPosition, in NextGridPosition nextGridPosition)
+    public void Execute(ref LocalTransform transform, ref GridPosition gridPosition, [ReadOnly] in DesiredNextGridPosition desiredNextGridPosition)
     {
-        var nextTranslation = math.lerp(new float3(gridPosition.Value), new float3(nextGridPosition.Value), PercentAnimate);
+        var nextTranslation = math.lerp(new float3(gridPosition.Value), new float3(desiredNextGridPosition.Value), PercentAnimate);
         transform.Position = nextTranslation;
-        gridPosition.Value = math.select(gridPosition.Value, nextGridPosition.Value, Math.Abs(PercentAnimate - 1.0f) < 0.0001);
+        gridPosition.Value = math.select(gridPosition.Value, desiredNextGridPosition.Value, Math.Abs(PercentAnimate - 1.0f) < 0.0001);
     }
 }
 

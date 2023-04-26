@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 
 [Serializable]
-public struct NextGridPosition : IComponentData
+public struct DesiredNextGridPosition : IComponentData
 {
     public int3 Value;
 }

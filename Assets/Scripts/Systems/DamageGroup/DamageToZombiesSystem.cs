@@ -30,10 +30,10 @@ public partial struct DamageToZombiesSystem : ISystem
         if (zombieCount == 0 || humanCount == 0)
             return;
 
-        var zombieHashMap = new NativeParallelHashMap<int, int>(zombieCount, Allocator.TempJob);
+        var zombieHashMap = new NativeParallelHashMap<uint, int>(zombieCount, Allocator.TempJob);
         var damageToZombiesHashMap = humanCount < zombieCount ?
-            new NativeParallelMultiHashMap<int, int>(humanCount * 8, Allocator.TempJob) :
-            new NativeParallelMultiHashMap<int, int>(zombieCount * 8, Allocator.TempJob);
+            new NativeParallelMultiHashMap<uint, int>(humanCount * 8, Allocator.TempJob) :
+            new NativeParallelMultiHashMap<uint, int>(zombieCount * 8, Allocator.TempJob);
 
         state.Dependency = new HashGridPositionsJob { ParallelWriter = zombieHashMap.AsParallelWriter() }.ScheduleParallel(_zombiesQuery, state.Dependency);
         state.Dependency = new CalculateDamageJob

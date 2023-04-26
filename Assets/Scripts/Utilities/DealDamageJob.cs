@@ -8,13 +8,13 @@ using Unity.Mathematics;
 public partial struct DealDamageJob : IJobEntity
 {
     public float4 FullHealthColor;
-    [ReadOnly] public NativeParallelMultiHashMap<int, int> DamageAmountHashMap;
+    [ReadOnly] public NativeParallelMultiHashMap<uint, int> DamageAmountHashMap;
 
-    public void Execute(ref Health health, ref CharacterColor materialColor, in MaxHealth maxHealth, in GridPosition gridPosition)
+    public void Execute(ref Health health, ref CharacterColor materialColor, [ReadOnly] in MaxHealth maxHealth, [ReadOnly] in GridPosition gridPosition)
     {
         var myHealth = health.Value;
 
-        var gridPositionHash = (int)math.hash(new int3(gridPosition.Value));
+        var gridPositionHash = math.hash(new int3(gridPosition.Value));
         if (!DamageAmountHashMap.TryGetFirstValue(gridPositionHash, out var damage, out var it))
             return;
 

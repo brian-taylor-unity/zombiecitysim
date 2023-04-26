@@ -36,7 +36,7 @@ public partial struct AdvanceAudiblesAgeJob : IJobEntity
     public int AudibleDecayTime;
     public EntityCommandBuffer.ParallelWriter Ecb;
 
-    public void Execute(Entity entity, [EntityIndexInQuery] int entityIndexInQuery, ref Audible audible)
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, Entity entity, ref Audible audible)
     {
         audible.Age += 1;
         if (audible.Age > AudibleDecayTime)

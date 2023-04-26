@@ -6,13 +6,13 @@ using Unity.Jobs;
 public struct HashStaticCollidableSystemComponent : IComponentData
 {
     public JobHandle Handle;
-    public NativeParallelHashMap<int, int> HashMap;
+    public NativeParallelHashMap<uint, int> HashMap;
 }
 
 public struct HashDynamicCollidableSystemComponent : IComponentData
 {
     public JobHandle Handle;
-    public NativeParallelHashMap<int, int> HashMap;
+    public NativeParallelHashMap<uint, int> HashMap;
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
@@ -55,7 +55,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<int, int>(staticCollidableCount, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(staticCollidableCount, Allocator.Persistent);
             hashStaticCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()
@@ -70,7 +70,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<int, int>(dynamicCollidableCount, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(dynamicCollidableCount, Allocator.Persistent);
             hashDynamicCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()

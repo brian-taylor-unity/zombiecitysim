@@ -2,4 +2,4 @@
 using Unity.Entities;
 
 [Serializable]
-public struct LineOfSight: IComponentData { }
+public struct LineOfSight : IComponentData { }

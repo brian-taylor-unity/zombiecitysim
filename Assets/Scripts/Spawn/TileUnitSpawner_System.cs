@@ -1,5 +1,4 @@
-﻿using System;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -74,8 +73,6 @@ public partial struct SpawnJob : IJobEntity
                         i == 0 ? 1 : (uint)i
                     );
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
         }
     }

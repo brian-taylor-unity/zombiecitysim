@@ -8,7 +8,7 @@ public partial struct KillUnitsJob : IJobEntity
     [NativeDisableParallelForRestriction]
     public ComponentLookup<Dead> DeadLookup;
 
-    public void Execute(Entity entity, in Health health)
+    public void Execute(Entity entity, [ReadOnly] in Health health)
     {
         DeadLookup.SetComponentEnabled(entity, health.Value <= 0);
     }
@@ -23,7 +23,7 @@ public partial struct SpawnZombiesJob : IJobEntity
     public int UnitDamage;
     public int UnitTurnsUntilActive;
 
-    public void Execute([EntityIndexInQuery] int entityIndexInQuery, in GridPosition gridPosition)
+    public void Execute([EntityIndexInQuery] int entityIndexInQuery, [ReadOnly] in GridPosition gridPosition)
     {
         ZombieCreator.CreateZombie(
             Ecb,

@@ -18,7 +18,7 @@ public static class ZombieCreator
         var instance = commandBuffer.Instantiate(index, prefab);
         commandBuffer.SetComponent(index, instance, LocalTransform.FromPosition(gridPosition));
         commandBuffer.AddComponent(index, instance, new GridPosition { Value = gridPosition });
-        commandBuffer.AddComponent(index, instance, new NextGridPosition { Value = gridPosition });
+        commandBuffer.AddComponent(index, instance, new DesiredNextGridPosition { Value = gridPosition });
         commandBuffer.AddComponent(index, instance, new Health { Value = health });
         commandBuffer.AddComponent(index, instance, new MaxHealth { Value = health });
         commandBuffer.AddComponent<Dead>(index, instance);
