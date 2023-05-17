@@ -1,19 +1,24 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using Random = Unity.Mathematics.Random;
 
+[BurstCompile]
 public static class ZombieCreator
 {
     [BurstCompile]
-    public static float4 GetFullHealthColor()
+    public static void FillFullHealthColor(ref float4 healthColor)
     {
-        return new float4(1.0f, 0.0f, 0.0f, 1.0f);
+        healthColor.x = 1.0f;
+        healthColor.y = 0.0f;
+        healthColor.z = 0.0f;
+        healthColor.w = 1.0f;
     }
 
     [BurstCompile]
-    public static void CreateZombie(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
+    public static void CreateZombie(ref EntityCommandBuffer.ParallelWriter commandBuffer, int index, [ReadOnly] in Entity prefab, [ReadOnly] in int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
     {
         var instance = commandBuffer.Instantiate(index, prefab);
         commandBuffer.SetComponent(index, instance, LocalTransform.FromPosition(gridPosition));
@@ -30,7 +35,8 @@ public static class ZombieCreator
         commandBuffer.AddComponent(index, instance, new Zombie());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
         commandBuffer.AddComponent(index, instance, new MoveTowardsHuman());
-        var healthColor = GetFullHealthColor();
+        var healthColor = new float4();
+        FillFullHealthColor(ref healthColor);
         healthColor.w = turnsUntilActive == 1 ? 1.0f : 0.85f;
         commandBuffer.AddComponent(index, instance, new CharacterColor { Value = healthColor });
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });

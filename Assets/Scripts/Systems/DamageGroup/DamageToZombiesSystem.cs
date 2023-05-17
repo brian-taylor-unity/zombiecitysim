@@ -1,6 +1,7 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [RequireMatchingQueriesForUpdate]
@@ -8,6 +9,7 @@ public partial struct DamageToZombiesSystem : ISystem
 {
     private EntityQuery _zombiesQuery;
     private EntityQuery _humansQuery;
+    private float4 _zombieFullHealthColor;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -19,6 +21,8 @@ public partial struct DamageToZombiesSystem : ISystem
         _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Human, GridPosition, Damage, TurnActive>()
         );
+        _zombieFullHealthColor = new float4();
+        ZombieCreator.FillFullHealthColor(ref _zombieFullHealthColor);
     }
 
     [BurstCompile]
@@ -43,7 +47,7 @@ public partial struct DamageToZombiesSystem : ISystem
         }.ScheduleParallel(_humansQuery, state.Dependency);
         zombieHashMap.Dispose(state.Dependency);
 
-        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToZombiesHashMap, FullHealthColor = ZombieCreator.GetFullHealthColor() }.ScheduleParallel(_zombiesQuery, state.Dependency);
+        state.Dependency = new DealDamageJob { DamageAmountHashMap = damageToZombiesHashMap, FullHealthColor = _zombieFullHealthColor }.ScheduleParallel(_zombiesQuery, state.Dependency);
         damageToZombiesHashMap.Dispose(state.Dependency);
     }
 }

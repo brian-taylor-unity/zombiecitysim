@@ -1,18 +1,23 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
+[BurstCompile]
 public static class HumanCreator
 {
     [BurstCompile]
-    public static float4 GetFullHealthColor()
+    public static void FillFullHealthColor(ref float4 healthColor)
     {
-        return new float4(0.0f, 1.0f, 0.0f, 1.0f);
+        healthColor.x = 0.0f;
+        healthColor.y = 1.0f;
+        healthColor.z = 0.0f;
+        healthColor.w = 1.0f;
     }
 
     [BurstCompile]
-    public static void CreateHuman(EntityCommandBuffer.ParallelWriter commandBuffer, int index, Entity prefab, int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
+    public static void CreateHuman(ref EntityCommandBuffer.ParallelWriter commandBuffer, int index, [ReadOnly] in Entity prefab, [ReadOnly] in int3 gridPosition, int health, int damage, int turnsUntilActive, uint randomSeed)
     {
         var instance = commandBuffer.Instantiate(index, prefab);
         commandBuffer.SetComponent(index, instance, LocalTransform.FromPosition(gridPosition));
@@ -29,7 +34,8 @@ public static class HumanCreator
         commandBuffer.AddComponent(index, instance, new Human());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
         commandBuffer.AddComponent(index, instance, new LineOfSight());
-        var healthColor = GetFullHealthColor();
+        var healthColor = new float4();
+        FillFullHealthColor(ref healthColor);
         healthColor.w = turnsUntilActive == 1 ? 1.0f : 0.85f;
         commandBuffer.AddComponent(index, instance, new CharacterColor { Value = healthColor });
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });

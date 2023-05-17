@@ -2,10 +2,11 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
 
+[BurstCompile]
 public static class LineOfSightUtilities
 {
     [BurstCompile]
-    public static bool InLineOfSight(int3 initialGridPosition, int3 targetGridPosition, [ReadOnly] NativeParallelHashMap<uint, int> staticCollidableHashMap)
+    public static bool InLineOfSight([ReadOnly] in int3 initialGridPosition, [ReadOnly] in int3 targetGridPosition, [ReadOnly] in NativeParallelHashMap<uint, int> staticCollidableHashMap)
     {
         float vx = targetGridPosition.x - initialGridPosition.x;
         float vz = targetGridPosition.z - initialGridPosition.z;
@@ -29,7 +30,7 @@ public static class LineOfSightUtilities
     }
 
     [BurstCompile]
-    public static bool InLineOfSightUpdated(int3 initialGridPosition, int3 targetGridPosition, [ReadOnly] NativeParallelHashMap<uint, int> staticCollidableHashMap)
+    public static bool InLineOfSightUpdated([ReadOnly] in int3 initialGridPosition, [ReadOnly] in int3 targetGridPosition, [ReadOnly] in NativeParallelHashMap<uint, int> staticCollidableHashMap)
     {
         var dx = targetGridPosition.x - initialGridPosition.x;
         var dz = targetGridPosition.z - initialGridPosition.z;

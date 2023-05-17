@@ -26,7 +26,7 @@ public partial struct SpawnZombiesJob : IJobEntity
     public void Execute([EntityIndexInQuery] int entityIndexInQuery, [ReadOnly] in GridPosition gridPosition)
     {
         ZombieCreator.CreateZombie(
-            Ecb,
+            ref Ecb,
             entityIndexInQuery,
             ZombiePrefab,
             gridPosition.Value,

@@ -31,6 +31,7 @@ public struct GameControllerComponent : IComponentData
     public float turnDelayTime;
 }
 
+[BurstCompile]
 [UpdateInGroup(typeof(InitialGroup))]
 [RequireMatchingQueriesForUpdate]
 public partial class UpdateGameControllerComponentSystem : SystemBase

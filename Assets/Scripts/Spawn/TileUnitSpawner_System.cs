@@ -50,7 +50,7 @@ public partial struct SpawnJob : IJobEntity
                 case TileUnitKinds.HumanUnit:
                     var turnsUntilActive = i % HumanTurnDelay + 1;
                     HumanCreator.CreateHuman(
-                        Ecb,
+                        ref Ecb,
                         entityIndexInQuery,
                         tileUnitSpawner.HumanUnit_Prefab,
                         TileUnitPositionsNativeList[i],
@@ -63,7 +63,7 @@ public partial struct SpawnJob : IJobEntity
                 case TileUnitKinds.ZombieUnit:
                     turnsUntilActive = i % ZombieTurnDelay + 1;
                     ZombieCreator.CreateZombie(
-                        Ecb,
+                        ref Ecb,
                         entityIndexInQuery,
                         tileUnitSpawner.ZombieUnit_Prefab,
                         TileUnitPositionsNativeList[i],
