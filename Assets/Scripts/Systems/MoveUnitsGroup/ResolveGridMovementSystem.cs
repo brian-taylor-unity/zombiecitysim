@@ -53,7 +53,7 @@ public partial struct ResolveGridMovementSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var unitCount = _query.CalculateEntityCount();
-        var nextGridPositionHashMap = new NativeParallelMultiHashMap<uint, int>(unitCount, Allocator.TempJob);
+        var nextGridPositionHashMap = new NativeParallelMultiHashMap<uint, int>(unitCount * 2, Allocator.TempJob);
 
         state.Dependency = new HashNextGridPositionsJob { ParallelWriter = nextGridPositionHashMap.AsParallelWriter() }.ScheduleParallel(_query, state.Dependency);
         state.Dependency = new FinalizeMovementJob { NextGridPositionHashMap = nextGridPositionHashMap }.ScheduleParallel(_query, state.Dependency);

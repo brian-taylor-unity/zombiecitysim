@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using Random = Unity.Mathematics.Random;
 
 [BurstCompile]
 public static class ZombieCreator

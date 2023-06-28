@@ -23,8 +23,8 @@ public class TileUnitSpawner_Baker : Baker<TileUnitSpawner_Authoring>
     {
         AddComponent(GetEntity(TransformUsageFlags.Dynamic), new TileUnitSpawner_Data
         {
-            BuildingTile_Prefab = GetEntity(authoring.BuildingTile_Prefab, TransformUsageFlags.WorldSpace),
-            RoadTile_Prefab = GetEntity(authoring.RoadTile_Prefab, TransformUsageFlags.WorldSpace),
+            BuildingTile_Prefab = GetEntity(authoring.BuildingTile_Prefab, TransformUsageFlags.Renderable),
+            RoadTile_Prefab = GetEntity(authoring.RoadTile_Prefab, TransformUsageFlags.Renderable),
             HumanUnit_Prefab = GetEntity(authoring.HumanUnit_Prefab, TransformUsageFlags.Dynamic),
             ZombieUnit_Prefab = GetEntity(authoring.ZombieUnit_Prefab, TransformUsageFlags.Dynamic)
         });

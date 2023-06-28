@@ -323,7 +323,7 @@ public partial struct MoveTowardsHumansSystem : ISystem
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, GridPosition>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
-        state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<EndInitializationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
@@ -340,31 +340,41 @@ public partial struct MoveTowardsHumansSystem : ISystem
 
         state.Dependency = JobHandle.CombineDependencies(state.Dependency, staticCollidableComponent.Handle, dynamicCollidableComponent.Handle);
 
-        var humanCount = _humanQuery.CalculateEntityCount();
-        var humanHashMap = new NativeParallelHashMap<uint, int>(humanCount, Allocator.TempJob);
-        var hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob { ParallelWriter = humanHashMap.AsParallelWriter() }.ScheduleParallel(_humanQuery, state.Dependency);
-
         var cellSize = gameControllerComponent.zombieVisionDistance * 2 + 1;
         var cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
-        var zombieVisionHashMap = new NativeParallelHashMap<uint, int>(cellCount < humanCount ? cellCount : humanCount, Allocator.TempJob);
-        var hashFollowTargetVisionJobHandle = new HashGridPositionsCellJob
-        {
-            CellSize = cellSize,
-            ParallelWriter = zombieVisionHashMap.AsParallelWriter()
-        }.ScheduleParallel(_humanQuery, state.Dependency);
+        var humanCount = _humanQuery.CalculateEntityCount();
+        var humanHashMap = new NativeParallelHashMap<uint, int>(humanCount * 2, Allocator.TempJob);
+        var zombieVisionHashMap = new NativeParallelHashMap<uint, int>((cellCount < humanCount ? cellCount : humanCount) * 2, Allocator.TempJob);
 
-        var audibleCount = _audibleQuery.CalculateEntityCount();
-        var audibleHashMap = new NativeParallelMultiHashMap<uint, int3>(audibleCount, Allocator.TempJob);
-        var hashAudiblesJobHandle = new HashAudiblesJob { ParallelWriter = audibleHashMap.AsParallelWriter() }.ScheduleParallel(_audibleQuery, state.Dependency);
+        var hashFollowTargetGridPositionsJobHandle = state.Dependency;
+        var hashFollowTargetVisionJobHandle = state.Dependency;
+        if (humanCount > 0)
+        {
+            hashFollowTargetGridPositionsJobHandle = new HashGridPositionsJob { ParallelWriter = humanHashMap.AsParallelWriter() }.ScheduleParallel(_humanQuery, state.Dependency);
+            hashFollowTargetVisionJobHandle = new HashGridPositionsCellJob
+            {
+                CellSize = cellSize,
+                ParallelWriter = zombieVisionHashMap.AsParallelWriter()
+            }.ScheduleParallel(_humanQuery, state.Dependency);
+        }
 
         cellSize = gameControllerComponent.zombieHearingDistance * 2 + 1;
         cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
-        var zombieHearingHashMap = new NativeParallelHashMap<uint, int>(cellCount < audibleCount ? cellCount : audibleCount, Allocator.TempJob);
-        var hashHearingJobHandle = new HashAudiblesCellJob
+        var audibleCount = _audibleQuery.CalculateEntityCount();
+        var audibleHashMap = new NativeParallelMultiHashMap<uint, int3>(audibleCount * 2, Allocator.TempJob);
+        var zombieHearingHashMap = new NativeParallelHashMap<uint, int>((cellCount < audibleCount ? cellCount : audibleCount) * 2, Allocator.TempJob);
+
+        var hashAudiblesJobHandle = state.Dependency;
+        var hashHearingJobHandle = state.Dependency;
+        if (audibleCount > 0)
         {
-            CellSize = cellSize,
-            ParallelWriter = zombieHearingHashMap.AsParallelWriter()
-        }.ScheduleParallel(_audibleQuery, state.Dependency);
+            hashAudiblesJobHandle = new HashAudiblesJob { ParallelWriter = audibleHashMap.AsParallelWriter() }.ScheduleParallel(_audibleQuery, state.Dependency);
+            hashHearingJobHandle = new HashAudiblesCellJob
+            {
+                CellSize = cellSize,
+                ParallelWriter = zombieHearingHashMap.AsParallelWriter()
+            }.ScheduleParallel(_audibleQuery, state.Dependency);
+        }
 
         state.Dependency = JobHandle.CombineDependencies(
             state.Dependency,
@@ -377,13 +387,10 @@ public partial struct MoveTowardsHumansSystem : ISystem
             hashHearingJobHandle
         );
 
-        var ecb = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>()
-            .CreateCommandBuffer(state.WorldUnmanaged)
-            .AsParallelWriter();
-
         state.Dependency = new MoveTowardsHumansJob
         {
-            Ecb = ecb,
+            Ecb = SystemAPI.GetSingleton<EndInitializationEntityCommandBufferSystem.Singleton>()
+                .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
 
             HearingDistance = gameControllerComponent.zombieHearingDistance,
             ZombieHearingHashMap = zombieHearingHashMap,

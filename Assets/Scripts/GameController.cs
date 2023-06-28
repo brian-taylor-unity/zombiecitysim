@@ -69,6 +69,8 @@ public class GameController : MonoBehaviour
         zombieTurnDelayInputField.text = zombieTurnDelay.ToString();
         turnDelayTimeInputField.text = (turnDelayTime * 1000).ToString(CultureInfo.InvariantCulture);
         turnDelayTimeSlider.value = turnDelayTime * 1000;
+
+        CreateSpawnWorldComponentEntity();
     }
 
     private void CreateUpdateGameControllerComponentEntity()
@@ -76,63 +78,54 @@ public class GameController : MonoBehaviour
         World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntity(typeof(UpdateGameControllerComponent));
     }
 
+    private void CreateSpawnWorldComponentEntity()
+    {
+        World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntity(typeof(SpawnWorld));
+    }
+
     public void SetNumHumansInputField(string num)
     {
         numHumans = int.Parse(num);
         numHumansSlider.value = numHumans;
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumHumansSlider(float num)
     {
         numHumans = (int)num;
         numHumansInputField.text = numHumans.ToString();
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumZombiesInputField(string num)
     {
         numZombies = int.Parse(num);
         numZombiesSlider.value = numZombies;
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumZombiesSlider(float num)
     {
         numZombies = (int)num;
         numZombiesInputField.text = numZombies.ToString();
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumTilesXInputField(string num)
     {
         numTilesX = int.Parse(num);
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumTilesYInputField(string num)
     {
         numTilesY = int.Parse(num);
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void SetNumStreetsInputField(string num)
     {
         numStreets = int.Parse(num);
-
-        CreateUpdateGameControllerComponentEntity();
     }
 
     public void OnRegeneratePressed()
     {
-        var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        entityManager.DestroyEntity(entityManager.UniversalQuery);
+        CreateUpdateGameControllerComponentEntity();
+        CreateSpawnWorldComponentEntity();
     }
 
     public void SetHumanTurnDelay(string num)

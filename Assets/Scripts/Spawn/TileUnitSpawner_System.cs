@@ -13,6 +13,8 @@ public enum TileUnitKinds
     ZombieUnit
 }
 
+public struct SpawnWorld : IComponentData { }
+
 [BurstCompile]
 public partial struct SpawnJob : IJobEntity
 {
@@ -44,8 +46,9 @@ public partial struct SpawnJob : IJobEntity
                     Ecb.SetComponent(entityIndexInQuery, instance, LocalTransform.FromPositionRotationScale(
                         new float3(TileUnitPositionsNativeList[i].x / 2.0f, 0.5f, TileUnitPositionsNativeList[i].z / 2.0f),
                         Quaternion.identity,
-                        TileUnitPositionsNativeList[i].x / 10.0f - 0.1f
+                        (TileUnitPositionsNativeList[i].x >= TileUnitPositionsNativeList[i].z ? TileUnitPositionsNativeList[i].x : TileUnitPositionsNativeList[i].z) / 10.0f - 0.1f
                     ));
+                    Ecb.AddComponent(entityIndexInQuery, instance, new RoadSurface());
                     break;
                 case TileUnitKinds.HumanUnit:
                     var turnsUntilActive = i % HumanTurnDelay + 1;
@@ -78,20 +81,36 @@ public partial struct SpawnJob : IJobEntity
     }
 }
 
-[UpdateInGroup(typeof(EndGroup))]
-public partial struct TileUnitSpawnerSystem : ISystem
+[UpdateInGroup(typeof(InitializationSystemGroup))]
+public partial struct TileUnitSpawner_System : ISystem
 {
+    private EntityQuery _spawnWorldComponentQuery;
+    private EntityQuery _regenerateComponentsQuery;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        _spawnWorldComponentQuery = state.GetEntityQuery(ComponentType.ReadOnly<SpawnWorld>());
+        _regenerateComponentsQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAny<GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent>());
         state.RequireForUpdate<TileUnitSpawner_Data>();
         state.RequireForUpdate<GameControllerComponent>();
+        state.RequireForUpdate<SpawnWorld>();
         state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        state.EntityManager.DestroyEntity(_spawnWorldComponentQuery);
+        state.EntityManager.DestroyEntity(_regenerateComponentsQuery);
+
+        var staticComponentEntity = state.EntityManager.CreateEntity();
+        state.EntityManager.AddComponent(staticComponentEntity, ComponentType.ReadOnly<HashStaticCollidableSystemComponent>());
+
+        var dynamicComponentEntity = state.EntityManager.CreateEntity();
+        state.EntityManager.AddComponent(dynamicComponentEntity, ComponentType.ReadOnly<HashDynamicCollidableSystemComponent>());
+
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
         var tileUnitPositions = new NativeList<int3>(Allocator.TempJob);
@@ -237,7 +256,5 @@ public partial struct TileUnitSpawnerSystem : ISystem
         tileUnitKinds.Dispose(state.Dependency);
         tileUnitHealth.Dispose(state.Dependency);
         tileUnitDamage.Dispose(state.Dependency);
-
-        state.Enabled = false;
     }
 }

@@ -2,6 +2,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEngine;
 
 public struct HashStaticCollidableSystemComponent : IComponentData
 {
@@ -16,7 +17,6 @@ public struct HashDynamicCollidableSystemComponent : IComponentData
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
-[RequireMatchingQueriesForUpdate]
 public partial struct HashCollidablesSystem : ISystem
 {
     private EntityQuery _staticCollidableEntityQuery;
@@ -24,13 +24,9 @@ public partial struct HashCollidablesSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        // CreateEntity takes a managed array, so cannot [BurstCompile]
-        state.EntityManager.CreateEntity(typeof(HashStaticCollidableSystemComponent));
-        state.EntityManager.CreateEntity(typeof(HashDynamicCollidableSystemComponent));
-
         _staticCollidableEntityQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<StaticCollidable, GridPosition>());
-        _staticCollidableEntityQuery.SetChangedVersionFilter(typeof(GridPosition));
+        _staticCollidableEntityQuery.AddChangedVersionFilter(typeof(GridPosition));
 
         _dynamicCollidableEntityQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<DynamicCollidable, GridPosition>());
@@ -55,7 +51,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<uint, int>(staticCollidableCount, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(staticCollidableCount * 2, Allocator.Persistent);
             hashStaticCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()
@@ -70,7 +66,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<uint, int>(dynamicCollidableCount, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(dynamicCollidableCount * 2, Allocator.Persistent);
             hashDynamicCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()

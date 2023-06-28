@@ -3,9 +3,7 @@ using Unity.Burst;
 using Unity.Entities;
 
 [Serializable]
-public struct UpdateGameControllerComponent : IComponentData
-{
-}
+public struct UpdateGameControllerComponent : IComponentData { }
 
 [Serializable]
 public struct GameControllerComponent : IComponentData
@@ -32,7 +30,8 @@ public struct GameControllerComponent : IComponentData
 }
 
 [BurstCompile]
-[UpdateInGroup(typeof(InitialGroup))]
+[UpdateInGroup(typeof(InitializationSystemGroup))]
+[UpdateBefore(typeof(TileUnitSpawner_System))]
 [RequireMatchingQueriesForUpdate]
 public partial class UpdateGameControllerComponentSystem : SystemBase
 {
@@ -70,7 +69,6 @@ public partial class UpdateGameControllerComponentSystem : SystemBase
         gameControllerComponent.ValueRW.audibleDecayTime = GameController.Instance.audibleDecayTime;
         gameControllerComponent.ValueRW.turnDelayTime = GameController.Instance.turnDelayTime;
 
-        var ecb = World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>().CreateCommandBuffer();
-        ecb.DestroyEntity(_updateGameControllerComponentQuery);
+        EntityManager.DestroyEntity(_updateGameControllerComponentQuery);
     }
 }
