@@ -156,12 +156,12 @@ public partial struct MoveEscapeFromZombiesSystem : ISystem
             return;
 
         var zombieCount = _zombieQuery.CalculateEntityCount();
-        var zombieHashMap = new NativeParallelHashMap<uint, int>(zombieCount * 2, Allocator.TempJob);
+        var zombieHashMap = new NativeParallelHashMap<uint, int>(zombieCount, Allocator.TempJob);
         var hashMoveEscapeTargetGridPositionsJobHandle = new HashGridPositionsJob { ParallelWriter = zombieHashMap.AsParallelWriter() }.ScheduleParallel(_zombieQuery, state.Dependency);
 
         var cellSize = gameControllerComponent.humanVisionDistance * 2 + 1;
-        var cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
-        var humanVisionHashMap = new NativeParallelHashMap<uint, int>((cellCount < zombieCount ? cellCount : zombieCount) * 2, Allocator.TempJob);
+        var cellCount = math.asint(math.ceil((float)gameControllerComponent.numTilesX / cellSize * gameControllerComponent.numTilesY / cellSize));
+        var humanVisionHashMap = new NativeParallelHashMap<uint, int>(cellCount < zombieCount ? cellCount: zombieCount, Allocator.TempJob);
         var hashMoveEscapeTargetVisionJobHandle = new HashGridPositionsCellJob
         {
             CellSize = gameControllerComponent.humanVisionDistance * 2 + 1,

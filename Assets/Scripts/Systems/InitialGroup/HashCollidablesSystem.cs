@@ -2,7 +2,6 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEngine;
 
 public struct HashStaticCollidableSystemComponent : IComponentData
 {
@@ -51,7 +50,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashStaticCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<uint, int>(staticCollidableCount * 2, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(staticCollidableCount, Allocator.Persistent);
             hashStaticCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()
@@ -66,7 +65,7 @@ public partial struct HashCollidablesSystem : ISystem
             if (SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRO.HashMap.IsCreated)
                 SystemAPI.GetSingletonRW<HashDynamicCollidableSystemComponent>().ValueRW.HashMap.Dispose();
 
-            var hashMap = new NativeParallelHashMap<uint, int>(dynamicCollidableCount * 2, Allocator.Persistent);
+            var hashMap = new NativeParallelHashMap<uint, int>(dynamicCollidableCount, Allocator.Persistent);
             hashDynamicCollidableSystemComponent.ValueRW.Handle = new HashGridPositionsJob
             {
                 ParallelWriter = hashMap.AsParallelWriter()
@@ -78,12 +77,7 @@ public partial struct HashCollidablesSystem : ISystem
         state.Dependency = JobHandle.CombineDependencies(hashStaticCollidableSystemComponent.ValueRO.Handle, hashStaticCollidableSystemComponent.ValueRO.Handle);
     }
 
-    public void OnStartRunning(ref SystemState state)
-    {
-
-    }
-
-    public void OnStopRunning(ref SystemState state)
+    public void OnDestroy(ref SystemState state)
     {
         var staticCollidableHashMap = SystemAPI.GetSingleton<HashStaticCollidableSystemComponent>().HashMap;
         if (staticCollidableHashMap.IsCreated)

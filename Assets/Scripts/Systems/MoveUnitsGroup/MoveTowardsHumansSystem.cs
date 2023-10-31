@@ -341,10 +341,10 @@ public partial struct MoveTowardsHumansSystem : ISystem
         state.Dependency = JobHandle.CombineDependencies(state.Dependency, staticCollidableComponent.Handle, dynamicCollidableComponent.Handle);
 
         var cellSize = gameControllerComponent.zombieVisionDistance * 2 + 1;
-        var cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
+        var cellCount = math.asint(math.ceil((float)gameControllerComponent.numTilesX / cellSize * gameControllerComponent.numTilesY / cellSize));
         var humanCount = _humanQuery.CalculateEntityCount();
-        var humanHashMap = new NativeParallelHashMap<uint, int>(humanCount * 2, Allocator.TempJob);
-        var zombieVisionHashMap = new NativeParallelHashMap<uint, int>((cellCount < humanCount ? cellCount : humanCount) * 2, Allocator.TempJob);
+        var humanHashMap = new NativeParallelHashMap<uint, int>(humanCount, Allocator.TempJob);
+        var zombieVisionHashMap = new NativeParallelHashMap<uint, int>(cellCount < humanCount ? cellCount : humanCount, Allocator.TempJob);
 
         var hashFollowTargetGridPositionsJobHandle = state.Dependency;
         var hashFollowTargetVisionJobHandle = state.Dependency;
@@ -359,10 +359,10 @@ public partial struct MoveTowardsHumansSystem : ISystem
         }
 
         cellSize = gameControllerComponent.zombieHearingDistance * 2 + 1;
-        cellCount = (gameControllerComponent.numTilesX / cellSize + 1) * (gameControllerComponent.numTilesY / cellSize + 1);
+        cellCount = math.asint(math.ceil((float)gameControllerComponent.numTilesX / cellSize * gameControllerComponent.numTilesY / cellSize));
         var audibleCount = _audibleQuery.CalculateEntityCount();
-        var audibleHashMap = new NativeParallelMultiHashMap<uint, int3>(audibleCount * 2, Allocator.TempJob);
-        var zombieHearingHashMap = new NativeParallelHashMap<uint, int>((cellCount < audibleCount ? cellCount : audibleCount) * 2, Allocator.TempJob);
+        var audibleHashMap = new NativeParallelMultiHashMap<uint, int3>(audibleCount, Allocator.TempJob);
+        var zombieHearingHashMap = new NativeParallelHashMap<uint, int>(cellCount < audibleCount ? cellCount : audibleCount, Allocator.TempJob);
 
         var hashAudiblesJobHandle = state.Dependency;
         var hashHearingJobHandle = state.Dependency;

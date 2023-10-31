@@ -33,7 +33,6 @@ public static class HumanCreator
         commandBuffer.SetComponentEnabled<TurnActive>(index, instance, false);
         commandBuffer.AddComponent(index, instance, new Human());
         commandBuffer.AddComponent(index, instance, new DynamicCollidable());
-        commandBuffer.AddComponent(index, instance, new LineOfSight());
         var healthColor = new float4();
         FillFullHealthColor(ref healthColor);
         healthColor.w = turnsUntilActive == 1 ? 1.0f : 0.85f;
