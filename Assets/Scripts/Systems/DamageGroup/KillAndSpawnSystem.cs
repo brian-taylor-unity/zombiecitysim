@@ -49,7 +49,6 @@ public partial struct KillAndSpawnSystem : ISystem
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, Dead, GridPosition>());
 
         state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
-        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<GameControllerComponent>();
         state.RequireForUpdate<TileUnitSpawner_Data>();
         state.RequireForUpdate(_humanQuery);
@@ -73,7 +72,7 @@ public partial struct KillAndSpawnSystem : ISystem
 
         state.Dependency = new KillUnitsJob
         {
-            Ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            Ecb = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>()
                 .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter()
         }.ScheduleParallel(state.Dependency);
     }

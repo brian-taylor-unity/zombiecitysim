@@ -323,7 +323,7 @@ public partial struct MoveTowardsHumansSystem : ISystem
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, GridPosition>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
-        state.RequireForUpdate<EndInitializationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();
@@ -389,7 +389,7 @@ public partial struct MoveTowardsHumansSystem : ISystem
 
         state.Dependency = new MoveTowardsHumansJob
         {
-            Ecb = SystemAPI.GetSingleton<EndInitializationEntityCommandBufferSystem.Singleton>()
+            Ecb = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>()
                 .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
 
             HearingDistance = gameControllerComponent.zombieHearingDistance,
