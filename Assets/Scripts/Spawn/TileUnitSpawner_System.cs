@@ -3,6 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.Burst;
+using Unity.Rendering;
 using UnityEngine;
 
 public enum TileUnitKinds
@@ -38,6 +39,7 @@ public partial struct SpawnJob : IJobEntity
                 case TileUnitKinds.BuildingTile:
                     instance = Ecb.Instantiate(entityIndexInQuery, tileUnitSpawner.BuildingTile_Prefab);
                     Ecb.SetComponent(entityIndexInQuery, instance, LocalTransform.FromPosition(TileUnitPositionsNativeList[i]));
+                    Ecb.AddComponent(entityIndexInQuery, instance, new URPMaterialPropertyBaseColor { Value = new float4(0.0f, 0.0f, 0.0f, 1.0f) });
                     Ecb.AddComponent(entityIndexInQuery, instance, new GridPosition { Value = new int3(TileUnitPositionsNativeList[i]) });
                     Ecb.AddComponent(entityIndexInQuery, instance, new StaticCollidable());
                     break;
@@ -48,6 +50,7 @@ public partial struct SpawnJob : IJobEntity
                         Quaternion.identity,
                         (TileUnitPositionsNativeList[i].x >= TileUnitPositionsNativeList[i].z ? TileUnitPositionsNativeList[i].x : TileUnitPositionsNativeList[i].z) / 10.0f - 0.1f
                     ));
+                    Ecb.AddComponent(entityIndexInQuery, instance, new URPMaterialPropertyBaseColor { Value = new float4(0.8f, 0.8f, 0.8f, 1.0f) });
                     Ecb.AddComponent(entityIndexInQuery, instance, new RoadSurface());
                     break;
                 case TileUnitKinds.HumanUnit:

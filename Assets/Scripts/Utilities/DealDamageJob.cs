@@ -3,6 +3,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 
 [BurstCompile]
 public partial struct DealDamageJob : IJobEntity
@@ -10,7 +11,7 @@ public partial struct DealDamageJob : IJobEntity
     public float4 FullHealthColor;
     [ReadOnly] public NativeParallelMultiHashMap<uint, int> DamageAmountHashMap;
 
-    public void Execute(ref Health health, ref CharacterColor materialColor, [ReadOnly] in MaxHealth maxHealth, [ReadOnly] in GridPosition gridPosition)
+    public void Execute(ref Health health, ref URPMaterialPropertyBaseColor materialColor, [ReadOnly] in MaxHealth maxHealth, [ReadOnly] in GridPosition gridPosition)
     {
         var myHealth = health.Value;
 

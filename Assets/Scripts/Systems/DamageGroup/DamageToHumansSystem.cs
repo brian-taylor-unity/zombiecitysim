@@ -2,6 +2,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 
 [UpdateInGroup(typeof(DamageGroup))]
 [RequireMatchingQueriesForUpdate]
@@ -16,7 +17,7 @@ public partial struct DamageToHumansSystem : ISystem
     {
         _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Human, MaxHealth, GridPosition>()
-            .WithAllRW<Health, CharacterColor>()
+            .WithAllRW<Health, URPMaterialPropertyBaseColor>()
         );
         _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Zombie, GridPosition, Damage, TurnActive>()

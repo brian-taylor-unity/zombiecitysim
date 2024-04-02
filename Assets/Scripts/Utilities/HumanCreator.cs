@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 using Unity.Transforms;
 
 [BurstCompile]
@@ -36,7 +37,7 @@ public static class HumanCreator
         var healthColor = new float4();
         FillFullHealthColor(ref healthColor);
         healthColor.w = turnsUntilActive == 1 ? 1.0f : 0.85f;
-        commandBuffer.AddComponent(index, instance, new CharacterColor { Value = healthColor });
+        commandBuffer.AddComponent(index, instance, new URPMaterialPropertyBaseColor { Value = healthColor });
         commandBuffer.AddComponent(index, instance, new RandomGenerator { Value = new Random(randomSeed) });
     }
 }

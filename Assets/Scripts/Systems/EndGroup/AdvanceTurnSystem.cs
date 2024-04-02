@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Rendering;
 
 [BurstCompile]
 public partial struct SetTurnActiveJob : IJobEntity
@@ -12,10 +13,10 @@ public partial struct SetTurnActiveJob : IJobEntity
 
     public float TurnDelayTime;
 
-    public void Execute(Entity entity, ref CharacterColor characterColor, [ReadOnly] in TurnsUntilActive turnsUntilActive)
+    public void Execute(Entity entity, ref URPMaterialPropertyBaseColor tileColor, [ReadOnly] in TurnsUntilActive turnsUntilActive)
     {
         TurnActiveFromEntity.SetComponentEnabled(entity, turnsUntilActive.Value == 1);
-        characterColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), TurnDelayTime >= 0.2);
+        tileColor.Value.w = math.select(1.0f, math.select(0.85f, 1.0f, turnsUntilActive.Value == 1), TurnDelayTime >= 0.2);
     }
 }
 
