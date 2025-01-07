@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class CameraController : MonoBehaviour
 {
@@ -25,7 +26,12 @@ public class CameraController : MonoBehaviour
     private float orbitAngle = 0;
     private float pitchAngle = 0;
 
-    // Start is called before the first frame update
+    private InputAction moveCameraAction;
+    private InputAction moveCameraSpeedModifierAction;
+    private InputAction lookCameraAction;
+    private InputAction zoomAction;
+    private InputAction rotateAction;
+
     private void Start()
     {
         swivel = transform.GetChild(0);
@@ -35,20 +41,21 @@ public class CameraController : MonoBehaviour
 
         orbitAngle = transform.eulerAngles.y;
         pitchAngle = swivel.eulerAngles.x;
+
+        moveCameraAction = InputSystem.actions.FindAction("Camera/Move");
+        moveCameraSpeedModifierAction = InputSystem.actions.FindAction("Camera/FastMove");
+        lookCameraAction = InputSystem.actions.FindAction("Camera/Look");
+        zoomAction = InputSystem.actions.FindAction("Camera/Zoom");
+        rotateAction = InputSystem.actions.FindAction("Camera/Rotate");
     }
 
-    // Update is called once per frame
     private void Update()
     {
-        var mouseWheelDelta = Input.GetAxis("Mouse ScrollWheel");
-        var mouseHorizontalDelta = Input.GetAxis("Mouse X");
-        var mouseVerticalDelta = Input.GetAxis("Mouse Y");
-        var rotationDelta = Input.GetAxis("Rotation");
-        var keyHorizontalDelta = Input.GetAxis("Horizontal");
-        var keyVerticalDelta = Input.GetAxis("Vertical");
-        var shift = Input.GetButton("Fire3");
-        var leftClick = Input.GetMouseButton(0);
-        var rightClick = Input.GetMouseButton(1);
+        var moveDelta = moveCameraAction.ReadValue<Vector2>();
+        var moveCameraSpeedModifier = moveCameraSpeedModifierAction.ReadValue<float>();
+        var lookCamera = lookCameraAction.ReadValue<Vector2>();
+        var zoomDelta = zoomAction.ReadValue<Vector2>();
+        var rotateDelta = rotateAction.ReadValue<float>();
 
         if (zoomAnimTimer < zoomAnimLength)
         {
@@ -59,23 +66,17 @@ public class CameraController : MonoBehaviour
             stick.localPosition = new Vector3(0f, 0f, distance);
         }
 
-        if (mouseWheelDelta != 0f)
-            AdjustZoom(mouseWheelDelta);
-
-        if (rotationDelta != 0f)
-            AdjustOrbit(rotationDelta);
-
-        if (leftClick && (mouseHorizontalDelta != 0f || mouseVerticalDelta != 0f) && !IsMouseBlockedByUI())
-            AdjustPosition(mouseHorizontalDelta * -1.8f, mouseVerticalDelta * -1.8f, shift);
-        else if (keyHorizontalDelta != 0f || keyVerticalDelta != 0f)
-            AdjustPosition(keyHorizontalDelta, keyVerticalDelta, shift);
-
-        if (rightClick)
-            AdjustMouseLook(-mouseVerticalDelta, mouseHorizontalDelta);
+        AdjustZoom(zoomDelta.y);
+        AdjustOrbit(rotateDelta);
+        AdjustPosition(moveDelta, moveCameraSpeedModifier > 0);
+        AdjustMouseLook(lookCamera);
     }
 
     private void AdjustZoom(float delta)
     {
+        if (delta == 0f)
+            return;
+
         var zoomAmount = delta * zoomSpeed * Mathf.Clamp(1f - zoomTarget, 0.05f, 1f);
         zoomTarget = Mathf.Clamp01(zoomTarget + zoomAmount);
         zoomAnimTimer = 0f;
@@ -83,6 +84,9 @@ public class CameraController : MonoBehaviour
 
     private void AdjustOrbit(float delta)
     {
+        if (delta == 0f)
+            return;
+
         orbitAngle += delta * orbitSpeed;
 
         if (orbitAngle < 0f)
@@ -93,16 +97,19 @@ public class CameraController : MonoBehaviour
         transform.localRotation = Quaternion.Euler(0f, orbitAngle, 0f);
     }
 
-    private void AdjustPosition(float xDelta, float zDelta, bool fast)
+    private void AdjustPosition(Vector2 delta, bool fast)
     {
+        if (delta is { x: 0f, y: 0f })
+            return;
+
         if (fast)
         {
-            xDelta *= fastMoveSpeedFactor;
-            zDelta *= fastMoveSpeedFactor;
+            delta.x *= fastMoveSpeedFactor;
+            delta.y *= fastMoveSpeedFactor;
         }
 
-        var direction = transform.localRotation * new Vector3(xDelta, 0f, zDelta).normalized;
-        var damping = Mathf.Max(Mathf.Abs(xDelta), Mathf.Abs(zDelta));
+        var direction = transform.localRotation * new Vector3(delta.x, 0f, delta.y).normalized;
+        var damping = Mathf.Max(Mathf.Abs(delta.x), Mathf.Abs(delta.y));
         var distance = Mathf.Lerp(moveSpeedMinZoom, moveSpeedMaxZoom, zoom) * damping * Time.deltaTime;
 
         var position = transform.localPosition;
@@ -110,10 +117,13 @@ public class CameraController : MonoBehaviour
         transform.localPosition = position;
     }
 
-    private void AdjustMouseLook(float pitchDelta, float yawDelta)
+    private void AdjustMouseLook(Vector2 delta)
     {
-        pitchAngle = Mathf.Clamp(pitchAngle + pitchDelta * mouseLookSpeed, mouseLookMinPitch, mouseLookMaxPitch);
-        orbitAngle += yawDelta * mouseLookSpeed;
+        if (delta is { x: 0f, y: 0f })
+            return;
+
+        pitchAngle = Mathf.Clamp(pitchAngle + delta.y * mouseLookSpeed, mouseLookMinPitch, mouseLookMaxPitch);
+        orbitAngle += delta.x * mouseLookSpeed;
         transform.localRotation = Quaternion.Euler(0f, orbitAngle, 0f);
         swivel.localRotation = Quaternion.Euler(pitchAngle, 0f, 0f);
     }
