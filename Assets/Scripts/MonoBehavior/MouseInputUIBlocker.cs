@@ -3,8 +3,6 @@ using UnityEngine.EventSystems;
 
 public class MouseInputUIBlocker : MonoBehaviour
 {
-    public bool blockedByUI;
-    
     private EventTrigger _eventTrigger;
 
     private void Start()
@@ -15,22 +13,12 @@ public class MouseInputUIBlocker : MonoBehaviour
 
         // Pointer Enter
         var enterUIEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-        enterUIEntry.callback.AddListener(_ => { EnterUI(); });
+        enterUIEntry.callback.AddListener(_ => { GameController.Instance.EnterBlockingUI(); });
         _eventTrigger.triggers.Add(enterUIEntry);
 
         //Pointer Exit
         var exitUIEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-        exitUIEntry.callback.AddListener(_ => { ExitUI(); });
+        exitUIEntry.callback.AddListener(_ => { GameController.Instance.ExitBlockingUI(); });
         _eventTrigger.triggers.Add(exitUIEntry);
-    }
-
-    private void EnterUI()
-    {
-        blockedByUI = true;
-    }
-
-    private void ExitUI()
-    {
-        blockedByUI = false;
     }
 }

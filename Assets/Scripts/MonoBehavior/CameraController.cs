@@ -14,23 +14,27 @@ public class CameraController : MonoBehaviour
     public float mouseLookMaxPitch;
     public float mouseLookMinPitch;
 
-    public MouseInputUIBlocker[] UIBlockingMouse;
-
     private Transform swivel;
     private Transform stick;
-    
+
     private float zoom = 1f;
     private float zoomTarget = 0.4f;
     private readonly float zoomAnimLength = 1.5f;
-    private float zoomAnimTimer = 0;
-    private float orbitAngle = 0;
-    private float pitchAngle = 0;
+    private float zoomAnimTimer;
+    private float orbitAngle;
+    private float pitchAngle;
 
     private InputAction moveCameraAction;
     private InputAction moveCameraSpeedModifierAction;
     private InputAction lookCameraAction;
     private InputAction zoomAction;
     private InputAction rotateAction;
+
+    private InputAction mouseMoveCameraAction;
+    private InputAction mouseLookCameraAction;
+    private InputAction mouseLeftClickAction;
+    private InputAction mouseRightClickAction;
+    private bool mouseInputBlockedByUI;
 
     private void Start()
     {
@@ -47,13 +51,32 @@ public class CameraController : MonoBehaviour
         lookCameraAction = InputSystem.actions.FindAction("Camera/Look");
         zoomAction = InputSystem.actions.FindAction("Camera/Zoom");
         rotateAction = InputSystem.actions.FindAction("Camera/Rotate");
+
+        mouseMoveCameraAction = InputSystem.actions.FindAction("Camera/MouseMove");
+        mouseLookCameraAction = InputSystem.actions.FindAction("Camera/MouseLook");
+        mouseLeftClickAction = InputSystem.actions.FindAction("Camera/MouseLeftClick");
+        mouseLeftClickAction.started += _ =>
+        {
+            if (GameController.Instance.mouseBlockedByUI)
+                mouseInputBlockedByUI = true;
+        };
+        mouseLeftClickAction.canceled += _ => mouseInputBlockedByUI = false;
+        mouseRightClickAction = InputSystem.actions.FindAction("Camera/MouseRightClick");
+        mouseRightClickAction.started += _ =>
+        {
+            if (GameController.Instance.mouseBlockedByUI)
+                mouseInputBlockedByUI = true;
+        };
+        mouseRightClickAction.canceled += _ => mouseInputBlockedByUI = false;
     }
 
     private void Update()
     {
         var moveDelta = moveCameraAction.ReadValue<Vector2>();
+        var mouseMoveDelta = mouseMoveCameraAction.ReadValue<Vector2>();
         var moveCameraSpeedModifier = moveCameraSpeedModifierAction.ReadValue<float>();
-        var lookCamera = lookCameraAction.ReadValue<Vector2>();
+        var lookDelta = lookCameraAction.ReadValue<Vector2>();
+        var mouseLookDelta = mouseLookCameraAction.ReadValue<Vector2>();
         var zoomDelta = zoomAction.ReadValue<Vector2>();
         var rotateDelta = rotateAction.ReadValue<float>();
 
@@ -69,7 +92,13 @@ public class CameraController : MonoBehaviour
         AdjustZoom(zoomDelta.y);
         AdjustOrbit(rotateDelta);
         AdjustPosition(moveDelta, moveCameraSpeedModifier > 0);
-        AdjustMouseLook(lookCamera);
+        AdjustLook(lookDelta);
+
+        if (!mouseInputBlockedByUI)
+        {
+            AdjustPosition(mouseMoveDelta, moveCameraSpeedModifier > 0);
+            AdjustLook(mouseLookDelta);
+        }
     }
 
     private void AdjustZoom(float delta)
@@ -117,7 +146,7 @@ public class CameraController : MonoBehaviour
         transform.localPosition = position;
     }
 
-    private void AdjustMouseLook(Vector2 delta)
+    private void AdjustLook(Vector2 delta)
     {
         if (delta is { x: 0f, y: 0f })
             return;
@@ -126,16 +155,5 @@ public class CameraController : MonoBehaviour
         orbitAngle += delta.x * mouseLookSpeed;
         transform.localRotation = Quaternion.Euler(0f, orbitAngle, 0f);
         swivel.localRotation = Quaternion.Euler(pitchAngle, 0f, 0f);
-    }
-
-    private bool IsMouseBlockedByUI()
-    {
-        foreach (var blocker in UIBlockingMouse)
-        {
-            if (blocker.blockedByUI)
-                return true;
-        }
-
-        return false;
     }
 }

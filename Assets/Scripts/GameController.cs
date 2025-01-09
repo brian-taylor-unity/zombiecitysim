@@ -42,6 +42,9 @@ public class GameController : MonoBehaviour
     public InputField turnDelayTimeInputField;
     public Slider turnDelayTimeSlider;
 
+    private int uiElementsBlocked;
+    public bool mouseBlockedByUI;
+
     void Awake()
     {
         if (Instance != null)
@@ -51,6 +54,8 @@ public class GameController : MonoBehaviour
         }
 
         Instance = this;
+
+        uiElementsBlocked = 0;
     }
 
     // Use this for initialization
@@ -156,5 +161,18 @@ public class GameController : MonoBehaviour
         turnDelayTimeInputField.text = num.ToString(CultureInfo.InvariantCulture);
 
         CreateUpdateGameControllerComponentEntity();
+    }
+
+    public void EnterBlockingUI()
+    {
+        mouseBlockedByUI = true;
+        uiElementsBlocked++;
+    }
+
+    public void ExitBlockingUI()
+    {
+        uiElementsBlocked--;
+        if (uiElementsBlocked == 0)
+            mouseBlockedByUI = false;
     }
 }
