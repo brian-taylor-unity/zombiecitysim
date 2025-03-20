@@ -42,8 +42,8 @@ public class GameController : MonoBehaviour
     public InputField turnDelayTimeInputField;
     public Slider turnDelayTimeSlider;
 
-    private int uiElementsBlocked;
     public bool mouseBlockedByUI;
+    private int _uiElementsBlocked;
 
     void Awake()
     {
@@ -55,7 +55,7 @@ public class GameController : MonoBehaviour
 
         Instance = this;
 
-        uiElementsBlocked = 0;
+        _uiElementsBlocked = 0;
     }
 
     // Use this for initialization
@@ -166,13 +166,13 @@ public class GameController : MonoBehaviour
     public void EnterBlockingUI()
     {
         mouseBlockedByUI = true;
-        uiElementsBlocked++;
+        _uiElementsBlocked++;
     }
 
     public void ExitBlockingUI()
     {
-        uiElementsBlocked--;
-        if (uiElementsBlocked == 0)
+        _uiElementsBlocked--;
+        if (_uiElementsBlocked == 0)
             mouseBlockedByUI = false;
     }
 }
