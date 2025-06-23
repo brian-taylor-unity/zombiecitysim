@@ -23,6 +23,7 @@ public class CameraController : MonoBehaviour
     private float _zoomAnimTimer;
     private float _orbitAngle;
     private float _pitchAngle;
+    private bool _moveSpeedModifier;
 
     private InputAction _moveCameraAction;
     private InputAction _moveCameraSpeedModifierAction;
@@ -66,13 +67,40 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        var moveDelta = _moveCameraAction.ReadValue<Vector2>();
-        var mouseMoveDelta = _mouseMoveCameraAction.ReadValue<Vector2>();
-        var moveCameraSpeedModifier = _moveCameraSpeedModifierAction.ReadValue<float>();
-        var lookDelta = _lookCameraAction.ReadValue<Vector2>();
-        var mouseLookDelta = _mouseLookCameraAction.ReadValue<Vector2>();
-        var zoomDelta = _zoomAction.ReadValue<Vector2>();
-        var rotateDelta = _rotateAction.ReadValue<float>();
+        if (_moveCameraSpeedModifierAction.IsPressed())
+        {
+            _moveSpeedModifier = _moveCameraSpeedModifierAction.ReadValue<float>() > 0;
+        }
+
+        if (_moveCameraAction.IsPressed())
+        {
+            AdjustPosition(_moveCameraAction.ReadValue<Vector2>(), _moveSpeedModifier);
+        }
+
+        if (_mouseMoveCameraAction.IsPressed() && !_mouseInputBlockedByUI)
+        {
+            AdjustPosition(_mouseMoveCameraAction.ReadValue<Vector2>(), _moveSpeedModifier);
+        }
+
+        if (_mouseLookCameraAction.IsPressed() && !_mouseInputBlockedByUI)
+        {
+            AdjustLook(_mouseLookCameraAction.ReadValue<Vector2>());
+        }
+
+        if (_lookCameraAction.IsPressed())
+        {
+            AdjustLook(_lookCameraAction.ReadValue<Vector2>());
+        }
+
+        if (_zoomAction.IsPressed())
+        {
+            AdjustZoom(_zoomAction.ReadValue<Vector2>().y);
+        }
+
+        if (_rotateAction.IsPressed())
+        {
+            AdjustOrbit(_rotateAction.ReadValue<float>());
+        }
 
         if (_zoomAnimTimer < _zoomAnimLength)
         {
@@ -81,17 +109,6 @@ public class CameraController : MonoBehaviour
 
             var distance = Mathf.Lerp(stickMinZoom, stickMaxZoom, _zoom);
             _stick.localPosition = new Vector3(0f, 0f, distance);
-        }
-
-        AdjustZoom(zoomDelta.y);
-        AdjustOrbit(rotateDelta);
-        AdjustPosition(moveDelta, moveCameraSpeedModifier > 0);
-        AdjustLook(lookDelta);
-
-        if (!_mouseInputBlockedByUI)
-        {
-            AdjustPosition(mouseMoveDelta, moveCameraSpeedModifier > 0);
-            AdjustLook(mouseLookDelta);
         }
     }
 

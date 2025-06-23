@@ -207,7 +207,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -911,6 +911,7 @@ MonoBehaviour:
   zombieTurnDelayInputField: {fileID: 302765849}
   turnDelayTimeInputField: {fileID: 1640573133}
   turnDelayTimeSlider: {fileID: 1130717147}
+  mouseBlockedByUI: 0
 --- !u!4 &284388849
 Transform:
   m_ObjectHideFlags: 0
@@ -1224,7 +1225,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -1388,7 +1389,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blockedByUI: 0
 --- !u!114 &333691484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1870,7 +1870,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7536eb48dfbb4aacae3bdf12b15dbcc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  blockedByUI: 0
 --- !u!114 &567194048
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3007,7 +3006,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -3549,7 +3548,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -4238,7 +4237,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -4550,7 +4549,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -4708,7 +4707,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1
@@ -4893,14 +4892,11 @@ MonoBehaviour:
   zoomSpeed: 4
   orbitSpeed: 4
   moveSpeedMinZoom: 220
-  moveSpeedMaxZoom: 40
+  moveSpeedMaxZoom: 1.5
   fastMoveSpeedFactor: 2.5
   mouseLookSpeed: 3
   mouseLookMaxPitch: 90
   mouseLookMinPitch: 5
-  UIBlockingMouse:
-  - {fileID: 333691483}
-  - {fileID: 567194047}
 --- !u!4 &1669595722
 Transform:
   m_ObjectHideFlags: 0
@@ -5943,7 +5939,7 @@ MonoBehaviour:
   m_ContentType: 2
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 4
+  m_KeyboardType: 2
   m_LineType: 0
   m_HideMobileInput: 0
   m_CharacterValidation: 1

@@ -1000,7 +1000,7 @@
                     "type": "Value",
                     "id": "8415fe79-bc9c-4fdf-b141-135aeef76798",
                     "expectedControlType": "Vector2",
-                    "processors": "",
+                    "processors": "ScaleVector2(x=2.75,y=2.75)",
                     "interactions": "",
                     "initialStateCheck": true
                 },
@@ -1103,7 +1103,7 @@
                 {
                     "name": "WASD",
                     "id": "3b7279e2-0362-462c-8e10-13a238c509c8",
-                    "path": "Dpad",
+                    "path": "Dpad(mode=1)",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -1314,7 +1314,7 @@
                     "id": "64eef9b4-b016-4179-9d8f-d05f22f9b39e",
                     "path": "<Mouse>/delta",
                     "interactions": "",
-                    "processors": "ScaleVector2(x=-0.4,y=-0.4)",
+                    "processors": "InvertVector2",
                     "groups": "",
                     "action": "MouseMove",
                     "isComposite": false,
