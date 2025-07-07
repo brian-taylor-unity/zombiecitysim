@@ -29,6 +29,7 @@ public partial struct MarkDeadUnitsSystem : ISystem
         _unitQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Health>());
         _unitQuery.SetChangedVersionFilter(ComponentType.ReadOnly<Health>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate(_unitQuery);
     }
 

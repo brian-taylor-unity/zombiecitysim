@@ -131,6 +131,7 @@ public partial struct MoveEscapeFromZombiesSystem : ISystem
     {
         _zombieQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Zombie, GridPosition>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate<GameControllerComponent>();

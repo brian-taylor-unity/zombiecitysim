@@ -80,12 +80,12 @@ public class GameController : MonoBehaviour
 
     private void CreateUpdateGameControllerComponentEntity()
     {
-        World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntity(typeof(UpdateGameControllerComponent));
+        World.DefaultGameObjectInjectionWorld.EntityManager.CreateSingleton<UpdateGameControllerComponent>();
     }
 
     private void CreateSpawnWorldComponentEntity()
     {
-        World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntity(typeof(SpawnWorld));
+        World.DefaultGameObjectInjectionWorld.EntityManager.CreateSingleton<SpawnWorld>();
     }
 
     public void SetNumHumansInputField(string num)

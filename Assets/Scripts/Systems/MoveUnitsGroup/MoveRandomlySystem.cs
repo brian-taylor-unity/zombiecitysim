@@ -86,6 +86,7 @@ public partial struct MoveRandomlySystem : ISystem
     {
         _moveRandomlyQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<MoveRandomly, TurnActive>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();
         state.RequireForUpdate(_moveRandomlyQuery);

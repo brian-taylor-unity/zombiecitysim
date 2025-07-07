@@ -29,6 +29,7 @@ public partial struct AnimateMoveSystem : ISystem
     {
         _totalTime = 0.0f;
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<GameControllerComponent>();
     }
 

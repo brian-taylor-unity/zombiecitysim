@@ -323,6 +323,7 @@ public partial struct MoveTowardsHumansSystem : ISystem
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, GridPosition>());
         _audibleQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Audible>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<HashStaticCollidableSystemComponent>();
         state.RequireForUpdate<HashDynamicCollidableSystemComponent>();

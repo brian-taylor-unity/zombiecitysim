@@ -16,6 +16,7 @@ public struct HashDynamicCollidableSystemComponent : IComponentData
 }
 
 [UpdateInGroup(typeof(InitialGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct HashCollidablesSystem : ISystem
 {
     private EntityQuery _staticCollidableEntityQuery;

@@ -78,6 +78,7 @@ public partial struct AdvanceTurnSystem : ISystem
             .WithAll<Zombie>()
             .WithAllRW<TurnsUntilActive>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<GameControllerComponent>();
         state.RequireAnyForUpdate(_humanQuery, _zombieQuery, state.GetEntityQuery(ComponentType.ReadWrite<Audible>()));

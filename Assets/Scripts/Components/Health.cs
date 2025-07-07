@@ -1,7 +1,5 @@
-﻿using System;
-using Unity.Entities;
+﻿using Unity.Entities;
 
-[Serializable]
 public struct Health : IComponentData
 {
     public int Value;

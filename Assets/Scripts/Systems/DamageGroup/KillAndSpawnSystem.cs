@@ -48,6 +48,7 @@ public partial struct KillAndSpawnSystem : ISystem
     {
         _humanQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<Human, Dead, GridPosition>());
 
+        state.RequireForUpdate<RunWorld>();
         state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<GameControllerComponent>();
         state.RequireForUpdate<TileUnitSpawner_Data>();

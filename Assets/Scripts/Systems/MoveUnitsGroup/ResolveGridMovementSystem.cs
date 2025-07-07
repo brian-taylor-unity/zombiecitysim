@@ -44,9 +44,11 @@ public partial struct ResolveGridMovementSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-         _query = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
-             .WithAllRW<DesiredNextGridPosition>()
-             .WithAll<GridPosition, TurnActive>());
+        state.RequireForUpdate<RunWorld>();
+
+        _query = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
+            .WithAllRW<DesiredNextGridPosition>()
+            .WithAll<GridPosition, TurnActive>());
     }
 
     [BurstCompile]

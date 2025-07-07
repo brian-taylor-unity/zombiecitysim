@@ -14,8 +14,6 @@ public enum TileUnitKinds
     ZombieUnit
 }
 
-public struct SpawnWorld : IComponentData { }
-
 [BurstCompile]
 public partial struct SpawnJob : IJobEntity
 {
@@ -85,27 +83,30 @@ public partial struct SpawnJob : IJobEntity
 }
 
 [UpdateInGroup(typeof(InitializationSystemGroup))]
+[RequireMatchingQueriesForUpdate]
 public partial struct TileUnitSpawner_System : ISystem
 {
-    private EntityQuery _spawnWorldComponentQuery;
     private EntityQuery _regenerateComponentsQuery;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        _spawnWorldComponentQuery = state.GetEntityQuery(ComponentType.ReadOnly<SpawnWorld>());
         _regenerateComponentsQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAny<GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent>());
+
+        state.RequireForUpdate<SpawnWorld>();
         state.RequireForUpdate<TileUnitSpawner_Data>();
         state.RequireForUpdate<GameControllerComponent>();
-        state.RequireForUpdate<SpawnWorld>();
         state.RequireForUpdate<BeginInitializationEntityCommandBufferSystem.Singleton>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        state.EntityManager.DestroyEntity(_spawnWorldComponentQuery);
+        if (SystemAPI.HasSingleton<RunWorld>())
+            state.EntityManager.DestroyEntity(SystemAPI.GetSingletonEntity<RunWorld>());
+
+        state.EntityManager.DestroyEntity(SystemAPI.GetSingletonEntity<SpawnWorld>());
         state.EntityManager.DestroyEntity(_regenerateComponentsQuery);
 
         var staticComponentEntity = state.EntityManager.CreateEntity();
@@ -241,7 +242,7 @@ public partial struct TileUnitSpawner_System : ISystem
 
         tileExists.Dispose();
 
-        state.Dependency = new SpawnJob
+        new SpawnJob
         {
             HumanTurnDelay = gameControllerComponent.humanTurnDelay,
             ZombieTurnDelay = gameControllerComponent.zombieTurnDelay,
@@ -253,11 +254,13 @@ public partial struct TileUnitSpawner_System : ISystem
             TileUnitKindsNativeList = tileUnitKinds,
             TileUnitHealthNativeList = tileUnitHealth,
             TileUnitDamageNativeList = tileUnitDamage
-        }.ScheduleParallel(state.Dependency);
+        }.Run();
 
         tileUnitPositions.Dispose(state.Dependency);
         tileUnitKinds.Dispose(state.Dependency);
         tileUnitHealth.Dispose(state.Dependency);
         tileUnitDamage.Dispose(state.Dependency);
+
+        state.EntityManager.CreateSingleton<RunWorld>();
     }
 }

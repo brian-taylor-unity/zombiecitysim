@@ -15,6 +15,8 @@ public partial struct DamageToZombiesSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<RunWorld>();
+
         _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Zombie, MaxHealth, GridPosition>()
             .WithAllRW<Health, URPMaterialPropertyBaseColor>()
