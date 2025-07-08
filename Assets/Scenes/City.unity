@@ -889,11 +889,13 @@ MonoBehaviour:
   numStreets: 800
   numHumans: 45000
   humanStartingHealth: 100
+  humanFullHealthColor: {r: 0, g: 1, b: 0, a: 1}
   humanDamage: 0
   humanVisionDistance: 10
   humanTurnDelay: 3
   numZombies: 10
   zombieStartingHealth: 70
+  zombieFullHealthColor: {r: 1, g: 0, b: 0, a: 1}
   zombieDamage: 20
   zombieVisionDistance: 8
   zombieHearingDistance: 20

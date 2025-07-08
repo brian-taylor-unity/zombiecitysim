@@ -1,6 +1,7 @@
 using System;
 using Unity.Burst;
 using Unity.Entities;
+using Unity.Mathematics;
 
 [Serializable]
 public struct UpdateGameControllerComponent : IComponentData { }
@@ -17,6 +18,7 @@ public struct GameControllerComponent : IComponentData
     public int humanDamage;
     public int humanVisionDistance;
     public int humanTurnDelay;
+    public float4 humanFullHealthColor;
 
     public int numZombies;
     public int zombieStartingHealth;
@@ -24,6 +26,7 @@ public struct GameControllerComponent : IComponentData
     public int zombieVisionDistance;
     public int zombieHearingDistance;
     public int zombieTurnDelay;
+    public float4 zombieFullHealthColor;
 
     public int audibleDecayTime;
     public float turnDelayTime;
@@ -55,12 +58,19 @@ public partial class UpdateGameControllerComponentSystem : SystemBase
 
         gameControllerComponent.ValueRW.numHumans = GameController.Instance.numHumans;
         gameControllerComponent.ValueRW.humanStartingHealth = GameController.Instance.humanStartingHealth;
+        gameControllerComponent.ValueRW.humanFullHealthColor = new float4(
+            GameController.Instance.humanFullHealthColor.r, GameController.Instance.humanFullHealthColor.g,
+            GameController.Instance.humanFullHealthColor.b, GameController.Instance.humanFullHealthColor.a);
         gameControllerComponent.ValueRW.humanDamage = GameController.Instance.humanDamage;
         gameControllerComponent.ValueRW.humanVisionDistance = GameController.Instance.humanVisionDistance;
         gameControllerComponent.ValueRW.humanTurnDelay = GameController.Instance.humanTurnDelay;
 
         gameControllerComponent.ValueRW.numZombies = GameController.Instance.numZombies;
         gameControllerComponent.ValueRW.zombieStartingHealth = GameController.Instance.zombieStartingHealth;
+        gameControllerComponent.ValueRW.zombieFullHealthColor = new float4(
+            GameController.Instance.zombieFullHealthColor.r, GameController.Instance.zombieFullHealthColor.g,
+            GameController.Instance.zombieFullHealthColor.b, GameController.Instance.zombieFullHealthColor.a);
+
         gameControllerComponent.ValueRW.zombieDamage = GameController.Instance.zombieDamage;
         gameControllerComponent.ValueRW.zombieVisionDistance = GameController.Instance.zombieVisionDistance;
         gameControllerComponent.ValueRW.zombieHearingDistance = GameController.Instance.zombieHearingDistance;

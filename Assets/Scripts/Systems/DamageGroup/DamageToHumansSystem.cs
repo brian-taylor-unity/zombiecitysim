@@ -10,12 +10,12 @@ public partial struct DamageToHumansSystem : ISystem
 {
     private EntityQuery _humansQuery;
     private EntityQuery _zombiesQuery;
-    private float4 _humanFullHealthColor;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<RunWorld>();
+        state.RequireForUpdate<GameControllerComponent>();
 
         _humansQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Human, MaxHealth, GridPosition>()
@@ -24,8 +24,6 @@ public partial struct DamageToHumansSystem : ISystem
         _zombiesQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Zombie, GridPosition, Damage, TurnActive>()
         );
-        _humanFullHealthColor = new float4();
-        HumanCreator.FillFullHealthColor(ref _humanFullHealthColor);
     }
 
     [BurstCompile]
@@ -37,6 +35,7 @@ public partial struct DamageToHumansSystem : ISystem
         if (humanCount == 0 || zombieCount == 0)
             return;
 
+        var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
         var humanHashMap = new NativeParallelHashMap<uint, int>(humanCount, Allocator.TempJob);
         var damageToHumansHashMap = zombieCount < humanCount ?
             new NativeParallelMultiHashMap<uint, int>(zombieCount * 8, Allocator.TempJob) :
@@ -50,7 +49,7 @@ public partial struct DamageToHumansSystem : ISystem
         }.ScheduleParallel(_zombiesQuery, state.Dependency);
         humanHashMap.Dispose(state.Dependency);
 
-        state.Dependency = new DealDamageJob { FullHealthColor = _humanFullHealthColor, DamageAmountHashMap = damageToHumansHashMap }.ScheduleParallel(_humansQuery, state.Dependency);
+        state.Dependency = new DealDamageJob { FullHealthColor = gameControllerComponent.humanFullHealthColor, DamageAmountHashMap = damageToHumansHashMap }.ScheduleParallel(_humansQuery, state.Dependency);
         damageToHumansHashMap.Dispose(state.Dependency);
     }
 }

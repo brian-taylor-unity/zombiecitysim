@@ -1,6 +1,7 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 
 [BurstCompile]
 public partial struct SpawnZombiesJob : IJobEntity
@@ -8,16 +9,18 @@ public partial struct SpawnZombiesJob : IJobEntity
     public EntityCommandBuffer.ParallelWriter Ecb;
     public Entity ZombiePrefab;
     public int UnitHealth;
+    public float4 FullHealthColor;
     public int UnitDamage;
     public int UnitTurnsUntilActive;
 
     public void Execute([EntityIndexInQuery] int entityIndexInQuery, [ReadOnly] in GridPosition gridPosition)
     {
-        ZombieCreator.CreateZombie(
+        TileCreator.CreateZombie(
             ref Ecb,
             entityIndexInQuery,
             ZombiePrefab,
             gridPosition.Value,
+            ref FullHealthColor,
             UnitHealth,
             UnitDamage,
             UnitTurnsUntilActive,
@@ -67,6 +70,7 @@ public partial struct KillAndSpawnSystem : ISystem
                 .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
             ZombiePrefab = unitSpawner.ZombieUnit_Prefab,
             UnitHealth = gameControllerComponent.zombieStartingHealth,
+            FullHealthColor = gameControllerComponent.zombieFullHealthColor,
             UnitDamage = gameControllerComponent.zombieDamage,
             UnitTurnsUntilActive = gameControllerComponent.zombieTurnDelay
         }.ScheduleParallel(_humanQuery, state.Dependency);

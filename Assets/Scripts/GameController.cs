@@ -13,12 +13,14 @@ public class GameController : MonoBehaviour
 
     public int numHumans = 1000;
     public int humanStartingHealth = 100;
+    public Color humanFullHealthColor;
     public int humanDamage = 0;
     public int humanVisionDistance = 10;
     public int humanTurnDelay = 1;
 
     public int numZombies = 1;
     public int zombieStartingHealth = 70;
+    public Color zombieFullHealthColor;
     public int zombieDamage = 20;
     public int zombieVisionDistance = 6;
     public int zombieHearingDistance = 10;
