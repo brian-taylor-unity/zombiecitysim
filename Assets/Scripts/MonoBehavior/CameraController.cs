@@ -67,10 +67,10 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        if (_moveCameraSpeedModifierAction.IsPressed())
-        {
-            _moveSpeedModifier = _moveCameraSpeedModifierAction.ReadValue<float>() > 0;
-        }
+        if (_moveCameraSpeedModifierAction.WasPressedThisFrame())
+            _moveSpeedModifier = true;
+        if (_moveCameraSpeedModifierAction.WasReleasedThisFrame())
+            _moveSpeedModifier = false;
 
         if (_moveCameraAction.IsPressed())
         {
