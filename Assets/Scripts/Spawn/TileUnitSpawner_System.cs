@@ -97,7 +97,7 @@ public partial struct TileUnitSpawner_System : ISystem
     public void OnCreate(ref SystemState state)
     {
         _regenerateComponentsQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
-            .WithAny<GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent, HashRoadsSystemComponent>());
+            .WithAny<RunWorld, GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent, HashRoadsSystemComponent>());
 
         state.RequireForUpdate<SpawnWorld>();
         state.RequireForUpdate<TileUnitSpawner_Data>();
@@ -108,9 +108,6 @@ public partial struct TileUnitSpawner_System : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (SystemAPI.HasSingleton<RunWorld>())
-            state.EntityManager.DestroyEntity(SystemAPI.GetSingletonEntity<RunWorld>());
-
         state.EntityManager.DestroyEntity(SystemAPI.GetSingletonEntity<SpawnWorld>());
         state.EntityManager.DestroyEntity(_regenerateComponentsQuery);
 
@@ -139,7 +136,7 @@ public partial struct TileUnitSpawner_System : ISystem
                 _ => new int3(0, 0, -1)
             };
             state.EntityManager.AddComponentData(entity, new Direction { Value = dir });
-            state.EntityManager.AddComponentData(entity, new BuilderLifetime { Value = rand.NextInt(100, 500) });
+            state.EntityManager.AddComponentData(entity, new BuilderLifetime { Value = rand.NextInt(200, 800) });
             state.EntityManager.AddComponentData(entity, new RandomGenerator { Value = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode()) });
         }
         // var tileUnitPositions = new NativeList<int3>(Allocator.TempJob);
