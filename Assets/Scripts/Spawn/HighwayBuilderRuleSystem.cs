@@ -46,7 +46,7 @@ public partial struct HighwayBuilderRuleJob : IJobEntity
                     if (!RoadHashMap.TryGetValue(math.hash(gridPosition.Value + childDirection.Value), out _))
                     {
                         BuilderAgentCreator.CreateHighwayBuilderAgent(ref Ecb, entityIndexInQuery, gridPosition.Value + childDirection.Value,
-                            childDirection.Value, builderLifetime.Value - 10, Seed + (uint)(entityIndexInQuery + builderLifetime.Value + 1));
+                            childDirection.Value, builderLifetime.Value, Seed + (uint)entityIndexInQuery);
                     }
                 }
                 // 50% chance to spawn both directions (left and right), set lower lifetime
@@ -58,7 +58,7 @@ public partial struct HighwayBuilderRuleJob : IJobEntity
                     if (!RoadHashMap.TryGetValue(math.hash(gridPosition.Value + childDirection.Value), out _))
                     {
                         BuilderAgentCreator.CreateHighwayBuilderAgent(ref Ecb, entityIndexInQuery, gridPosition.Value + childDirection.Value,
-                            childDirection.Value, builderLifetime.Value - 10, Seed + (uint)(entityIndexInQuery + builderLifetime.Value + 2));
+                            childDirection.Value, builderLifetime.Value, Seed + (uint)entityIndexInQuery);
                     }
 
                     childDirection.Value.x = direction.Value.z == 0 ? 0 : direction.Value.z;
@@ -66,7 +66,7 @@ public partial struct HighwayBuilderRuleJob : IJobEntity
                     if (!RoadHashMap.TryGetValue(math.hash(gridPosition.Value + childDirection.Value), out _))
                     {
                         BuilderAgentCreator.CreateHighwayBuilderAgent(ref Ecb, entityIndexInQuery, gridPosition.Value + childDirection.Value,
-                            childDirection.Value, builderLifetime.Value - 10, Seed + (uint)(entityIndexInQuery + builderLifetime.Value + 3));
+                            childDirection.Value, builderLifetime.Value, Seed + (uint)entityIndexInQuery);
                     }
                 }
 
@@ -123,7 +123,7 @@ public partial struct HighwayBuilderRuleSystem : ISystem
 
         // Run a step of their build process
         //  inputs: roads already generated
-        var seed = (uint)SystemAPI.Time.ElapsedTime == 0 ? 1 : (uint)SystemAPI.Time.ElapsedTime;
+        var seed = (uint)SystemAPI.Time.ElapsedTime.GetHashCode();
         state.Dependency = JobHandle.CombineDependencies(state.Dependency, hashRoadSystemComponent.Handle);
         state.Dependency = new HighwayBuilderRuleJob
         {
