@@ -123,7 +123,7 @@ public partial struct TileUnitSpawner_System : ISystem
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
 
         var rand = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode());
-        for (var i = 0; i < 10; i++)
+        for (uint i = 0; i < 10; i++)
         {
             var entity = state.EntityManager.CreateEntity();
             state.EntityManager.AddComponent<HighwayBuilderAgent>(entity);
@@ -137,7 +137,7 @@ public partial struct TileUnitSpawner_System : ISystem
             };
             state.EntityManager.AddComponentData(entity, new Direction { Value = dir });
             state.EntityManager.AddComponentData(entity, new BuilderLifetime { Value = rand.NextInt(200, 800) });
-            state.EntityManager.AddComponentData(entity, new RandomGenerator { Value = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode()) });
+            state.EntityManager.AddComponentData(entity, new RandomGenerator { Value = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode() + i) });
         }
         // var tileUnitPositions = new NativeList<int3>(Allocator.TempJob);
         // var tileUnitKinds = new NativeList<TileUnitKinds>(Allocator.TempJob);
