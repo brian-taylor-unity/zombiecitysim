@@ -97,7 +97,7 @@ public partial struct TileUnitSpawner_System : ISystem
     public void OnCreate(ref SystemState state)
     {
         _regenerateComponentsQuery = state.GetEntityQuery(new EntityQueryBuilder(Allocator.Temp)
-            .WithAny<GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent>());
+            .WithAny<GridPosition, RoadSurface, HashDynamicCollidableSystemComponent, HashStaticCollidableSystemComponent, HashRoadsSystemComponent>());
 
         state.RequireForUpdate<SpawnWorld>();
         state.RequireForUpdate<TileUnitSpawner_Data>();
@@ -124,14 +124,24 @@ public partial struct TileUnitSpawner_System : ISystem
         state.EntityManager.AddComponent(hashRoadsSystemComponentEntity, ComponentType.ReadOnly<HashRoadsSystemComponent>());
 
         var gameControllerComponent = SystemAPI.GetSingleton<GameControllerComponent>();
-        var entity = state.EntityManager.CreateEntity();
-        state.EntityManager.AddComponent<HighwayBuilderAgent>(entity);
-        state.EntityManager.AddComponentData(entity, new GridPosition { Value = new int3(0, 0, 0) });
-        state.EntityManager.AddComponentData(entity, new Direction { Value = new int3(1, 0, 0) });
-        state.EntityManager.AddComponentData(entity, new BuilderLifetime { Value = 100 });
-        var seed = (uint)SystemAPI.Time.ElapsedTime == 0 ? 1 : (uint)SystemAPI.Time.ElapsedTime;
-        state.EntityManager.AddComponentData(entity, new RandomGenerator { Value = new Random(seed) });
 
+        var rand = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode());
+        for (var i = 0; i < 10; i++)
+        {
+            var entity = state.EntityManager.CreateEntity();
+            state.EntityManager.AddComponent<HighwayBuilderAgent>(entity);
+            state.EntityManager.AddComponentData(entity, new GridPosition { Value = new int3(rand.NextInt(1, gameControllerComponent.numTilesX), 0, rand.NextInt(1, gameControllerComponent.numTilesY)) });
+            var dir = rand.NextInt(0, 4) switch
+            {
+                0 => new int3(1, 0, 0),
+                1 => new int3(-1, 0, 0),
+                2 => new int3(0, 0, 1),
+                _ => new int3(0, 0, -1)
+            };
+            state.EntityManager.AddComponentData(entity, new Direction { Value = dir });
+            state.EntityManager.AddComponentData(entity, new BuilderLifetime { Value = rand.NextInt(100, 500) });
+            state.EntityManager.AddComponentData(entity, new RandomGenerator { Value = new Random((uint)SystemAPI.Time.ElapsedTime.GetHashCode()) });
+        }
         // var tileUnitPositions = new NativeList<int3>(Allocator.TempJob);
         // var tileUnitKinds = new NativeList<TileUnitKinds>(Allocator.TempJob);
         // var tileUnitHealth = new NativeList<int>(Allocator.TempJob);
