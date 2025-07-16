@@ -3,7 +3,7 @@ on: push
 jobs:
   activate:
     name: Activate
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Unity - Activate
         uses: game-ci/unity-activate@v2.0.0
